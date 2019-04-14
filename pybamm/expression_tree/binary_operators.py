@@ -528,12 +528,14 @@ class Power(BinaryOperator):
     def _binary_simplify(self, left, right):
         """ See :meth:`pybamm.BinaryOperator.simplify()`. """
 
-        # anything to the power of zero is one
+        # anything to the power of zero is one (including zero to the power of zero)
         if is_zero(right):
             return pybamm.Scalar(1)
 
-        # anything to the power of one is itself
-        if is_zero(left):
+        # anything to the power of one is itself,
+        # one to the power of anything is one
+        # zero to the power of anything is zero
+        if is_one(right) or is_one(left) or is_zero(left):
             return left
 
         return self.__class__(left, right)

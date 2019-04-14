@@ -145,7 +145,9 @@ class Function(UnaryOperator):
             if variable.id in [symbol.id for symbol in child.pre_order()]:
                 # if variable appears in the function,use autograd to differentiate
                 # function, and apply chain rule
-                return child.diff(variable) * Function(autograd.grad(self.func), child)
+                return child.diff(variable) * Function(
+                    autograd.elementwise_grad(self.func), child
+                )
             else:
                 # otherwise the derivative of the function is zero
                 return pybamm.Scalar(0)

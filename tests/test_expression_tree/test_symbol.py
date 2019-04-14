@@ -62,6 +62,20 @@ class TestSymbol(unittest.TestCase):
         # BoundaryValue
         self.assertIsInstance((pybamm.surf(v)).simplify(), pybamm.BoundaryValue)
 
+        # power
+        self.assertIsInstance((a ** b).simplify(), pybamm.Scalar)
+        self.assertEqual((a ** b).simplify().evaluate(), 0)
+        self.assertIsInstance((a ** a).simplify(), pybamm.Scalar)
+        self.assertEqual((a ** a).simplify().evaluate(), 1)
+        self.assertIsInstance((b ** b).simplify(), pybamm.Scalar)
+        self.assertEqual((b ** b).simplify().evaluate(), 1)
+        self.assertIsInstance((b ** a).simplify(), pybamm.Scalar)
+        self.assertEqual((b ** a).simplify().evaluate(), 1)
+        self.assertIsInstance((e ** a).simplify(), pybamm.Scalar)
+        self.assertEqual((e ** a).simplify().evaluate(), 1)
+        self.assertIsInstance((e ** b).simplify(), pybamm.Scalar)
+        self.assertEqual((e ** b).simplify().evaluate(), 2)
+
         # addition
         self.assertIsInstance((a + b).simplify(), pybamm.Scalar)
         self.assertEqual((a + b).simplify().evaluate(), 1)

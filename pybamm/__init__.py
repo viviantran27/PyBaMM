@@ -43,9 +43,9 @@ ABSOLUTE_PATH = os.path.join(os.path.split(script_path)[0], "..")
 #
 # Utility classes and methods
 #
-from .util import Timer
-from .util import profile
-from .util import load_function
+from .misc.util import Timer
+from .misc.util import profile
+from .misc.util import load_function
 
 #
 # Classes for the Expression Tree
@@ -158,11 +158,6 @@ from .spatial_methods.spatial_method import SpatialMethod
 from .spatial_methods.finite_volume import FiniteVolume
 
 #
-# Simulation class
-#
-from .simulation import Simulation
-
-#
 # Solver classes
 #
 from .solvers.base_solver import BaseSolver
@@ -175,7 +170,9 @@ from .solvers.scikits_ode_solver import ScikitsOdeSolver
 #
 # other
 #
-from .processed_variable import ProcessedVariable
+from .misc.manufactured_solution import ManufacturedSolution
+from .misc.processed_variable import ProcessedVariable
+from .misc.simulation import Simulation
 
 #
 # Remove any imported modules, so we don't expose them as part of pybamm
