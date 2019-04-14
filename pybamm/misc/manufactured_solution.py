@@ -12,19 +12,21 @@ class ManufacturedSolution(object):
 
     """
 
-    def process_model(self, model):
+    def process_model(self, model, man_vars=None):
         # Read and create manufactured variables
-        man_vars = {
-            var.id: self.create_manufactured_variable(var.domain)
-            for var in model.initial_conditions.keys()
-        }
+        model_variables = model.initial_conditions.keys()
+        if man_vars is None:
+            man_vars = {
+                var.id: self.create_manufactured_variable(var.domain)
+                for var in model_variables
+            }
 
         # Add appropriate source terms to the equations
         for var, eqn in model.rhs.items():
             # Calculate source term
             source_term = -self.process_symbol(eqn, man_vars)
             # Calculate additional source term for the differential part
-            source_term += var_dt.diff(pybamm.t)
+            source_term += var.diff(pybamm.t)
             # Add source term to equation
             model.rhs[var] += source_term
         for var, eqn in model.algebraic.items():
@@ -35,11 +37,11 @@ class ManufacturedSolution(object):
 
         # Set initial conditions using manufactured variables
         # (for the algebraic equations, these should already be consistent with eqns)
-        model.initial_conditions = {var: man_vars[var] for var in man_vars}
+        model.initial_conditions = {var: man_vars[var.id] for var in model_variables}
 
         # Set boundary conditions using manufactured variables
         for expr in model.boundary_conditions:
-            expr_proc = self.process_symbol(expr, man_vars)
+            expr_proc = self.process_symbol(expr, man_vars[var.id])
             # The boundary condition is the processed expression evaluated on that
             # boundary
             model.boundary_conditions[expr] = {
@@ -62,7 +64,7 @@ class ManufacturedSolution(object):
         # Construct random forms of variables
         # random types
         # random coefficients
-        options = [t * pybamm.Function(np.cos, r)]
+        options = [t * pybamm.Function(np.cos, r), x ** 2]
         return options[0]
 
     def process_symbol(self, symbol, variables):

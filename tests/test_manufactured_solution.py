@@ -2,7 +2,7 @@
 # Tests for the Manufactured Solution class
 #
 import pybamm
-from tests import get_discretisation_for_testing
+from tests import get_discretisation_for_testing, get_mesh_for_testing
 
 import autograd.numpy as anp
 import numpy as np
@@ -41,7 +41,6 @@ class TestManufacturedSolution(unittest.TestCase):
         # Create manufactured solution class, and discretisation class for testing
         ms = pybamm.ManufacturedSolution()
         disc = get_discretisation_for_testing()
-        mesh = disc.mesh
 
         # Process variable
         a_proc = ms.process_symbol(a, man_vars)
@@ -77,7 +76,49 @@ class TestManufacturedSolution(unittest.TestCase):
             )
 
     def test_manufacture_model(self):
+        # Create known variables
+        a = pybamm.Variable("a", domain=["negative electrode"])
+        b = pybamm.Variable(
+            "b", domain=["negative electrode", "separator", "positive electrode"]
+        )
+        c = pybamm.Variable("c", domain=["negative particle"])
+        x_n = pybamm.SpatialVariable("x", domain=a.domain)
+        x = pybamm.SpatialVariable("x", domain=b.domain)
+        r_n = pybamm.SpatialVariable("r", domain=c.domain)
+        man_vars = {
+            a.id: pybamm.Function(anp.cos, x_n),
+            b.id: (x + 5) ** 2,
+            c.id: pybamm.Function(anp.exp, 3 * r_n),
+        }
+
+        # Create manufactured solution class, and discretisation class for testing
         ms = pybamm.ManufacturedSolution()
+        mesh = get_mesh_for_testing()
+        spatial_methods = {
+            "macroscale": pybamm.FiniteVolume,
+            "negative particle": pybamm.FiniteVolume,
+        }
+        disc = pybamm.Discretisation(mesh, spatial_methods)
+
+        # Create and process model
+        model = pybamm.BaseModel()
+        model.algebraic = {a: pybamm.div(pybamm.grad(a)) + 5}
+        model.initial_conditions = {a: 0}
+        ms.process_model(model, man_vars)
+
+        # Check initial and boundary conditions
+        import ipdb
+
+        ipdb.set_trace()
+
+        # Discretise model and check answer
+        x_n_eval = disc.process_symbol(x_n).evaluate()
+        x_eval = disc.process_symbol(x).evaluate()
+        r_n_eval = disc.process_symbol(r_n).evaluate()
+        y = np.cos(x_n_eval)
+
+        disc.process_model(model)
+        np.testing.assert_almost_equal(model.algeraic[a].evaluate(y=y), 0, decimal=14)
 
 
 if __name__ == "__main__":
