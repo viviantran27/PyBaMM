@@ -130,3 +130,9 @@ class OptimisationsTest(object):
             result = np.concatenate([result, eqn_eval])
 
         return result
+
+
+class MethodManufacturedSolutionsTest(object):
+    def __init__(self, model):
+        ms = pybamm.ManufacturedSolution()
+        ms.process_model(model, man_vars)

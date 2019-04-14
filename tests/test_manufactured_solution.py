@@ -93,7 +93,7 @@ class TestManufacturedSolution(unittest.TestCase):
 
         # Create manufactured solution class, and discretisation class for testing
         ms = pybamm.ManufacturedSolution()
-        mesh = get_mesh_for_testing()
+        mesh = get_mesh_for_testing(200)
         spatial_methods = {
             "macroscale": pybamm.FiniteVolume,
             "negative particle": pybamm.FiniteVolume,
@@ -102,23 +102,54 @@ class TestManufacturedSolution(unittest.TestCase):
 
         # Create and process model
         model = pybamm.BaseModel()
-        model.algebraic = {a: pybamm.div(pybamm.grad(a)) + 5}
-        model.initial_conditions = {a: 0}
+        flux_a = a * pybamm.grad(a)
+        flux_c = pybamm.Function(anp.cosh, c) * pybamm.grad(c)
+        model.algebraic = {a: pybamm.div(flux_a) + 5, b: -3 * b, c: pybamm.div(flux_c)}
+        # initial and boundary conditions will be overwritten
+        model.initial_conditions = {a: 0, b: 0, c: 0}
+        model.boundary_conditions = {
+            flux_a: {"left": 0, "right": 0},
+            c: {"left": 0, "right": 0},
+        }
         ms.process_model(model, man_vars)
 
-        # Check initial and boundary conditions
-        import ipdb
-
-        ipdb.set_trace()
-
-        # Discretise model and check answer
+        # Set up tests
         x_n_eval = disc.process_symbol(x_n).evaluate()
         x_eval = disc.process_symbol(x).evaluate()
         r_n_eval = disc.process_symbol(r_n).evaluate()
-        y = np.cos(x_n_eval)
-
+        y_a = np.cos(x_n_eval)
+        y_b = (x_eval + 5) ** 2
+        y_c = np.exp(3 * r_n_eval)
+        y = np.concatenate([y_a, y_b, y_c])
+        # Discretise model and check answer
         disc.process_model(model)
-        np.testing.assert_almost_equal(model.algeraic[a].evaluate(y=y), 0, decimal=14)
+
+        # Check initial and boundary conditions
+        np.testing.assert_array_equal(model.initial_conditions[a].evaluate(y=y), y_a)
+        np.testing.assert_array_equal(model.initial_conditions[b].evaluate(y=y), y_b)
+        np.testing.assert_array_equal(model.initial_conditions[c].evaluate(y=y), y_c)
+        np.testing.assert_almost_equal(
+            model.boundary_conditions[flux_a]["left"].evaluate(y=y), 0
+        )
+        # note l_n = 1/3 in mesh_for_testing
+        np.testing.assert_almost_equal(
+            model.boundary_conditions[flux_a]["right"].evaluate(y=y),
+            -np.cos(1 / 3) * np.sin(1 / 3),
+            decimal=6,
+        )
+        np.testing.assert_almost_equal(
+            model.boundary_conditions[c]["left"].evaluate(y=y), 1, decimal=4
+        )
+        np.testing.assert_almost_equal(
+            model.boundary_conditions[c]["right"].evaluate(y=y), np.exp(3), decimal=1
+        )
+        # Check that algebraic equations with the right y evaluate to zero
+        np.testing.assert_almost_equal(model.algebraic[a].evaluate(y=y), 0, decimal=3)
+        np.testing.assert_almost_equal(model.algebraic[b].evaluate(y=y), 0, decimal=3)
+        np.testing.assert_almost_equal(model.algebraic[c].evaluate(y=y), 0, decimal=3)
+
+        # todo: pick something that tends to zero as r tends to zero for yc,
+        # test time derivative
 
 
 if __name__ == "__main__":

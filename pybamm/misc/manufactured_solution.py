@@ -41,7 +41,7 @@ class ManufacturedSolution(object):
 
         # Set boundary conditions using manufactured variables
         for expr in model.boundary_conditions:
-            expr_proc = self.process_symbol(expr, man_vars[var.id])
+            expr_proc = self.process_symbol(expr, man_vars)
             # The boundary condition is the processed expression evaluated on that
             # boundary
             model.boundary_conditions[expr] = {
