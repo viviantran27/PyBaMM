@@ -34,8 +34,8 @@ class TestManufacturedSolution(unittest.TestCase):
         r_n = pybamm.SpatialVariable("r", domain=c.domain)
         man_vars = {
             a.id: pybamm.Function(anp.cos, x_n),
-            b.id: x ** 2,
-            c.id: pybamm.Function(anp.exp, r_n),
+            b.id: (x + 5) ** 2,
+            c.id: pybamm.Function(anp.exp, 3 * r_n),
         }
 
         # Create manufactured solution class, and discretisation class for testing
@@ -54,16 +54,27 @@ class TestManufacturedSolution(unittest.TestCase):
         # Process equations
         x_n_eval = disc.process_symbol(x_n).evaluate()
         x_eval = disc.process_symbol(x).evaluate()
+        r_n_eval = disc.process_symbol(r_n).evaluate()
         # Discretise to test
         for eqn, expected in [
-            # (pybamm.grad(a), -np.sin(x_n_eval)),
-            # (pybamm.div(a), -np.sin(x_n_eval)),
-            # (3 * pybamm.grad(-5 * a) + 2, 15 * np.sin(x_n_eval) + 2),
-            (pybamm.grad(b), 2 * x_eval)
+            (pybamm.grad(a), -np.sin(x_n_eval)),
+            (pybamm.div(a), -np.sin(x_n_eval)),
+            (3 * pybamm.grad(2 * a) + 2, -6 * np.sin(x_n_eval) + 2),
+            (pybamm.grad(b), 2 * (x_eval + 5)),
+            (pybamm.div(3 * (b - 2)), 6 * (x_eval + 5)),
+            (pybamm.grad(c), 3 * np.exp(3 * r_n_eval)),
+            (
+                pybamm.div(c),
+                1
+                / (r_n_eval ** 2)
+                * ((2 * r_n_eval + 3 * r_n_eval ** 2) * np.exp(3 * r_n_eval)),
+            ),
         ]:
             eqn_proc = ms.process_symbol(eqn, man_vars)
             eqn_proc_disc = disc.process_symbol(eqn_proc)
-            np.testing.assert_array_equal(eqn_proc_disc.evaluate(), expected)
+            np.testing.assert_almost_equal(
+                eqn_proc_disc.evaluate(), expected, decimal=14
+            )
 
     def test_manufacture_model(self):
         ms = pybamm.ManufacturedSolution()
