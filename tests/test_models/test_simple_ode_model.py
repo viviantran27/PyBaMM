@@ -56,9 +56,9 @@ class TestSimpleODEModel(unittest.TestCase):
 
     def test_manufactured_solution(self):
         model = pybamm.SimpleODEModel()
-        errs = tests.get_manufactured_solution_errors(model)
+        errs = tests.get_manufactured_solution_errors(model, False)
         # ODE model: the error should be almost zero (no convergence test)
-        np.testing.assert_almost_equal(errs, 0, decimal=14)
+        np.testing.assert_almost_equal(errs, 0, decimal=6)
 
 
 if __name__ == "__main__":

@@ -486,9 +486,6 @@ class TestFiniteVolume(unittest.TestCase):
 
         n_mesh = mesh["negative particle"]
 
-        mesh.add_ghost_meshes()
-        disc.mesh.add_ghost_meshes()
-
         var = pybamm.Variable("var", domain=["negative particle"])
         grad_eqn = pybamm.grad(var)
         boundary_conditions = {
@@ -690,9 +687,6 @@ class TestFiniteVolume(unittest.TestCase):
         disc = pybamm.Discretisation(mesh, spatial_methods)
 
         n_mesh = mesh["negative particle"]
-
-        mesh.add_ghost_meshes()
-        disc.mesh.add_ghost_meshes()
 
         # test grad
         var = pybamm.Variable("var", domain=["negative particle"])

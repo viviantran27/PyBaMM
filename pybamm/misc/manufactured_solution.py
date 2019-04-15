@@ -4,7 +4,7 @@
 import pybamm
 
 import copy
-import numpy as np
+import autograd.numpy as np
 
 
 class ManufacturedSolution(object):
@@ -63,20 +63,26 @@ class ManufacturedSolution(object):
     def create_manufactured_variable(self, domain):
         t = pybamm.t
         if domain == []:
-            x = pybamm.Scalar(1)
-            r = pybamm.Scalar(1)
+            x = pybamm.Scalar(np.random.rand())
+            r = pybamm.Scalar(np.random.rand())
         elif domain in [["negative particle"], ["positive particle"]]:
-            x = pybamm.Scalar(1)
+            x = pybamm.Scalar(np.random.rand())
             r = pybamm.SpatialVariable("r", domain=domain)
         else:
             x = pybamm.SpatialVariable("x", domain=domain)
-            r = pybamm.Scalar(1)
+            r = pybamm.Scalar(np.random.rand())
 
         # Construct random forms of variables
         # random types
         # random coefficients
-        options = [t * pybamm.Function(np.cos, r), x ** 2]
-        return options[0]
+        # either x is a scalar or r is a scalar, so there is no domain clash
+        a, b, c = np.random.rand(3)
+        options = [
+            a * t + b * r + c * x,
+            a * t * b * pybamm.Function(np.cos, c * r * x),
+            a * pybamm.Function(np.exp, b * t) * (c + r * x) ** 2,
+        ]
+        return options[np.random.randint(len(options))]
 
     def process_symbol(self, symbol):
         """Walk through the symbol and replace any Variable with a manufactured variable
