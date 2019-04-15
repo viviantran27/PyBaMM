@@ -54,6 +54,12 @@ class TestSimpleODEModel(unittest.TestCase):
             * np.exp(-T),
         )
 
+    def test_manufactured_solution(self):
+        model = pybamm.SimpleODEModel()
+        errs = tests.get_manufactured_solution_errors(model)
+        # ODE model: the error should be almost zero (no convergence test)
+        np.testing.assert_almost_equal(errs, 0, decimal=14)
+
 
 if __name__ == "__main__":
     print("Add -v for more debug output")

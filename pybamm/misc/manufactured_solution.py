@@ -22,13 +22,14 @@ class ManufacturedSolution(object):
                 for var in model_variables
             }
         self.man_vars = man_vars
+        self.set_man_var_strings(model.variables)
 
         # Add appropriate source terms to the equations
         for var, eqn in model.rhs.items():
             # Calculate source term
             source_term = -self.process_symbol(eqn)
             # Calculate additional source term for the differential part
-            source_term += var.diff(pybamm.t)
+            source_term += self.man_vars[var.id].diff(pybamm.t)
             # Add source term to equation
             model.rhs[var] += source_term
         for var, eqn in model.algebraic.items():
@@ -85,8 +86,6 @@ class ManufacturedSolution(object):
         ----------
         symbol : :class:`pybamm.Symbol`
             Symbol or Expression tree to process
-        variables : list
-            List of manufactured variables
 
         Returns
         -------
@@ -95,7 +94,7 @@ class ManufacturedSolution(object):
 
         """
         if isinstance(symbol, pybamm.Variable):
-            return variables[symbol.id]
+            return self.man_vars[symbol.id]
 
         elif isinstance(symbol, pybamm.BinaryOperator):
             left, right = symbol.children

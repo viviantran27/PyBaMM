@@ -5,6 +5,7 @@ from __future__ import absolute_import, division
 from __future__ import print_function, unicode_literals
 import pybamm
 
+import copy
 import numpy as np
 
 
@@ -132,18 +133,17 @@ class OptimisationsTest(object):
         return result
 
 
-def method_manufactured_solutions_test(model):
-    # Add manufactured solution to model
-    ms = pybamm.ManufacturedSolution()
-    ms.process_model(model)
-
+def get_manufactured_solution_errors(model, has_spatial_derivatives=True):
     # Process model and geometry
     param = model.default_parameter_values
     param.process_model(model)
     geometry = model.default_geometry
     param.process_geometry(geometry)
+    # Add manufactured solution to model
+    ms = pybamm.ManufacturedSolution()
+    ms.process_model(model)
     # Set up solver
-    t_eval = np.linspace(0, 0.01, 5)
+    t_eval = np.linspace(0, 1)
     solver = model.default_solver
 
     # Function for convergence testing
@@ -159,18 +159,24 @@ def method_manufactured_solutions_test(model):
         disc.process_model(model_copy)
         solver.solve(model_copy, t_eval)
         t, y = solver.t, solver.y
-        conc = pybamm.ProcessedVariable(
-            model_copy.variables["Electrolyte concentration"], t, y, mesh=disc.mesh
-        )
+        # Process model and exact solutions
+        approx_all = np.array([])
+        exact_all = np.array([])
+        for var_string, man_var in ms.man_var_strings.items():
+            approx = pybamm.ProcessedVariable(
+                model_copy.variables[var_string], t, y, mesh=disc.mesh
+            )(t, y)
+            approx_all = np.concatenate([approx_all, np.reshape(approx, -1)])
+            exact = disc.process_symbol(man_var).evaluate(t=t)
+            exact_all = np.concatenate([exact_all, np.reshape(exact, -1)])
 
         # error
         error = np.linalg.norm(approx - exact) / np.linalg.norm(exact)
         return error
 
-    # Get errors
-    ns = 10 * (2 ** np.arange(2, 7))
-    errs = np.array([get_l2_error(int(n)) for n in ns])
-
-    # Get rates: expect h**2
-    rates = np.log2(errs[:-1] / errs[1:])
-    np.testing.assert_array_less(1.99 * np.ones_like(rates), rates)
+    if has_spatial_derivatives:
+        # Get errors
+        ns = 10 * (2 ** np.arange(2, 7))
+        return np.array([get_l2_error(int(n)) for n in ns])
+    else:
+        return get_l2_error(1)
