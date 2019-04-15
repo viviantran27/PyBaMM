@@ -51,6 +51,12 @@ class TestLeadAcidLOQS(unittest.TestCase):
         # Make sure the concentration is always positive (cut-off event working)
         np.testing.assert_array_less(0, conc.entries)
 
+    def test_manufactured_solution(self):
+        model = pybamm.lead_acid.LOQS()
+        errs = tests.get_manufactured_solution_errors(model, False)
+        # ODE model: the error should be almost zero (no convergence test)
+        np.testing.assert_almost_equal(errs, 0, decimal=6)
+
 
 if __name__ == "__main__":
     print("Add -v for more debug output")

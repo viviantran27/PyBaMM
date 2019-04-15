@@ -173,7 +173,10 @@ def get_manufactured_solution_errors(model, has_spatial_derivatives=True):
             exact_all = np.concatenate([exact_all, np.reshape(exact, -1)])
 
         # error
-        error = np.linalg.norm(approx - exact) / np.linalg.norm(exact)
+        import ipdb
+
+        ipdb.set_trace()
+        error = np.linalg.norm(approx_all - exact_all) / np.linalg.norm(exact_all)
         return error
 
     if has_spatial_derivatives:
