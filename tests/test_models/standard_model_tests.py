@@ -132,7 +132,45 @@ class OptimisationsTest(object):
         return result
 
 
-class MethodManufacturedSolutionsTest(object):
-    def __init__(self, model):
-        ms = pybamm.ManufacturedSolution()
-        ms.process_model(model, man_vars)
+def method_manufactured_solutions_test(model):
+    # Add manufactured solution to model
+    ms = pybamm.ManufacturedSolution()
+    ms.process_model(model)
+
+    # Process model and geometry
+    param = model.default_parameter_values
+    param.process_model(model)
+    geometry = model.default_geometry
+    param.process_geometry(geometry)
+    # Set up solver
+    t_eval = np.linspace(0, 0.01, 5)
+    solver = model.default_solver
+
+    # Function for convergence testing
+    def get_l2_error(n):
+        model_copy = copy.deepcopy(model)
+        # Set up discretisation
+        var = pybamm.standard_spatial_vars
+        submesh_pts = {var.x_n: n, var.x_s: n, var.x_p: n, var.r_n: n, var.r_p: n}
+        mesh = pybamm.Mesh(geometry, model_copy.default_submesh_types, submesh_pts)
+        disc = pybamm.Discretisation(mesh, model_copy.default_spatial_methods)
+
+        # Discretise and solve
+        disc.process_model(model_copy)
+        solver.solve(model_copy, t_eval)
+        t, y = solver.t, solver.y
+        conc = pybamm.ProcessedVariable(
+            model_copy.variables["Electrolyte concentration"], t, y, mesh=disc.mesh
+        )
+
+        # error
+        error = np.linalg.norm(approx - exact) / np.linalg.norm(exact)
+        return error
+
+    # Get errors
+    ns = 10 * (2 ** np.arange(2, 7))
+    errs = np.array([get_l2_error(int(n)) for n in ns])
+
+    # Get rates: expect h**2
+    rates = np.log2(errs[:-1] / errs[1:])
+    np.testing.assert_array_less(1.99 * np.ones_like(rates), rates)

@@ -16,22 +16,24 @@ class ManufacturedSolution(object):
         # Read and create manufactured variables
         model_variables = model.initial_conditions.keys()
         if man_vars is None:
+            # Create dictionary of manufactured variables
             man_vars = {
                 var.id: self.create_manufactured_variable(var.domain)
                 for var in model_variables
             }
+        self.man_vars = man_vars
 
         # Add appropriate source terms to the equations
         for var, eqn in model.rhs.items():
             # Calculate source term
-            source_term = -self.process_symbol(eqn, man_vars)
+            source_term = -self.process_symbol(eqn)
             # Calculate additional source term for the differential part
             source_term += var.diff(pybamm.t)
             # Add source term to equation
             model.rhs[var] += source_term
         for var, eqn in model.algebraic.items():
             # Calculate source term
-            source_term = -self.process_symbol(eqn, man_vars)
+            source_term = -self.process_symbol(eqn)
             # Add source term to equation
             model.algebraic[var] += source_term
 
@@ -41,13 +43,21 @@ class ManufacturedSolution(object):
 
         # Set boundary conditions using manufactured variables
         for expr in model.boundary_conditions:
-            expr_proc = self.process_symbol(expr, man_vars)
+            expr_proc = self.process_symbol(expr)
             # The boundary condition is the processed expression evaluated on that
             # boundary
             model.boundary_conditions[expr] = {
                 side: pybamm.BoundaryValue(expr_proc, side)
                 for side in ["left", "right"]
             }
+
+    def set_man_var_strings(self, model_vars):
+        # Create dictionary pointing to manufactured variables, for testing, using
+        # model.variables (not infallible)
+        self.man_var_strings = {}
+        for var_string, var_expr in model_vars.items():
+            if var_expr.id in self.man_vars:
+                self.man_var_strings[var_string] = self.man_vars[var_expr.id]
 
     def create_manufactured_variable(self, domain):
         t = pybamm.t
@@ -67,7 +77,7 @@ class ManufacturedSolution(object):
         options = [t * pybamm.Function(np.cos, r), x ** 2]
         return options[0]
 
-    def process_symbol(self, symbol, variables):
+    def process_symbol(self, symbol):
         """Walk through the symbol and replace any Variable with a manufactured variable
         and any Gradient or Divergence with the explicit derivative
 
@@ -90,15 +100,15 @@ class ManufacturedSolution(object):
         elif isinstance(symbol, pybamm.BinaryOperator):
             left, right = symbol.children
             # process children
-            new_left = self.process_symbol(left, variables)
-            new_right = self.process_symbol(right, variables)
+            new_left = self.process_symbol(left)
+            new_right = self.process_symbol(right)
             # make new symbol, ensure domain remains the same
             new_symbol = symbol.__class__(new_left, new_right)
             new_symbol.domain = symbol.domain
             return new_symbol
 
         elif isinstance(symbol, pybamm.UnaryOperator):
-            new_child = self.process_symbol(symbol.children[0], variables)
+            new_child = self.process_symbol(symbol.children[0])
             if isinstance(symbol, pybamm.Gradient):
                 new_symbol = self.gradient(new_child)
             elif isinstance(symbol, pybamm.Divergence):
@@ -125,7 +135,7 @@ class ManufacturedSolution(object):
         elif isinstance(symbol, pybamm.Concatenation):
             new_children = []
             for child in symbol.children:
-                new_child = self.process_symbol(child, variables)
+                new_child = self.process_symbol(child)
                 new_children.append(new_child)
             if isinstance(symbol, pybamm.DomainConcatenation):
                 return pybamm.DomainConcatenation(new_children, symbol.mesh)
