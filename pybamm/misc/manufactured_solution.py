@@ -66,7 +66,6 @@ class ManufacturedSolution(object):
             Dictionary '{string: expression}' of
         """
         self.manufactured_variable_strings = {}
-        found_variable = False
         for var_string, var_expr in model_variables.items():
             if var_expr.id in self.manufactured_variables:
                 self.manufactured_variable_strings[
@@ -81,6 +80,10 @@ class ManufacturedSolution(object):
                     self.manufactured_variables[var_expr.children[0].id],
                     var_expr.domain,
                 )
+        if self.manufactured_variable_strings == {}:
+            raise ValueError(
+                """No manufactured variables can be found in model variables"""
+            )
 
     def create_manufactured_variable(self, domain):
         t = pybamm.t

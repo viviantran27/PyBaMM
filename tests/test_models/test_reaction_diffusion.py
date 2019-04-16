@@ -12,14 +12,12 @@ import unittest
 
 
 class TestReactionDiffusionModel(unittest.TestCase):
-    @unittest.skip("")
     def test_basic_processing(self):
         model = pybamm.ReactionDiffusionModel()
 
         modeltest = tests.StandardModelTest(model)
         modeltest.test_all()
 
-    @unittest.skip("")
     def test_optimisations(self):
         model = pybamm.ReactionDiffusionModel()
         optimtest = tests.OptimisationsTest(model)
@@ -32,7 +30,6 @@ class TestReactionDiffusionModel(unittest.TestCase):
         np.testing.assert_array_almost_equal(original, using_known_evals)
         np.testing.assert_array_almost_equal(original, simp_and_known)
 
-    @unittest.skip("")
     def test_convergence(self):
         # Convergence of c at x=0.5
         model = pybamm.ReactionDiffusionModel()
@@ -81,9 +78,12 @@ class TestReactionDiffusionModel(unittest.TestCase):
 
     def test_manufactured_solution(self):
         model = pybamm.ReactionDiffusionModel()
-        errs = tests.get_manufactured_solution_errors(model)
-        rates = np.log2(errs[:-1] / errs[1:])
-        np.testing.assert_array_less(1.99 * np.ones_like(rates), rates)
+        exact, approx = tests.get_manufactured_solution_errors(model, False)
+        # ODE model: the error should be almost zero for each var (no convergence test)
+        for var in exact.keys():
+            np.testing.assert_almost_equal(
+                exact[var].entries - approx[var].entries, 0, decimal=-1
+            )
 
 
 if __name__ == "__main__":

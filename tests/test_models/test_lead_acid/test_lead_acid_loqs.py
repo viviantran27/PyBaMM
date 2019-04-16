@@ -53,9 +53,12 @@ class TestLeadAcidLOQS(unittest.TestCase):
 
     def test_manufactured_solution(self):
         model = pybamm.lead_acid.LOQS()
-        errs = tests.get_manufactured_solution_errors(model, False)
-        # ODE model: the error should be almost zero (no convergence test)
-        np.testing.assert_almost_equal(errs, 0, decimal=6)
+        exact, approx = tests.get_manufactured_solution_errors(model, False)
+        # ODE model: the error should be almost zero for each var (no convergence test)
+        for var in exact.keys():
+            np.testing.assert_almost_equal(
+                exact[var].entries - approx[var].entries, 0, decimal=6
+            )
 
 
 if __name__ == "__main__":

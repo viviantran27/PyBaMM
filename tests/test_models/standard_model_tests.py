@@ -176,8 +176,8 @@ def get_manufactured_solution_errors(model, has_spatial_derivatives=True):
         solver.solve(model_copy, t_eval)
         t, y = solver.t, solver.y
         # Process model and exact solutions
-        approx_all = np.array([])
-        exact_all = np.array([])
+        approx_all = {}
+        exact_all = {}
         for (
             var_string,
             manufactured_variable,
@@ -185,19 +185,20 @@ def get_manufactured_solution_errors(model, has_spatial_derivatives=True):
             # Approximate solution from solving the model
             approx = pybamm.ProcessedVariable(
                 model_copy.variables[var_string], t, y, mesh=disc.mesh
-            ).entries
-            approx_all = np.concatenate([approx_all, np.reshape(approx, -1)])
+            )
+            approx_all[var_string] = approx
             # Exact solution from manufactured solution
-            exact = disc.process_symbol(manufactured_variable).evaluate(t=t)
-            exact_all = np.concatenate([exact_all, np.reshape(exact, -1)])
+            exact = pybamm.ProcessedVariable(
+                disc.process_symbol(manufactured_variable), t, y, mesh=disc.mesh
+            )
+            exact_all[var_string] = exact
 
         # error
-        error = np.linalg.norm(approx_all - exact_all) / np.linalg.norm(exact_all)
-        return error
+        return exact_all, approx_all
 
     if has_spatial_derivatives:
         # Get errors
         ns = 10 * (2 ** np.arange(2, 7))
-        return np.array([get_l2_error(int(n)) for n in ns])
+        return {n: get_l2_error(int(n)) for n in ns}
     else:
         return get_l2_error(1)
