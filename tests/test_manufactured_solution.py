@@ -32,7 +32,7 @@ class TestManufacturedSolution(unittest.TestCase):
         x_n = pybamm.SpatialVariable("x", domain=a.domain)
         x = pybamm.SpatialVariable("x", domain=b.domain)
         r_n = pybamm.SpatialVariable("r", domain=c.domain)
-        man_vars = {
+        manufactured_variables = {
             a.id: pybamm.Function(anp.cos, x_n),
             b.id: (x + 5) ** 2,
             c.id: pybamm.Function(anp.exp, 3 * r_n),
@@ -40,15 +40,16 @@ class TestManufacturedSolution(unittest.TestCase):
 
         # Create manufactured solution class, and discretisation class for testing
         ms = pybamm.ManufacturedSolution()
+        ms.manufactured_variables = manufactured_variables
         disc = get_discretisation_for_testing()
 
         # Process variable
-        a_proc = ms.process_symbol(a, man_vars)
-        self.assertEqual(a_proc, man_vars[a.id])
-        b_proc = ms.process_symbol(b, man_vars)
-        self.assertEqual(b_proc, man_vars[b.id])
-        c_proc = ms.process_symbol(c, man_vars)
-        self.assertEqual(c_proc, man_vars[c.id])
+        a_proc = ms.process_symbol(a)
+        self.assertEqual(a_proc, manufactured_variables[a.id])
+        b_proc = ms.process_symbol(b)
+        self.assertEqual(b_proc, manufactured_variables[b.id])
+        c_proc = ms.process_symbol(c)
+        self.assertEqual(c_proc, manufactured_variables[c.id])
 
         # Process equations
         x_n_eval = disc.process_symbol(x_n).evaluate()
@@ -69,7 +70,7 @@ class TestManufacturedSolution(unittest.TestCase):
                 * ((2 * r_n_eval + 3 * r_n_eval ** 2) * np.exp(3 * r_n_eval)),
             ),
         ]:
-            eqn_proc = ms.process_symbol(eqn, man_vars)
+            eqn_proc = ms.process_symbol(eqn)
             eqn_proc_disc = disc.process_symbol(eqn_proc)
             np.testing.assert_almost_equal(
                 eqn_proc_disc.evaluate(), expected, decimal=14
@@ -85,10 +86,10 @@ class TestManufacturedSolution(unittest.TestCase):
         x_n = pybamm.SpatialVariable("x", domain=a.domain)
         x = pybamm.SpatialVariable("x", domain=b.domain)
         r_n = pybamm.SpatialVariable("r", domain=c.domain)
-        man_vars = {
+        manufactured_variables = {
             a.id: pybamm.Function(anp.cos, x_n),
             b.id: (x + 5) ** 2,
-            c.id: pybamm.Function(anp.exp, 3 * r_n),
+            c.id: pybamm.Function(anp.sin, 3 * r_n),
         }
 
         # Create manufactured solution class, and discretisation class for testing
@@ -111,7 +112,7 @@ class TestManufacturedSolution(unittest.TestCase):
             flux_a: {"left": 0, "right": 0},
             c: {"left": 0, "right": 0},
         }
-        ms.process_model(model, man_vars)
+        ms.process_model(model, manufactured_variables)
 
         # Set up tests
         x_n_eval = disc.process_symbol(x_n).evaluate()
@@ -119,7 +120,7 @@ class TestManufacturedSolution(unittest.TestCase):
         r_n_eval = disc.process_symbol(r_n).evaluate()
         y_a = np.cos(x_n_eval)
         y_b = (x_eval + 5) ** 2
-        y_c = np.exp(3 * r_n_eval)
+        y_c = np.sin(3 * r_n_eval)
         y = np.concatenate([y_a, y_b, y_c])
         # Discretise model and check answer
         disc.process_model(model)
@@ -138,18 +139,17 @@ class TestManufacturedSolution(unittest.TestCase):
             decimal=6,
         )
         np.testing.assert_almost_equal(
-            model.boundary_conditions[c]["left"].evaluate(y=y), 1, decimal=4
+            model.boundary_conditions[c]["left"].evaluate(y=y), 0, decimal=4
         )
         np.testing.assert_almost_equal(
-            model.boundary_conditions[c]["right"].evaluate(y=y), np.exp(3), decimal=1
+            model.boundary_conditions[c]["right"].evaluate(y=y), np.sin(3), decimal=1
         )
         # Check that algebraic equations with the right y evaluate to zero
         np.testing.assert_almost_equal(model.algebraic[a].evaluate(y=y), 0, decimal=3)
         np.testing.assert_almost_equal(model.algebraic[b].evaluate(y=y), 0, decimal=3)
-        np.testing.assert_almost_equal(model.algebraic[c].evaluate(y=y), 0, decimal=3)
+        np.testing.assert_almost_equal(model.algebraic[c].evaluate(y=y), 0, decimal=0)
 
-        # todo: pick something that tends to zero as r tends to zero for yc,
-        # test time derivative
+        # todo: test time derivative
 
 
 if __name__ == "__main__":
