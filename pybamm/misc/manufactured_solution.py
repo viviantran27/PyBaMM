@@ -63,7 +63,7 @@ class ManufacturedSolution(object):
         Parameters
         ----------
         model_variables : dict
-            Dictionary '{string: expression}'
+            Dictionary '{string: expression}' of
         """
         self.manufactured_variable_strings = {}
         found_variable = False
@@ -72,6 +72,7 @@ class ManufacturedSolution(object):
                 self.manufactured_variable_strings[
                     var_string
                 ] = self.manufactured_variables[var_expr.id]
+            elif 
 
     def create_manufactured_variable(self, domain):
         t = pybamm.t
