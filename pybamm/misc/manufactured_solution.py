@@ -72,7 +72,15 @@ class ManufacturedSolution(object):
                 self.manufactured_variable_strings[
                     var_string
                 ] = self.manufactured_variables[var_expr.id]
-            elif 
+            # also check for children of a `Broadcast`
+            elif (
+                isinstance(var_expr, pybamm.Broadcast)
+                and var_expr.children[0].id in self.manufactured_variables
+            ):
+                self.manufactured_variable_strings[var_string] = pybamm.Broadcast(
+                    self.manufactured_variables[var_expr.children[0].id],
+                    var_expr.domain,
+                )
 
     def create_manufactured_variable(self, domain):
         t = pybamm.t

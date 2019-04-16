@@ -178,20 +178,20 @@ def get_manufactured_solution_errors(model, has_spatial_derivatives=True):
         # Process model and exact solutions
         approx_all = np.array([])
         exact_all = np.array([])
-        for var_string, man_var in ms.man_var_strings.items():
+        for (
+            var_string,
+            manufactured_variable,
+        ) in ms.manufactured_variable_strings.items():
             # Approximate solution from solving the model
             approx = pybamm.ProcessedVariable(
                 model_copy.variables[var_string], t, y, mesh=disc.mesh
             ).entries
             approx_all = np.concatenate([approx_all, np.reshape(approx, -1)])
             # Exact solution from manufactured solution
-            exact = disc.process_symbol(man_var).evaluate(t=t)
+            exact = disc.process_symbol(manufactured_variable).evaluate(t=t)
             exact_all = np.concatenate([exact_all, np.reshape(exact, -1)])
 
         # error
-        import ipdb
-
-        ipdb.set_trace()
         error = np.linalg.norm(approx_all - exact_all) / np.linalg.norm(exact_all)
         return error
 
