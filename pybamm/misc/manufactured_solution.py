@@ -12,24 +12,24 @@ class ManufacturedSolution(object):
 
     """
 
-    def process_model(self, model, man_vars=None):
+    def process_model(self, model, manufactured_variables=None):
         # Read and create manufactured variables
         model_variables = model.initial_conditions.keys()
-        if man_vars is None:
+        if manufactured_variables is None:
             # Create dictionary of manufactured variables
-            man_vars = {
+            manufactured_variables = {
                 var.id: self.create_manufactured_variable(var.domain)
                 for var in model_variables
             }
-        self.man_vars = man_vars
-        self.set_man_var_strings(model.variables)
+        self.manufactured_variables = manufactured_variables
+        self.set_manufactured_variable_strings(model.variables)
 
         # Add appropriate source terms to the equations
         for var, eqn in model.rhs.items():
             # Calculate source term
             source_term = -self.process_symbol(eqn)
             # Calculate additional source term for the differential part
-            source_term += self.man_vars[var.id].diff(pybamm.t)
+            source_term += self.manufactured_variables[var.id].diff(pybamm.t)
             # Add source term to equation
             model.rhs[var] += source_term
         for var, eqn in model.algebraic.items():
@@ -40,7 +40,9 @@ class ManufacturedSolution(object):
 
         # Set initial conditions using manufactured variables
         # (for the algebraic equations, these should already be consistent with eqns)
-        model.initial_conditions = {var: man_vars[var.id] for var in model_variables}
+        model.initial_conditions = {
+            var: manufactured_variables[var.id] for var in model_variables
+        }
 
         # Set boundary conditions using manufactured variables
         for expr in model.boundary_conditions:
@@ -52,13 +54,24 @@ class ManufacturedSolution(object):
                 for side in ["left", "right"]
             }
 
-    def set_man_var_strings(self, model_vars):
-        # Create dictionary pointing to manufactured variables, for testing, using
-        # model.variables (not infallible)
-        self.man_var_strings = {}
-        for var_string, var_expr in model_vars.items():
-            if var_expr.id in self.man_vars:
-                self.man_var_strings[var_string] = self.man_vars[var_expr.id]
+    def set_manufactured_variable_strings(self, model_variables):
+        """
+        Create dictionary pointing to manufactured variables, using model.variables
+        (not infallible). This will be used in testing to compare manufactured variables
+        to the solution of the model
+
+        Parameters
+        ----------
+        model_variables : dict
+            Dictionary '{string: expression}'
+        """
+        self.manufactured_variable_strings = {}
+        found_variable = False
+        for var_string, var_expr in model_variables.items():
+            if var_expr.id in self.manufactured_variables:
+                self.manufactured_variable_strings[
+                    var_string
+                ] = self.manufactured_variables[var_expr.id]
 
     def create_manufactured_variable(self, domain):
         t = pybamm.t
@@ -100,7 +113,7 @@ class ManufacturedSolution(object):
 
         """
         if isinstance(symbol, pybamm.Variable):
-            return self.man_vars[symbol.id]
+            return self.manufactured_variables[symbol.id]
 
         elif isinstance(symbol, pybamm.BinaryOperator):
             left, right = symbol.children
