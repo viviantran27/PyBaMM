@@ -64,9 +64,14 @@ class ProcessedVariable(object):
                 t_sol, entries, kind=interp_kind
             )
         else:
-            self._interpolation_function = interp.interp2d(
-                t_sol, x_sol, entries, kind=interp_kind
-            )
+            try:
+                self._interpolation_function = interp.interp2d(
+                    t_sol, x_sol, entries, kind=interp_kind
+                )
+            except dfitpack.error:
+                import ipdb
+
+                ipdb.set_trace()
 
     def __call__(self, t, x=None):
         "Evaluate the variable at arbitrary t (and x), using interpolation"

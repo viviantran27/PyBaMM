@@ -7,6 +7,7 @@ import pybamm
 
 import copy
 import numpy as np
+from collections import defaultdict
 
 
 class StandardModelTest(object):
@@ -149,7 +150,18 @@ class OptimisationsTest(object):
         return result
 
 
-def get_manufactured_solution_errors(model, has_spatial_derivatives=True):
+def get_manufactured_solution_errors(model, ns):
+    """
+    Compute the error from solving the model with manufactured solution
+
+    Parameters
+    ----------
+    model : :class:`pybamm.BaseModel`
+        The model to solve
+    ns : iter of int
+        The grid size(s) for which to calculate the error(s)
+
+    """
     # Process model and geometry
     param = model.default_parameter_values
     param.process_model(model)
@@ -163,7 +175,7 @@ def get_manufactured_solution_errors(model, has_spatial_derivatives=True):
     solver = model.default_solver
 
     # Function for convergence testing
-    def get_l2_error(n):
+    def get_approx_exact(n):
         model_copy = copy.deepcopy(model)
         # Set up discretisation
         var = pybamm.standard_spatial_vars
@@ -176,8 +188,7 @@ def get_manufactured_solution_errors(model, has_spatial_derivatives=True):
         solver.solve(model_copy, t_eval)
         t, y = solver.t, solver.y
         # Process model and exact solutions
-        approx_all = {}
-        exact_all = {}
+        all_approx_exact = {}
         for (
             var_string,
             manufactured_variable,
@@ -186,19 +197,24 @@ def get_manufactured_solution_errors(model, has_spatial_derivatives=True):
             approx = pybamm.ProcessedVariable(
                 model_copy.variables[var_string], t, y, mesh=disc.mesh
             )
-            approx_all[var_string] = approx
             # Exact solution from manufactured solution
             exact = pybamm.ProcessedVariable(
                 disc.process_symbol(manufactured_variable), t, y, mesh=disc.mesh
             )
-            exact_all[var_string] = exact
+            all_approx_exact[var_string] = (approx, exact)
+            import ipdb
+
+            ipdb.set_trace()
 
         # error
-        return exact_all, approx_all
+        return all_approx_exact
 
-    if has_spatial_derivatives:
-        # Get errors
-        ns = 10 * (2 ** np.arange(2, 7))
-        return {n: get_l2_error(int(n)) for n in ns}
-    else:
-        return get_l2_error(1)
+    # Calculate the errors for each variable for each n (nested dictionary)
+    ns_approx_exact_dict = {n: get_approx_exact(int(n)) for n in ns}
+
+    # Reverse the nested dict for easier testing
+    approx_exact_ns_dict = defaultdict(dict)
+    for n, all_approx_exact_n in ns_approx_exact_dict.items():
+        for var, approx_exact in all_approx_exact_n.items():
+            approx_exact_ns_dict[var][n] = approx_exact
+    return approx_exact_ns_dict

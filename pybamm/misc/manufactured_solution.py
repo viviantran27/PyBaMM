@@ -91,6 +91,9 @@ class ManufacturedSolution(object):
             source_term += self.manufactured_variables[var.id].diff(pybamm.t)
             # Add source term to equation
             model.rhs[var] += source_term
+            import ipdb
+
+            ipdb.set_trace()
         for var, eqn in model.algebraic.items():
             # Calculate source term
             source_term = -self.process_symbol(eqn)
@@ -189,7 +192,7 @@ class ManufacturedSolution(object):
             a * t * b * pybamm.Function(np.cos, c * r * x),
             a * pybamm.Function(np.exp, b * t) * (c + r * x) ** 2,
         ]
-        return options[np.random.randint(len(options))]
+        return options[0]  # np.random.randint(len(options))]
 
     def process_symbol(self, symbol):
         """Walk through the symbol and replace any Variable with a manufactured variable
