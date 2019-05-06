@@ -1,6 +1,8 @@
 #
 # Processed Variable class
 #
+import pybamm
+
 import numbers
 import numpy as np
 import scipy.interpolate as interp
@@ -55,18 +57,18 @@ class ProcessedVariable(object):
     y_sol : array_like, size (m, k)
         The solution vector returned by the solver. Can include solution values that
         other than those that get read by base_variable.evaluate() (i.e. k>=n)
-    mesh : :class:`pybamm.Mesh`
+    disc : :class:`pybamm.Mesh`
         The mesh used to solve, used here to calculate the reference x values for
         interpolation
     interp_kind : str
         The method to use for interpolation
     """
 
-    def __init__(self, base_variable, t_sol, y_sol, mesh=None, interp_kind="linear"):
+    def __init__(self, base_variable, t_sol, y_sol, disc=None, interp_kind="linear"):
         self.base_variable = base_variable
         self.t_sol = t_sol
         self.y_sol = y_sol
-        self.mesh = mesh
+        self.mesh = disc.mesh
         self.interp_kind = interp_kind
         self.domain = base_variable.domain
 
@@ -83,6 +85,21 @@ class ProcessedVariable(object):
                 self.initialise_2D()
             else:
                 self.initialise_3D()
+
+        # Calculate averaged variable
+        averaged_variable = disc.process_symbol(pybamm.average(base_variable))
+        # initialise empty array of the correct size
+        entries = np.empty(len(self.t_sol))
+        # Evaluate the averaged variable index-by-index
+        for idx in range(len(self.t_sol)):
+            entries[idx] = averaged_variable.evaluate(
+                self.t_sol[idx], self.y_sol[:, idx]
+            )
+
+        # No discretisation provided, or variable has no domain (function of t only)
+        self._averaged_interpolated = interp.interp1d(
+            self.t_sol, entries, kind=self.interp_kind
+        )
 
     def initialise_1D(self):
         # initialise empty array of the correct size
@@ -198,10 +215,8 @@ class ProcessedVariable(object):
             else:
                 if isinstance(x, np.ndarray) and isinstance(t, np.ndarray):
                     x = x[:, np.newaxis]
+            return self._interpolation_function((r, x, t))
 
-            try:
-                return self._interpolation_function((r, x, t))
-            except ValueError:
-                import ipdb
-
-                ipdb.set_trace()
+    def averaged(self, t):
+        "Evaluate the averaged variable"
+        return self._averaged_interpolated(t)

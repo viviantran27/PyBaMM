@@ -481,16 +481,25 @@ def average(symbol):
     # Otherwise, use Integral to calculate average value
     else:
         if symbol.domain == ["negative electrode"]:
-            x = pybamm.standard_spatial_vars.x_n
+            spatial_var = pybamm.standard_spatial_vars.x_n
             l = pybamm.geometric_parameters.l_n
         elif symbol.domain == ["separator"]:
-            x = pybamm.standard_spatial_vars.x_s
+            spatial_var = pybamm.standard_spatial_vars.x_s
             l = pybamm.geometric_parameters.l_s
         elif symbol.domain == ["positive electrode"]:
-            x = pybamm.standard_spatial_vars.x_p
+            spatial_var = pybamm.standard_spatial_vars.x_p
             l = pybamm.geometric_parameters.l_p
+        elif symbol.domain == ["negative electrode", "separator", "positive electrode"]:
+            spatial_var = pybamm.standard_spatial_vars.x
+            l = 1
+        elif symbol.domain == ["negative particle"]:
+            spatial_var = pybamm.standard_spatial_vars.r_n
+            l = 1
+        elif symbol.domain == ["positive particle"]:
+            spatial_var = pybamm.standard_spatial_vars.r_p
+            l = 1
 
-        return Integral(symbol, x) / l
+        return Integral(symbol, spatial_var) / l
 
 
 def boundary_value(symbol, side):

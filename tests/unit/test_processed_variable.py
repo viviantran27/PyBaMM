@@ -35,9 +35,9 @@ class TestProcessedVariable(unittest.TestCase):
         t_sol = np.linspace(0, 1)
         y_sol = np.ones_like(x_sol)[:, np.newaxis] * np.linspace(0, 5)
 
-        processed_var = pybamm.ProcessedVariable(var_sol, t_sol, y_sol, mesh=disc.mesh)
+        processed_var = pybamm.ProcessedVariable(var_sol, t_sol, y_sol, disc=disc)
         np.testing.assert_array_equal(processed_var.entries, y_sol)
-        processed_eqn = pybamm.ProcessedVariable(eqn_sol, t_sol, y_sol, mesh=disc.mesh)
+        processed_eqn = pybamm.ProcessedVariable(eqn_sol, t_sol, y_sol, disc=disc)
         np.testing.assert_array_equal(
             processed_eqn.entries, t_sol * y_sol + x_sol[:, np.newaxis]
         )
@@ -55,7 +55,7 @@ class TestProcessedVariable(unittest.TestCase):
         t_sol = np.linspace(0, 1)
         y_sol = np.ones(len(x_sol) * len(r_sol))[:, np.newaxis] * np.linspace(0, 5)
 
-        processed_var = pybamm.ProcessedVariable(var_sol, t_sol, y_sol, mesh=disc.mesh)
+        processed_var = pybamm.ProcessedVariable(var_sol, t_sol, y_sol, disc=disc)
         np.testing.assert_array_equal(
             processed_var.entries,
             np.reshape(y_sol, [len(r_sol), len(x_sol), len(t_sol)]),
@@ -95,7 +95,7 @@ class TestProcessedVariable(unittest.TestCase):
         t_sol = np.linspace(0, 1)
         y_sol = x_sol[:, np.newaxis] * np.linspace(0, 5)
 
-        processed_var = pybamm.ProcessedVariable(var_sol, t_sol, y_sol, mesh=disc.mesh)
+        processed_var = pybamm.ProcessedVariable(var_sol, t_sol, y_sol, disc=disc)
         # 2 vectors
         np.testing.assert_array_almost_equal(processed_var(t_sol, x_sol), y_sol)
         # 1 vector, 1 scalar
@@ -109,7 +109,7 @@ class TestProcessedVariable(unittest.TestCase):
         np.testing.assert_array_almost_equal(
             processed_var(0.5, x_sol[-1]), 2.5 * x_sol[-1]
         )
-        processed_eqn = pybamm.ProcessedVariable(eqn_sol, t_sol, y_sol, mesh=disc.mesh)
+        processed_eqn = pybamm.ProcessedVariable(eqn_sol, t_sol, y_sol, disc=disc)
         # 2 vectors
         np.testing.assert_array_almost_equal(
             processed_eqn(t_sol, x_sol), t_sol * y_sol + x_sol[:, np.newaxis]
@@ -133,7 +133,7 @@ class TestProcessedVariable(unittest.TestCase):
         t_sol = np.linspace(0, 1)
         y_sol = np.ones(len(x_sol) * len(r_sol))[:, np.newaxis] * np.linspace(0, 5)
 
-        processed_var = pybamm.ProcessedVariable(var_sol, t_sol, y_sol, mesh=disc.mesh)
+        processed_var = pybamm.ProcessedVariable(var_sol, t_sol, y_sol, disc=disc)
         # 3 vectors
         np.testing.assert_array_equal(
             processed_var(t_sol, x_sol, r_sol).shape, (10, 40, 50)
@@ -183,7 +183,7 @@ class TestProcessedVariable(unittest.TestCase):
         x = pybamm.SpatialVariable("x", domain=whole_cell)
         x_sol = modeltest.disc.process_symbol(x).entries
         processed_vars = pybamm.post_process_variables(
-            model.variables, t_sol, y_sol, modeltest.disc.mesh
+            model.variables, t_sol, y_sol, modeltest.disc
         )
 
         # test
@@ -200,7 +200,7 @@ class TestProcessedVariable(unittest.TestCase):
         with self.assertRaisesRegex(
             ValueError, "variable shape does not match domain shape"
         ):
-            pybamm.ProcessedVariable(mat, t, y, disc.mesh)
+            pybamm.ProcessedVariable(mat, t, y, mesh)
 
         y = np.ones((120, 25))
         mat = pybamm.Vector(np.ones(120), domain=["negative particle"])
@@ -208,7 +208,17 @@ class TestProcessedVariable(unittest.TestCase):
         with self.assertRaisesRegex(
             ValueError, "variable shape does not match domain shape"
         ):
-            pybamm.ProcessedVariable(mat, t, y, disc.mesh)
+            pybamm.ProcessedVariable(mat, t, y, mesh)
+
+    def test_averaged_variable(self):
+        # 1D
+        t = pybamm.t
+        y = pybamm.StateVector(slice(0, 1))
+        var = t * y
+        t_sol = np.linspace(0, 1)
+        y_sol = np.array([np.linspace(0, 5)])
+        processed_var = pybamm.ProcessedVariable(var, t_sol, y_sol)
+        np.testing.assert_array_equal(processed_var.averaged(t), t_sol * y_sol[0])
 
 
 if __name__ == "__main__":
