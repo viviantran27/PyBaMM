@@ -222,11 +222,7 @@ class ParameterValues(dict):
             for child in symbol.children:
                 new_child = self.process_symbol(child)
                 new_children.append(new_child)
-            if isinstance(symbol, pybamm.DomainConcatenation):
-                return pybamm.DomainConcatenation(new_children, symbol.mesh)
-            else:
-                # Concatenation or NumpyConcatenation
-                return symbol.__class__(*new_children)
+            return symbol.__class__(*new_children)
 
         # Other cases: return new variable to avoid tree internal corruption
         elif isinstance(symbol, pybamm.Variable):

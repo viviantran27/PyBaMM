@@ -3,7 +3,7 @@
 #
 import pybamm
 import numpy as np
-from scipy.sparse import eye, kron, coo_matrix
+from scipy.sparse import eye, kron, coo_matrix, csr_matrix
 
 
 class SpatialMethod:
@@ -257,3 +257,36 @@ class SpatialMethod:
 
         """
         return bin_op.__class__(disc_left, disc_right)
+
+    def domain_concatenation(self, discretised_children):
+        """Domain concatenation"""
+        total_domain = [dom for child in discretised_children for dom in child.domain]
+        concatenation = 0
+        for child in discretised_children:
+            # Get appropriate number of points
+            npts_total = self.mesh.combine_submeshes(*total_domain)[0].npts
+            npts_domain = self.mesh.combine_submeshes(*child.domain)[0].npts
+            domain_before = total_domain[: total_domain.index(child.domain[0])]
+            if domain_before == []:
+                npts_before = 0
+            else:
+                npts_before = self.mesh.combine_submeshes(*domain_before)[0].npts
+            # Create empty matrix of the right size
+            concatenation_matrix = csr_matrix((npts_total, npts_domain))
+            # Put identity matrix for the subdomain in the approriate place
+            concatenation_matrix[npts_before : npts_before + npts_domain] = eye(
+                npts_domain
+            )
+            # Add to total concatenation
+            sub_concatenation = pybamm.Matrix(concatenation_matrix) @ child
+            sub_concatenation.domain = total_domain
+            concatenation += sub_concatenation
+
+        from IPython import embed
+
+        embed()
+        import ipdb
+
+        ipdb.set_trace()
+
+        return concatenation

@@ -7,5 +7,5 @@ Concatenations
 .. autoclass:: pybamm.NumpyConcatenation
   :members:
 
-.. autoclass:: pybamm.DomainConcatenation
+.. autoclass:: pybamm.SparseStack
   :members:
