@@ -1,12 +1,10 @@
 #
 # Root of the pybamm module.
-# Provides access to all shared functionality (simulation, models, etc.).
+# Provides access to all shared functionality (models, solvers, etc.).
 #
 # The code in this file is adapted from Pints
 # (see https://github.com/pints-team/pints)
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
 import sys
 import os
 
@@ -43,15 +41,18 @@ ABSOLUTE_PATH = os.path.join(os.path.split(script_path)[0], "..")
 #
 # Utility classes and methods
 #
-from .misc.util import Timer
-from .misc.util import profile
-from .misc.util import load_function
+from .util import Timer
+from .util import profile
+from .util import load_function
+from .logger import logger, set_logging_level
 
 #
 # Classes for the Expression Tree
 #
-from .expression_tree.symbol import Symbol, simplify_if_constant
+from .expression_tree.symbol import Symbol
 from .expression_tree.binary_operators import (
+    is_scalar_zero,
+    is_matrix_zero,
     BinaryOperator,
     Addition,
     Power,
@@ -64,6 +65,7 @@ from .expression_tree.concatenations import (
     Concatenation,
     NumpyConcatenation,
     DomainConcatenation,
+    SparseStack,
 )
 from .expression_tree.array import Array
 from .expression_tree.matrix import Matrix
@@ -76,16 +78,19 @@ from .expression_tree.unary_operators import (
     SpatialOperator,
     Gradient,
     Divergence,
+    BoundaryOperator,
     BoundaryValue,
+    BoundaryFlux,
     Integral,
     IndefiniteIntegral,
     grad,
     div,
     surf,
-    integrate,
+    average,
+    boundary_value,
 )
 from .expression_tree.parameter import Parameter, FunctionParameter
-from .expression_tree.broadcasts import Broadcast, NumpyBroadcast
+from .expression_tree.broadcasts import Broadcast
 from .expression_tree.scalar import Scalar
 from .expression_tree.variable import Variable
 from .expression_tree.independent_variable import (
@@ -96,12 +101,30 @@ from .expression_tree.independent_variable import (
 from .expression_tree.independent_variable import t
 from .expression_tree.vector import Vector, StateVector
 
-from .expression_tree.exceptions import DomainError, ModelError
+from .expression_tree.exceptions import (
+    DomainError,
+    ModelError,
+    SolverError,
+    ModelWarning,
+)
+from .expression_tree.simplify import (
+    simplify,
+    simplify_if_constant,
+    simplify_addition_subtraction,
+    simplify_multiplication_division,
+)
 
 #
 # Model classes
 #
-from .models.base_models import BaseModel, LeadAcidBaseModel, LithiumIonBaseModel
+from .models import standard_variables
+from .models.base_models import (
+    BaseModel,
+    StandardBatteryBaseModel,
+    SubModel,
+    LeadAcidBaseModel,
+    LithiumIonBaseModel,
+)
 from .models.reaction_diffusion import ReactionDiffusionModel
 from .models.simple_ode_model import SimpleODEModel
 from .models import lead_acid
@@ -117,17 +140,18 @@ from .models.submodels import (
     interface,
     particle,
     porosity,
+    potential,
 )
 
 #
 # Parameters class and methods
 #
-from .meshes.meshes import KNOWN_DOMAINS  # need this for importing standard parameters
 from .parameters.parameter_values import ParameterValues
 from .parameters import standard_current_functions
 from .parameters import geometric_parameters
 from .parameters import electrical_parameters
 from .parameters import standard_parameters_lithium_ion, standard_parameters_lead_acid
+from .parameters.print_parameters import print_parameters, print_evaluated_parameters
 
 #
 # Geometry
@@ -170,9 +194,9 @@ from .solvers.scikits_ode_solver import ScikitsOdeSolver
 #
 # other
 #
-from .misc.manufactured_solution import ManufacturedSolution
-from .misc.processed_variable import ProcessedVariable
-from .misc.simulation import Simulation
+from .manufactured_solution import ManufacturedSolution
+from .processed_variable import post_process_variables, ProcessedVariable
+from .quick_plot import QuickPlot
 
 #
 # Remove any imported modules, so we don't expose them as part of pybamm

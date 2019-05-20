@@ -1,8 +1,6 @@
 #
 # Scalar class
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
 import pybamm
 
 
@@ -55,3 +53,7 @@ class Scalar(pybamm.Symbol):
     def _base_evaluate(self, t=None, y=None):
         """ See :meth:`pybamm.Symbol._base_evaluate()`. """
         return self._value
+
+    def jac(self, variable):
+        """ See :meth:`pybamm.Symbol.jac()`. """
+        return pybamm.Scalar(0)

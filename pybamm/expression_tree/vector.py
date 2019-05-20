@@ -1,9 +1,10 @@
 #
 # Vector classes
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
 import pybamm
+
+import numpy as np
+from scipy.sparse import csr_matrix
 
 
 class Vector(pybamm.Array):
@@ -23,15 +24,30 @@ class Vector(pybamm.Array):
 
     """
 
-    def __init__(self, entries, name=None, domain=[]):
-        # make sure that entries are a vector
-        if entries.ndim != 1:
+    def __init__(self, entries, name=None, domain=[], entries_string=None):
+        # make sure that entries are a vector (can be a column vector)
+        if entries.ndim == 1:
+            entries = entries[:, np.newaxis]
+        if entries.shape[1] != 1:
             raise ValueError(
-                """Entries must have 1 dimension, not {}""".format(entries.ndim)
+                """
+                Entries must have 1 dimension or be column vector, not have shape {}
+                """.format(
+                    entries.shape
+                )
             )
         if name is None:
-            name = "Vector of length {!s}".format(entries.shape[0])
-        super().__init__(entries, name=name, domain=domain)
+            name = "Column vector of length {!s}".format(entries.shape[0])
+
+        super().__init__(entries, name, domain, entries_string)
+
+    def jac(self, variable):
+        """ See :meth:`pybamm.Symbol.jac()`. """
+        # Get indices of state vector
+        variable_y_indices = np.arange(variable.y_slice.start, variable.y_slice.stop)
+        # Return zeros of correct size
+        jac = csr_matrix((np.size(self), np.size(variable_y_indices)))
+        return pybamm.Matrix(jac)
 
 
 class StateVector(pybamm.Symbol):
@@ -74,4 +90,44 @@ class StateVector(pybamm.Symbol):
                 "y is too short, so value with slice is smaller than expected"
             )
         else:
-            return y[self._y_slice]
+            out = y[self._y_slice]
+            if out.ndim == 1:
+                out = out[:, np.newaxis]
+            return out
+
+    def jac(self, variable):
+        """
+        Differentiate a slice of a StateVector of size m with respect to another
+        slice of a StateVector of size n. This returns a (sparse) matrix of size
+        m x n with ones where the y slices match, and zeros elsewhere.
+
+        Parameters
+        ----------
+        variable : :class:`pybamm.Symbol`
+            The variable with respect to which to differentiate
+
+        """
+
+        # Get inices of state vectors
+        self_y_indices = np.arange(self.y_slice.start, self.y_slice.stop)
+        variable_y_indices = np.arange(variable.y_slice.start, variable.y_slice.stop)
+
+        # Return zeros of correct size if no entries match
+        if np.size(np.intersect1d(self_y_indices, variable_y_indices)) == 0:
+            jac = csr_matrix((np.size(self_y_indices), np.size(variable_y_indices)))
+        else:
+            # Populate entries corresponding to matching y slices, and shift so
+            # that the matrix is the correct size
+            row = (
+                np.intersect1d(self_y_indices, variable_y_indices) - self.y_slice.start
+            )
+            col = (
+                np.intersect1d(self_y_indices, variable_y_indices)
+                - variable.y_slice.start
+            )
+            data = np.ones_like(row)
+            jac = csr_matrix(
+                (data, (row, col)),
+                shape=(np.size(self_y_indices), np.size(variable_y_indices)),
+            )
+        return pybamm.Matrix(jac)
