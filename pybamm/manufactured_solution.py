@@ -9,10 +9,69 @@ import autograd.numpy as np
 
 class ManufacturedSolution(object):
     """
+    Creates a manufactured solution for a particular model, for testing convergence of
+    the solver.
 
+    Notes
+    -----
+
+    The Method of Manufactured Solutions is a code-checking technique that consists in
+    choosing a particular expression, seeing what the source terms, initial conditions
+    and boundary conditions would need to be for that expression to be a solution of the
+    equations, and then solving the equations with those source terms, initial
+    conditions and boundary conditions and checking that the solution converges to the
+    chosen expression in the right way.
+
+    This is useful since we cannot in general find an explicit analytical solution to
+    compare our model to.
+
+    For example, say we want to solve the equation
+
+    .. math::
+        \\frac{\\partial c}{\\partial t}
+        = \\frac{\\partial^2 c}{\\partial x^2}
+
+    with Dirichlet boundary conditions. if we choose the manufactured solution,
+
+    .. math::
+        c_M = \\exp(t)\\sin(2 \\pi x)
+
+    then the system that we want to solve is
+
+    .. math::
+        \\frac{\\partial c}{\\partial t}
+        = \\frac{\\partial^2 c}{\\partial x^2}
+        + (1 + 4 \\pi^2)\\exp(t)\\sin(2 \\pi x)
+
+        c(x,0) = \\sin(2 \\pi x)
+
+        c(0,t) = c(1,t) = 0
+
+    We can then solve this system and check that the solution converges to :math:`c_M`
+    in the expected way as we refine the grid size.
+
+    For more details, see for example `Sandia online notes
+    <https://prod-ng.sandia.gov/techlib-noauth/access-control.cgi/2000/001444.pdf>`_.
     """
 
     def process_model(self, model, manufactured_variables=None):
+        """
+        Create manufactured solution from model:
+
+        * Add source term to equations
+        * Set boundary conditions
+        * Set initial condition
+
+        Parameters
+        ----------
+        model : :class:`pybamm.BaseModel`
+            The model to create a manufactured solution for
+        manufactured_variables : dict, optional
+            Dictionary '{variable id: expression}' of manufactured variables. Default is
+            None, in which case random manufactured solutions are created using
+            :meth:`create_manufactured_variable`
+
+        """
         # Read and create manufactured variables
         model_variables = model.initial_conditions.keys()
         if manufactured_variables is None:
@@ -32,6 +91,9 @@ class ManufacturedSolution(object):
             source_term += self.manufactured_variables[var.id].diff(pybamm.t)
             # Add source term to equation
             model.rhs[var] += source_term
+            import ipdb
+
+            ipdb.set_trace()
         for var, eqn in model.algebraic.items():
             # Calculate source term
             source_term = -self.process_symbol(eqn)
@@ -57,13 +119,21 @@ class ManufacturedSolution(object):
     def set_manufactured_variable_strings(self, model_variables):
         """
         Create dictionary pointing to manufactured variables, using model.variables
-        (not infallible). This will be used in testing to compare manufactured variables
-        to the solution of the model
+        (not infallible). This is used in testing to compare manufactured variables
+        to the solution of the model.
+
 
         Parameters
         ----------
         model_variables : dict
-            Dictionary '{string: expression}' of
+            Dictionary '{string: expression}' of model variables.
+
+        Raises
+        ------
+        pybamm.ModelError
+            If no object in ``model_variables.values`` (or its child if it is a
+            :class:`pybamm.Broadcast`) has the same id as any key of
+            ``self.manufactured_variables``.
         """
         self.manufactured_variable_strings = {}
         for var_string, var_expr in model_variables.items():
@@ -86,6 +156,21 @@ class ManufacturedSolution(object):
             )
 
     def create_manufactured_variable(self, domain):
+        """
+        Return a randomly chosen manufactured variable on the appropriate domain from a
+        list of possible options
+
+        Parameters
+        ----------
+        domain : iterable of str
+            The domain on which to create the manufactured variable
+
+        Returns
+        -------
+        :class:`pybamm.Symbol`
+            A manufactured variable (function of t and x and/or r) on the appropriate
+            domain
+        """
         t = pybamm.t
         if domain == []:
             x = pybamm.Scalar(np.random.rand())
@@ -107,7 +192,7 @@ class ManufacturedSolution(object):
             a * t * b * pybamm.Function(np.cos, c * r * x),
             a * pybamm.Function(np.exp, b * t) * (c + r * x) ** 2,
         ]
-        return options[np.random.randint(len(options))]
+        return options[0]  # np.random.randint(len(options))]
 
     def process_symbol(self, symbol):
         """Walk through the symbol and replace any Variable with a manufactured variable
@@ -120,7 +205,7 @@ class ManufacturedSolution(object):
 
         Returns
         -------
-        symbol : :class:`pybamm.Symbol` (or subclass) instance
+        symbol : :class:`pybamm.Symbol`
             Symbol with Variable instances replaced by manufactured variables
 
         """
@@ -179,6 +264,20 @@ class ManufacturedSolution(object):
             return new_symbol
 
     def gradient(self, symbol):
+        """
+        Symbolically calculate the gradient
+
+        Parameters
+        ----------
+        symbol : :class:`pybamm.Symbol`
+            The symbol whose gradient to calculate
+
+        Returns
+        -------
+        :class:`pybamm.Symbol`
+            The symbolic gradient of the symbol with respect to x (if symbol domain is
+            macroscale) or r (if symbol domain is microscale).
+        """
         domain = symbol.domain
         if domain == []:
             return pybamm.Scalar(0)
@@ -190,6 +289,20 @@ class ManufacturedSolution(object):
             return symbol.diff(x)
 
     def divergence(self, symbol):
+        """
+        Symbolically calculate the divergence
+
+        Parameters
+        ----------
+        symbol : :class:`pybamm.Symbol`
+            The symbol whose gradient to calculate
+
+        Returns
+        -------
+        :class:`pybamm.Symbol`
+            The symbolic divergence of the symbol with respect to x (if symbol domain is
+            macroscale) or r (if symbol domain is microscale).
+        """
         domain = symbol.domain
         if domain == []:
             return pybamm.Scalar(0)
