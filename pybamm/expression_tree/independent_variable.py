@@ -3,7 +3,10 @@
 #
 import pybamm
 
+KNOWN_COORD_SYS = ["cartesian", "spherical polar"]
 KNOWN_SPATIAL_VARS = ["x", "y", "z", "r", "x_n", "x_s", "x_p", "r_n", "r_p"]
+KNOWN_SPATIAL_VARS_EXTENDED = [v + "_edge" for v in KNOWN_SPATIAL_VARS]
+KNOWN_SPATIAL_VARS.extend(KNOWN_SPATIAL_VARS_EXTENDED)
 
 
 class IndependentVariable(pybamm.Symbol):
@@ -33,6 +36,10 @@ class Time(IndependentVariable):
 
     def __init__(self):
         super().__init__("time")
+
+    def new_copy(self):
+        """ See :meth:`pybamm.Symbol.new_copy()`. """
+        return Time()
 
     def _base_evaluate(self, t, y=None):
         """ See :meth:`pybamm.Symbol._base_evaluate()`. """
@@ -75,6 +82,10 @@ class SpatialVariable(IndependentVariable):
             raise pybamm.DomainError(
                 "domain cannot be particle if name is '{}'".format(name)
             )
+
+    def new_copy(self):
+        """ See :meth:`pybamm.Symbol.new_copy()`. """
+        return SpatialVariable(self.name, self.domain, self.coord_sys)
 
 
 # the independent variable time

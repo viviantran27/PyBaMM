@@ -6,6 +6,8 @@ import pybamm
 import unittest
 import numpy as np
 
+import tests.shared as shared
+
 
 class TestParameterValues(unittest.TestCase):
     def test_read_parameters_csv(self):
@@ -40,7 +42,7 @@ class TestParameterValues(unittest.TestCase):
         self.assertEqual(param["Negative electrode width [m]"], 0.5)
 
     def test_process_symbol(self):
-        parameter_values = pybamm.ParameterValues({"a": 1, "b": 2})
+        parameter_values = pybamm.ParameterValues({"a": 1, "b": 2, "c": 3})
         # process parameter
         a = pybamm.Parameter("a")
         processed_a = parameter_values.process_symbol(a)
@@ -49,13 +51,13 @@ class TestParameterValues(unittest.TestCase):
 
         # process binary operation
         b = pybamm.Parameter("b")
-        sum = a + b
-        processed_sum = parameter_values.process_symbol(sum)
-        self.assertIsInstance(processed_sum, pybamm.Addition)
-        self.assertIsInstance(processed_sum.children[0], pybamm.Scalar)
-        self.assertIsInstance(processed_sum.children[1], pybamm.Scalar)
-        self.assertEqual(processed_sum.children[0].value, 1)
-        self.assertEqual(processed_sum.children[1].value, 2)
+        add = a + b
+        processed_add = parameter_values.process_symbol(add)
+        self.assertIsInstance(processed_add, pybamm.Addition)
+        self.assertIsInstance(processed_add.children[0], pybamm.Scalar)
+        self.assertIsInstance(processed_add.children[1], pybamm.Scalar)
+        self.assertEqual(processed_add.children[0].value, 1)
+        self.assertEqual(processed_add.children[1].value, 2)
 
         scal = pybamm.Scalar(34)
         mul = a * scal
@@ -83,13 +85,25 @@ class TestParameterValues(unittest.TestCase):
         self.assertIsInstance(processed_grad.children[0], pybamm.Scalar)
         self.assertEqual(processed_grad.children[0].value, 1)
 
+        # process boundary operator (test for BoundaryValue)
+        aa = pybamm.Parameter("a", domain=["negative electrode"])
+        x = pybamm.SpatialVariable("x", domain=["negative electrode"])
+        boundary_op = pybamm.BoundaryValue(aa * x, "left")
+        processed_boundary_op = parameter_values.process_symbol(boundary_op)
+        self.assertIsInstance(processed_boundary_op, pybamm.BoundaryOperator)
+        processed_a = processed_boundary_op.children[0].children[0]
+        processed_x = processed_boundary_op.children[0].children[1]
+        self.assertIsInstance(processed_a, pybamm.Scalar)
+        self.assertEqual(processed_a.value, 1)
+        self.assertEqual(processed_x.id, x.id)
+
         # process broadcast
         whole_cell = ["negative electrode", "separator", "positive electrode"]
         broad = pybamm.Broadcast(a, whole_cell)
         processed_broad = parameter_values.process_symbol(broad)
         self.assertIsInstance(processed_broad, pybamm.Broadcast)
         self.assertEqual(processed_broad.domain, whole_cell)
-        self.assertIsInstance(processed_broad.children[0], pybamm.Vector)
+        self.assertIsInstance(processed_broad.children[0], pybamm.Scalar)
         self.assertEqual(processed_broad.children[0].evaluate(), np.array([1]))
 
         # process concatenation
@@ -99,6 +113,19 @@ class TestParameterValues(unittest.TestCase):
         self.assertIsInstance(processed_conc.children[1], pybamm.Scalar)
         self.assertEqual(processed_conc.children[0].value, 1)
         self.assertEqual(processed_conc.children[1].value, 2)
+
+        # process domain concatenation
+        c_e_n = pybamm.Variable("c_e_n", ["negative electrode"])
+        c_e_s = pybamm.Variable("c_e_p", ["separator"])
+        test_mesh = shared.get_mesh_for_testing()
+        dom_con = pybamm.DomainConcatenation([a * c_e_n, b * c_e_s], test_mesh)
+        processed_dom_con = parameter_values.process_symbol(dom_con)
+        a_proc = processed_dom_con.children[0].children[0]
+        b_proc = processed_dom_con.children[1].children[0]
+        self.assertIsInstance(a_proc, pybamm.Scalar)
+        self.assertIsInstance(b_proc, pybamm.Scalar)
+        self.assertEqual(a_proc.value, 1)
+        self.assertEqual(b_proc.value, 2)
 
         # process variable
         c = pybamm.Variable("c")
@@ -130,6 +157,12 @@ class TestParameterValues(unittest.TestCase):
         np.testing.assert_array_equal(
             processed_g.evaluate(y=np.ones(10)), np.ones((10, 1))
         )
+
+        # process outer
+        c = pybamm.Parameter("c", domain="current collector")
+        outer = pybamm.Outer(c, b)
+        processed_outer = parameter_values.process_symbol(outer)
+        self.assertIsInstance(processed_outer, pybamm.Outer)
 
         # not implemented
         sym = pybamm.Symbol("sym")

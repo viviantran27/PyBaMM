@@ -111,7 +111,7 @@ class TestMesh(unittest.TestCase):
             }
         )
 
-        geometry = pybamm.Geometry1DMacro()
+        geometry = pybamm.Geometry("1D macro", "1D micro")
         param.process_geometry(geometry)
 
         # provide mesh properties
@@ -142,7 +142,27 @@ class TestMesh(unittest.TestCase):
             0,
         )
         with self.assertRaises(pybamm.DomainError):
-            submesh = mesh.combine_submeshes("negative electrode", "positive electrode")
+            mesh.combine_submeshes("negative electrode", "positive electrode")
+
+        geometry = {
+            "negative electrode": {
+                "primary": {
+                    var.x_n: {"min": pybamm.Scalar(0), "max": pybamm.Scalar(0.5)}
+                }
+            },
+            "negative particle": {
+                "primary": {
+                    var.r_n: {"min": pybamm.Scalar(0.5), "max": pybamm.Scalar(1)}
+                }
+            },
+        }
+        param.process_geometry(geometry)
+
+        # create mesh
+        mesh = pybamm.Mesh(geometry, submesh_types, var_pts)
+
+        with self.assertRaisesRegex(pybamm.DomainError, "trying"):
+            mesh.combine_submeshes("negative electrode", "negative particle")
 
     def test_ghost_cells(self):
         param = pybamm.ParameterValues(
@@ -220,6 +240,52 @@ class TestMesh(unittest.TestCase):
             self.assertEqual(mesh["negative particle"][i].npts, 5)
             self.assertEqual(mesh["positive particle"][i].npts, 6)
 
+    def test_multiple_meshes_macro(self):
+        param = pybamm.ParameterValues(
+            base_parameters={
+                "Negative electrode width [m]": 0.1,
+                "Separator width [m]": 0.2,
+                "Positive electrode width [m]": 0.3,
+                "Electrode height [m]": 0.4,
+            }
+        )
+
+        geometry = pybamm.Geometry("1+1D macro")
+        param.process_geometry(geometry)
+
+        # provide mesh properties
+
+        var = pybamm.standard_spatial_vars
+        var_pts = {var.x_n: 10, var.x_s: 15, var.x_p: 20, var.z: 5}
+        submesh_types = {
+            "negative electrode": pybamm.Uniform1DSubMesh,
+            "separator": pybamm.Uniform1DSubMesh,
+            "positive electrode": pybamm.Uniform1DSubMesh,
+            "current collector": pybamm.Uniform1DSubMesh,
+        }
+
+        mesh = pybamm.Mesh(geometry, submesh_types, var_pts)
+
+        # check types
+        self.assertIsInstance(mesh["negative electrode"], list)
+        self.assertIsInstance(mesh["separator"], list)
+        self.assertIsInstance(mesh["positive electrode"], list)
+        self.assertEqual(len(mesh["negative electrode"]), 5)
+        self.assertEqual(len(mesh["separator"]), 5)
+        self.assertEqual(len(mesh["positive electrode"]), 5)
+
+        for i in range(5):
+            self.assertIsInstance(
+                mesh["negative electrode"][i], pybamm.Uniform1DSubMesh
+            )
+            self.assertIsInstance(mesh["separator"][i], pybamm.Uniform1DSubMesh)
+            self.assertIsInstance(
+                mesh["positive electrode"][i], pybamm.Uniform1DSubMesh
+            )
+            self.assertEqual(mesh["negative electrode"][i].npts, 10)
+            self.assertEqual(mesh["separator"][i].npts, 15)
+            self.assertEqual(mesh["positive electrode"][i].npts, 20)
+
     def test_mesh_coord_sys(self):
         param = pybamm.ParameterValues(
             base_parameters={
@@ -251,6 +317,18 @@ class TestMesh(unittest.TestCase):
         for submeshlist in mesh.values():
             for submesh in submeshlist:
                 self.assertTrue(submesh.coord_sys in pybamm.KNOWN_COORD_SYS)
+
+    def test_unimplemented_meshes(self):
+        var = pybamm.standard_spatial_vars
+        var_pts = {var.x_n: 10, var.y: 10}
+        geometry = {
+            "negative electrode": {
+                "primary": {var.x_n: {"min": 0, "max": 1}, var.y: {"min": 0, "max": 1}}
+            }
+        }
+        submesh_types = {"negative electrode": pybamm.Uniform1DSubMesh}
+        with self.assertRaises(pybamm.GeometryError):
+            pybamm.Mesh(geometry, submesh_types, var_pts)
 
 
 if __name__ == "__main__":

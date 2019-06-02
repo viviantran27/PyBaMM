@@ -71,11 +71,20 @@ class BinaryOperator(pybamm.Symbol):
                 type(left), type(right)
             )
         )
+        # Turn numbers into scalars
         if isinstance(left, numbers.Number):
             left = pybamm.Scalar(left)
         if isinstance(right, numbers.Number):
             right = pybamm.Scalar(right)
-        domain = self.get_children_domains(left.domain, right.domain)
+
+        # Check and process domains, except for Outer symbol which takes the outer
+        # product of two smbols in different domains, and gives it the domain of the
+        # right child.
+        if isinstance(self, pybamm.Outer):
+            domain = right.domain
+        else:
+            domain = self.get_children_domains(left.domain, right.domain)
+
         super().__init__(name, children=[left, right], domain=domain)
         self.left = self.children[0]
         self.right = self.children[1]
@@ -104,6 +113,16 @@ class BinaryOperator(pybamm.Symbol):
     def _binary_evaluate(self, left, right):
         """ Perform binary operation on nodes 'left' and 'right'. """
         raise NotImplementedError
+
+    def new_copy(self):
+        """ See :meth:`pybamm.Symbol.new_copy()`. """
+        # process children
+        new_left = self.left.new_copy()
+        new_right = self.right.new_copy()
+        # make new symbol, ensure domain remains the same
+        out = self.__class__(new_left, new_right)
+        out.domain = self.domain
+        return out
 
     def evaluate(self, t=None, y=None, known_evals=None):
         """ See :meth:`pybamm.Symbol.evaluate()`. """
@@ -259,7 +278,10 @@ class Subtraction(BinaryOperator):
 
     def jac(self, variable):
         """ See :meth:`pybamm.Symbol.jac()`. """
-        return self.left.jac(variable) - self.right.jac(variable)
+        if variable.id == self.id:
+            return pybamm.Scalar(1)
+        else:
+            return self.left.jac(variable) - self.right.jac(variable)
 
     def _binary_evaluate(self, left, right):
         """ See :meth:`pybamm.BinaryOperator._binary_evaluate()`. """
@@ -315,16 +337,19 @@ class Multiplication(BinaryOperator):
 
     def jac(self, variable):
         """ See :meth:`pybamm.Symbol.jac()`. """
-        # apply product rule
-        left, right = self.orphans
-        if left.evaluates_to_number() and right.evaluates_to_number():
-            return pybamm.Scalar(0)
-        elif left.evaluates_to_number():
-            return left * right.jac(variable)
-        elif right.evaluates_to_number():
-            return right * left.jac(variable)
+        if variable.id == self.id:
+            return pybamm.Scalar(1)
         else:
-            return right * left.jac(variable) + left * right.jac(variable)
+            # apply product rule
+            left, right = self.orphans
+            if left.evaluates_to_number() and right.evaluates_to_number():
+                return pybamm.Scalar(0)
+            elif left.evaluates_to_number():
+                return left * right.jac(variable)
+            elif right.evaluates_to_number():
+                return right * left.jac(variable)
+            else:
+                return right * left.jac(variable) + left * right.jac(variable)
 
     def _binary_evaluate(self, left, right):
         """ See :meth:`pybamm.BinaryOperator._binary_evaluate()`. """
@@ -392,6 +417,7 @@ class MatrixMultiplication(BinaryOperator):
         # operators of the form D @ u
         left, right = self.orphans
         if isinstance(left, pybamm.Array):
+            left = pybamm.Matrix(csr_matrix(left.evaluate()))
             return left @ right.jac(variable)
         else:
             raise NotImplementedError
@@ -432,18 +458,21 @@ class Division(BinaryOperator):
 
     def jac(self, variable):
         """ See :meth:`pybamm.Symbol.jac()`. """
-        # apply quotient rule
-        top, bottom = self.orphans
-        if top.evaluates_to_number() and bottom.evaluates_to_number():
-            return pybamm.Scalar(0)
-        elif top.evaluates_to_number():
-            return -top / bottom ** 2 * bottom.jac(variable)
-        elif bottom.evaluates_to_number():
-            return top.jac(variable) / bottom
+        if variable.id == self.id:
+            return pybamm.Scalar(1)
         else:
-            return (
-                bottom * top.jac(variable) - top * bottom.jac(variable)
-            ) / bottom ** 2
+            # apply quotient rule
+            top, bottom = self.orphans
+            if top.evaluates_to_number() and bottom.evaluates_to_number():
+                return pybamm.Scalar(0)
+            elif top.evaluates_to_number():
+                return -top / bottom ** 2 * bottom.jac(variable)
+            elif bottom.evaluates_to_number():
+                return top.jac(variable) / bottom
+            else:
+                return (
+                    bottom * top.jac(variable) - top * bottom.jac(variable)
+                ) / bottom ** 2
 
     def _binary_evaluate(self, left, right):
         """ See :meth:`pybamm.BinaryOperator._binary_evaluate()`. """
@@ -473,3 +502,68 @@ class Division(BinaryOperator):
             return left
 
         return pybamm.simplify_multiplication_division(self.__class__, left, right)
+
+
+class Outer(BinaryOperator):
+    """A node in the expression tree representing an outer product.
+    This takes a 1D vector in the current collector domain of size (n,1) and a 1D
+    variable of size (m,1), takes their outer product, and reshapes this into a vector
+    of size (nm,1).
+    Note: this class might be a bit dangerous, so at the moment it is very restrictive
+    in what symbols can be passed to it
+
+    **Extends:** :class:`BinaryOperator`
+    """
+
+    def __init__(self, left, right):
+        """ See :meth:`pybamm.BinaryOperator.__init__()`. """
+        # Can only take outer product of a current collector symbol
+        if left.domain != ["current collector"]:
+            raise pybamm.DomainError(
+                "left child domain must be 'current collector', not'{}".format(
+                    left.domain
+                )
+            )
+        # cannot have Variable, StateVector or Matrix in the right symbol, as these
+        # can already be 2D objects (so we can't take an outer product with them)
+        if right.has_symbol_of_class(
+            (pybamm.Variable, pybamm.StateVector, pybamm.Matrix)
+        ):
+            raise TypeError(
+                "right child must only contain SpatialVariable and scalars" ""
+            )
+
+        super().__init__("outer product", left, right)
+
+    def __str__(self):
+        """ See :meth:`pybamm.Symbol.__str__()`. """
+        return "outer({!s}, {!s})".format(self.left, self.right)
+
+    def diff(self, variable):
+        """ See :meth:`pybamm.Symbol.diff()`. """
+        raise NotImplementedError("diff not implemented for symbol of type 'Outer'")
+
+    def jac(self, variable):
+        """ See :meth:`pybamm.Symbol.jac()`. """
+        raise NotImplementedError("jac not implemented for symbol of type 'Outer'")
+
+    def _binary_evaluate(self, left, right):
+        """ See :meth:`pybamm.BinaryOperator._binary_evaluate()`. """
+
+        return np.outer(left, right).reshape(-1, 1)
+
+    def _binary_simplify(self, left, right):
+        """ See :meth:`pybamm.BinaryOperator.simplify()`. """
+        return pybamm.Outer(left, right)
+
+
+def outer(left, right):
+    """
+    Return outer product of two symbols. If the symbols have the same domain, the outer
+    product is just a multiplication. If they have different domains, make a copy of the
+    left child with same domain as right child, and then take outer product.
+    """
+    try:
+        return left * right
+    except pybamm.DomainError:
+        return pybamm.Outer(left, right)

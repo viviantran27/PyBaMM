@@ -108,6 +108,30 @@ class TestUnaryOperators(unittest.TestCase):
         with self.assertRaises(ValueError):
             pybamm.Integral(a, y)
 
+    def test_index(self):
+        vec = pybamm.Vector(np.array([1, 2, 3, 4, 5]))
+        # with integer
+        ind = vec[3]
+        self.assertIsInstance(ind, pybamm.Index)
+        self.assertEqual(ind.slice, slice(3, 4))
+        self.assertEqual(ind.evaluate(), 4)
+        # with slice
+        ind = vec[1:3]
+        self.assertIsInstance(ind, pybamm.Index)
+        self.assertEqual(ind.slice, slice(1, 3))
+        np.testing.assert_array_equal(ind.evaluate(), np.array([[2], [3]]))
+        # with only stop slice
+        ind = vec[:3]
+        self.assertIsInstance(ind, pybamm.Index)
+        self.assertEqual(ind.slice, slice(3))
+        np.testing.assert_array_equal(ind.evaluate(), np.array([[1], [2], [3]]))
+
+        # errors
+        with self.assertRaisesRegex(TypeError, "index must be integer or slice"):
+            pybamm.Index(vec, 0.0)
+        with self.assertRaisesRegex(ValueError, "slice size exceeds child size"):
+            pybamm.Index(vec, 5)
+
     def test_diff(self):
         a = pybamm.StateVector(slice(0, 1))
         y = np.array([5])
@@ -118,7 +142,7 @@ class TestUnaryOperators(unittest.TestCase):
 
         # absolute value (not implemented)
         absa = abs(a)
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(pybamm.UndefinedOperationError):
             absa.diff(a)
 
         # function: use autograd
@@ -165,14 +189,14 @@ class TestUnaryOperators(unittest.TestCase):
         self.assertEqual(boundary_a.child.id, a.id)
 
     def test_boundary_value(self):
-        a = pybamm.Symbol("a")
+        a = pybamm.Scalar(1)
         boundary_a = pybamm.boundary_value(a, "right")
         self.assertEqual(boundary_a.id, a.id)
 
         boundary_broad_a = pybamm.boundary_value(
             pybamm.Broadcast(a, ["negative electrode"]), "left"
         )
-        self.assertEqual(boundary_broad_a.id, a.id)
+        self.assertEqual(boundary_broad_a.evaluate(), np.array([1]))
 
         a = pybamm.Symbol("a", domain=["separator"])
         boundary_a = pybamm.boundary_value(a, "right")
@@ -181,12 +205,13 @@ class TestUnaryOperators(unittest.TestCase):
         self.assertEqual(boundary_a.domain, [])
 
     def test_average(self):
-        a = pybamm.Symbol("a")
+        a = pybamm.Scalar(1)
         average_a = pybamm.average(a)
         self.assertEqual(average_a.id, a.id)
 
         average_broad_a = pybamm.average(pybamm.Broadcast(a, ["negative electrode"]))
-        self.assertEqual(average_broad_a.id, a.id)
+        self.assertEqual(average_broad_a.evaluate(), np.array([1]))
+
         average_conc_broad = pybamm.average(
             pybamm.Concatenation(
                 pybamm.Broadcast(1, ["negative electrode"]),
@@ -209,6 +234,10 @@ class TestUnaryOperators(unittest.TestCase):
             self.assertIsInstance(av_a.children[0], pybamm.Integral)
             self.assertEqual(av_a.children[0].integration_variable.domain, x.domain)
             self.assertEqual(av_a.domain, [])
+
+        a = pybamm.Symbol("a", domain="bad domain")
+        with self.assertRaises(pybamm.DomainError):
+            pybamm.average(a)
 
 
 if __name__ == "__main__":

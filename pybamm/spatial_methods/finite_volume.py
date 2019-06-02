@@ -3,7 +3,16 @@
 #
 import pybamm
 
-from scipy.sparse import diags, eye, kron, csr_matrix, vstack
+from scipy.sparse import (
+    diags,
+    eye,
+    kron,
+    csr_matrix,
+    vstack,
+    hstack,
+    lil_matrix,
+    coo_matrix,
+)
 import autograd.numpy as np
 from autograd.builtins import isinstance
 
@@ -46,11 +55,8 @@ class FiniteVolume(pybamm.SpatialMethod):
             Contains the discretised spatial variable
         """
         # for finite volume we use the cell centres
-        if symbol.name in ["x_n", "x_s", "x_p", "r_n", "r_p", "x", "r"]:
-            symbol_mesh = self.mesh.combine_submeshes(*symbol.domain)
-            return pybamm.Vector(symbol_mesh[0].nodes, domain=symbol.domain)
-        else:
-            raise NotImplementedError("3D meshes not yet implemented")
+        symbol_mesh = self.mesh.combine_submeshes(*symbol.domain)
+        return pybamm.Vector(symbol_mesh[0].nodes, domain=symbol.domain)
 
     def gradient(self, symbol, discretised_symbol, boundary_conditions):
         """Matrix-vector multiplication to implement the gradient operator.
@@ -74,7 +80,9 @@ class FiniteVolume(pybamm.SpatialMethod):
         # note in 1D spherical grad and normal grad are the same
         gradient_matrix = self.gradient_matrix(domain)
 
-        return gradient_matrix @ discretised_symbol
+        out = gradient_matrix @ discretised_symbol
+        self.test_shape(out)
+        return out
 
     def gradient_matrix(self, domain):
         """
@@ -106,7 +114,11 @@ class FiniteVolume(pybamm.SpatialMethod):
         second_dim_len = len(submesh_list)
 
         # generate full matrix from the submatrix
-        matrix = kron(eye(second_dim_len), sub_matrix)
+        # Convert to csr_matrix so that we can take the index (row-slicing), which is
+        # not supported by the default kron format
+        # Note that this makes column-slicing inefficient, but this should not be an
+        # issue
+        matrix = csr_matrix(kron(eye(second_dim_len), sub_matrix))
 
         return pybamm.Matrix(matrix)
 
@@ -137,6 +149,7 @@ class FiniteVolume(pybamm.SpatialMethod):
         else:
             out = divergence_matrix @ discretised_symbol
 
+        self.test_shape(out)
         return out
 
     def divergence_matrix(self, domain):
@@ -168,13 +181,15 @@ class FiniteVolume(pybamm.SpatialMethod):
         # repeat matrix for each node in secondary dimensions
         second_dim_len = len(submesh_list)
         # generate full matrix from the submatrix
-        matrix = kron(eye(second_dim_len), sub_matrix)
+        # Convert to csr_matrix so that we can take the index (row-slicing), which is
+        # not supported by the default kron format
+        # Note that this makes column-slicing inefficient, but this should not be an
+        # issue
+        matrix = csr_matrix(kron(eye(second_dim_len), sub_matrix))
         return pybamm.Matrix(matrix)
 
     def integral(self, domain, symbol, discretised_symbol):
-        """Vector-vector dot product to implement the integral operator.
-        See :meth:`pybamm.BaseDiscretisation.integral`
-        """
+        """Vector-vector dot product to implement the integral operator. """
         # Calculate integration vector
         integration_vector = self.definite_integral_vector(domain)
 
@@ -188,6 +203,8 @@ class FiniteVolume(pybamm.SpatialMethod):
         else:
             out = integration_vector @ discretised_symbol
         out.domain = []
+
+        self.test_shape(out)
         return out
 
     def definite_integral_vector(self, domain):
@@ -221,18 +238,14 @@ class FiniteVolume(pybamm.SpatialMethod):
         return pybamm.Matrix(vector[np.newaxis, :])
 
     def indefinite_integral(self, domain, symbol, discretised_symbol):
-        """Implementation of the indefinite integral operator. The
-        input discretised symbol must be defined on the internal mesh edges.
-        See :meth:`pybamm.BaseDiscretisation.indefinite_integral`
-        """
+        """Implementation of the indefinite integral operator. """
 
-        if not symbol.has_gradient_and_not_divergence():
-            raise pybamm.ModelError(
-                "Symbol to be integrated must be valid on the mesh edges"
-            )
-
-        # Calculate integration matrix
-        integration_matrix = self.indefinite_integral_matrix(domain)
+        # Different integral matrix depending on whether the integrand evaluates on
+        # edges or nodes
+        if symbol.evaluates_on_edges():
+            integration_matrix = self.indefinite_integral_matrix_edges(domain)
+        else:
+            integration_matrix = self.indefinite_integral_matrix_nodes(domain)
 
         # Don't need to check for spherical domains as spherical polars
         # only change the diveregence (symbols here have grad and no div)
@@ -240,15 +253,35 @@ class FiniteVolume(pybamm.SpatialMethod):
 
         out.domain = domain
 
+        self.test_shape(out)
         return out
 
-    def indefinite_integral_matrix(self, domain):
+    def indefinite_integral_matrix_edges(self, domain):
         """
-        Matrix for finite-volume implementation of the indefinite integral
+        Matrix for finite-volume implementation of the indefinite integral where the
+        integrand is evaluated on mesh edges
 
         .. math::
-            F = \\int\\!f(u)\\,du
+            F(x) = \\int_0^x\\!f(u)\\,du
 
+        The indefinite integral must satisfy the following conditions:
+
+        - :math:`F(0) = 0`
+        - :math:`f(x) = \\frac{dF}{dx}`
+
+        or, in discrete form,
+
+        - `BoundaryValue(F, "left") = 0`, i.e. :math:`3*F_0 - F_1 = 0`
+        - :math:`f_{i+1/2} = (F_{i+1} - F_i) / dx_{i+1/2}`
+
+        Hence we must have
+
+        - :math:`F_0 = du_{1/2} * f_{1/2} / 2`
+        - :math:`F_{i+1} = F_i + du * f_{i+1/2}`
+
+        Note that :math:`f_{-1/2}` and :math:`f_{n+1/2}` are included in the discrete
+        integrand vector `f`, so we add a column of zeros at each end of the
+        indefinite integral matrix to ignore these.
 
         Parameters
         ----------
@@ -257,8 +290,8 @@ class FiniteVolume(pybamm.SpatialMethod):
 
         Returns
         -------
-        :class:`pybamm.Vector`
-            The finite volume integral vector for the domain
+        :class:`pybamm.Matrix`
+            The finite volume integral matrix for the domain
         """
 
         # Create appropriate submesh by combining submeshes in domain
@@ -267,18 +300,62 @@ class FiniteVolume(pybamm.SpatialMethod):
         n = submesh.npts
         sec_pts = len(submesh_list)
 
-        # note we have added a row of zeros at top for F(0) = 0
         du_n = submesh.d_nodes
         du_entries = [du_n] * (n - 1)
         offset = -np.arange(1, n, 1)
-        sub_matrix = diags(du_entries, offset, shape=(n, n - 1))
-        matrix = kron(eye(sec_pts), sub_matrix)
+        main_integral_matrix = diags(du_entries, offset, shape=(n, n - 1))
+        bc_offset_matrix = lil_matrix((n, n - 1))
+        bc_offset_matrix[:, 0] = du_n[0] / 2
+        sub_matrix = main_integral_matrix + bc_offset_matrix
+        # add a column of zeros at each end
+        zero_col = csr_matrix((n, 1))
+        sub_matrix = hstack([zero_col, sub_matrix, zero_col])
+        # Convert to csr_matrix so that we can take the index (row-slicing), which is
+        # not supported by the default kron format
+        # Note that this makes column-slicing inefficient, but this should not be an
+        # issue
+        matrix = csr_matrix(kron(eye(sec_pts), sub_matrix))
+
+        return pybamm.Matrix(matrix)
+
+    def indefinite_integral_matrix_nodes(self, domain):
+        """
+        Matrix for finite-volume implementation of the indefinite integral where the
+        integrand is evaluated on mesh nodes.
+        This is just a straightforward cumulative sum of the integrand
+
+        Parameters
+        ----------
+        domain : list
+            The domain(s) of integration
+
+        Returns
+        -------
+        :class:`pybamm.Matrix`
+            The finite volume integral matrix for the domain
+        """
+
+        # Create appropriate submesh by combining submeshes in domain
+        submesh_list = self.mesh.combine_submeshes(*domain)
+        submesh = submesh_list[0]
+        n = submesh.npts
+        sec_pts = len(submesh_list)
+
+        du_n = submesh.d_edges
+        du_entries = [du_n] * (n)
+        offset = -np.arange(1, n + 1, 1)
+        sub_matrix = diags(du_entries, offset, shape=(n + 1, n))
+        # Convert to csr_matrix so that we can take the index (row-slicing), which is
+        # not supported by the default kron format
+        # Note that this makes column-slicing inefficient, but this should not be an
+        # issue
+        matrix = csr_matrix(kron(eye(sec_pts), sub_matrix))
 
         return pybamm.Matrix(matrix)
 
     def add_ghost_nodes(self, symbol, discretised_symbol, bcs):
         """
-        Add boundary conditions via ghost nodes.
+        Add ghost nodes to a symbol.
 
         For Dirichlet bcs, for a boundary condition "y = a at the left-hand boundary",
         we concatenate a ghost node to the start of the vector y with value "2*a - y1"
@@ -295,19 +372,10 @@ class FiniteVolume(pybamm.SpatialMethod):
         where y1 is the value of the first node and h is the mesh size.
         Similarly for the right-hand boundary condition.
 
-        Currently, boundary conditions can only be applied on state
-        variables (e.g. concentration, temperature) or concatenations, and not on
-        arbitrary expressions.
-        To access the value of the first node (y1), we create a "first_node" object
-        which is a StateVector whose y_slice is the start of the y_slice of
-        discretised_symbol.
-        Similarly, the last node is a StateVector whose y_slice is the end of the
-        y_slice of discretised_symbol
-
         Parameters
         ----------
-        discretised_symbol : :class:`pybamm.StateVector` (size n)
-            The discretised variable (a state vector) to which to add ghost nodes
+        domain : list of strings
+            The domain of the symbol for which to add ghost nodes
         bcs : dict of tuples (:class:`pybamm.Scalar`, str)
             Dictionary (with keys "left" and "right") of boundary conditions. Each
             boundary condition consists of a value and a flag indicating its type
@@ -315,68 +383,38 @@ class FiniteVolume(pybamm.SpatialMethod):
 
         Returns
         -------
-        :class:`pybamm.Concatenation` (size n+1 or n+2)
-            Concatenation of the variable (a state vector) and ghost nodes
+        :class:`pybamm.Symbol` (shape (n+2, n))
+            `Matrix @ discretised_symbol + bcs_vector`. When evaluated, this gives the
+            discretised_symbol, with appropriate ghost nodes concatenated at each end.
 
         """
-        if isinstance(discretised_symbol, pybamm.StateVector):
-            y_slice_start = discretised_symbol.y_slice.start
-            y_slice_stop = discretised_symbol.y_slice.stop
-        elif isinstance(discretised_symbol, pybamm.Concatenation):
-            y_slice_start = discretised_symbol.children[0].y_slice.start
-            y_slice_stop = discretised_symbol.children[-1].y_slice.stop
-        else:
-            raise TypeError(
-                """
-                discretised_symbol must be a StateVector or Concatenation, not '{}'
-                """.format(
-                    type(discretised_symbol)
-                )
-            )
-        y = np.arange(y_slice_start, y_slice_stop)
-
-        # reshape y_slices into more helpful form
+        # get relevant grid points
         submesh_list = self.mesh.combine_submeshes(*symbol.domain)
-        if isinstance(submesh_list[0].npts, list):
-            NotImplementedError("Can only take in 1D primary directions")
 
-        size = [len(submesh_list), submesh_list[0].npts]
-        y = np.reshape(y, size)
-        y_left = y[:, 0]
-        y_right = y[:, -1]
+        # Prepare sizes and empty bcs_vector
+        n = submesh_list[0].npts
+        sec_pts = len(submesh_list)
 
-        new_discretised_symbol = pybamm.Vector(np.array([]))  # starts empty
+        bcs_vector = pybamm.Vector(np.array([]))  # starts empty
 
         lbc_value, lbc_type = bcs["left"]
         rbc_value, rbc_type = bcs["right"]
 
-        for i in range(len(submesh_list)):
-            y_slice_start = y_left[i]
-            y_slice_stop = y_right[i]
-
-            # left ghost cell
-            first_node = pybamm.StateVector(slice(y_slice_start, y_slice_start + 1))
-
-            # middle symbol
-            sub_disc_symbol = pybamm.StateVector(slice(y_slice_start, y_slice_stop + 1))
-
-            # right ghost cell
-            last_node = pybamm.StateVector(slice(y_slice_stop, y_slice_stop + 1))
-
+        for i in range(sec_pts):
             if lbc_value.evaluates_to_number():
                 lbc_i = lbc_value
             else:
-                lbc_i = pybamm.Index(lbc_value, i)
+                lbc_i = lbc_value[i]
             if rbc_value.evaluates_to_number():
                 rbc_i = rbc_value
             else:
-                rbc_i = pybamm.Index(rbc_value, i)
+                rbc_i = rbc_value[i]
 
             if lbc_type == "Dirichlet":
-                left_ghost_cell = 2 * lbc_i - first_node
+                left_ghost_constant = 2 * lbc_i
             elif lbc_type == "Neumann":
                 dx = 2 * (submesh_list[0].nodes[0] - submesh_list[0].edges[0])
-                left_ghost_cell = first_node - dx * lbc_i
+                left_ghost_constant = -dx * lbc_i
             else:
                 raise ValueError(
                     "boundary condition must be Dirichlet or Neumann, not '{}'".format(
@@ -384,10 +422,10 @@ class FiniteVolume(pybamm.SpatialMethod):
                     )
                 )
             if rbc_type == "Dirichlet":
-                right_ghost_cell = 2 * rbc_i - last_node
+                right_ghost_constant = 2 * rbc_i
             elif rbc_type == "Neumann":
                 dx = 2 * (submesh_list[0].edges[-1] - submesh_list[0].nodes[-1])
-                right_ghost_cell = last_node + dx * rbc_i
+                right_ghost_constant = dx * rbc_i
             else:
                 raise ValueError(
                     "boundary condition must be Dirichlet or Neumann, not '{}'".format(
@@ -395,17 +433,31 @@ class FiniteVolume(pybamm.SpatialMethod):
                     )
                 )
             # concatenate
-            concatenated_sub_disc_symbol = pybamm.NumpyConcatenation(
-                left_ghost_cell, sub_disc_symbol, right_ghost_cell
-            )
-            new_discretised_symbol = pybamm.NumpyConcatenation(
-                new_discretised_symbol, concatenated_sub_disc_symbol
+            bcs_vector = pybamm.NumpyConcatenation(
+                bcs_vector,
+                left_ghost_constant,
+                pybamm.Vector(np.zeros(n)),
+                right_ghost_constant,
             )
 
-        # Keep same domain
-        new_discretised_symbol.domain = discretised_symbol.domain
+        # Make matrix to calculate ghost nodes
+        bc_factors = {"Dirichlet": -1, "Neumann": 1}
+        left_factor = bc_factors[lbc_type]
+        right_factor = bc_factors[rbc_type]
+        # coo_matrix takes inputs (data, (row, col)) and puts data[i] at the point
+        # (row[i], col[i]) for each index of data.
+        left_ghost_vector = coo_matrix(([left_factor], ([0], [0])), shape=(1, n))
+        right_ghost_vector = coo_matrix(([right_factor], ([0], [n - 1])), shape=(1, n))
+        sub_matrix = vstack([left_ghost_vector, eye(n), right_ghost_vector])
 
-        return new_discretised_symbol
+        # repeat matrix for secondary dimensions
+        # Convert to csr_matrix so that we can take the index (row-slicing), which is
+        # not supported by the default kron format
+        # Note that this makes column-slicing inefficient, but this should not be an
+        # issue
+        matrix = csr_matrix(kron(eye(sec_pts), sub_matrix))
+
+        return pybamm.Matrix(matrix) @ discretised_symbol + bcs_vector
 
     def boundary_value_or_flux(self, symbol, discretised_child):
         """
@@ -417,8 +469,6 @@ class FiniteVolume(pybamm.SpatialMethod):
 
         # Find the number of submeshes
         submesh_list = self.mesh.combine_submeshes(*discretised_child.domain)
-        if isinstance(submesh_list[0].npts, list):
-            NotImplementedError("Can only take in 1D primary directions")
 
         prim_pts = submesh_list[0].npts
         sec_pts = len(submesh_list)
@@ -448,7 +498,11 @@ class FiniteVolume(pybamm.SpatialMethod):
                 )
 
         # Generate full matrix from the submatrix
-        matrix = kron(eye(sec_pts), sub_matrix)
+        # Convert to csr_matrix so that we can take the index (row-slicing), which is
+        # not supported by the default kron format
+        # Note that this makes column-slicing inefficient, but this should not be an
+        # issue
+        matrix = csr_matrix(kron(eye(sec_pts), sub_matrix))
 
         # Return boundary value with domain removed
         boundary_value = pybamm.Matrix(matrix) @ discretised_child
@@ -458,9 +512,14 @@ class FiniteVolume(pybamm.SpatialMethod):
                 boundary_value.domain = ["negative electrode"]
             elif discretised_child.domain == ["positive particle"]:
                 boundary_value.domain = ["positive electrode"]
+            elif (
+                "negative electrode" or "separator" or "positive electrode"
+            ) in discretised_child.domain:
+                boundary_value.domain = ["current collector"]
         else:
             boundary_value.domain = []
 
+        self.test_shape(boundary_value)
         return boundary_value
 
     def process_binary_operators(self, bin_op, left, right, disc_left, disc_right):
@@ -487,24 +546,70 @@ class FiniteVolume(pybamm.SpatialMethod):
 
         """
         # Post-processing to make sure discretised dimensions match
-        left_has_grad_not_div = left.has_gradient_and_not_divergence()
-        right_has_grad_not_div = right.has_gradient_and_not_divergence()
-        # If neither child has gradients, or both children have gradients
+        left_evaluates_on_edges = left.evaluates_on_edges()
+        right_evaluates_on_edges = right.evaluates_on_edges()
+        # If neither child evaluates on edges, or both children have gradients,
         # no need to do any averaging
-        if left_has_grad_not_div == right_has_grad_not_div:
+        if left_evaluates_on_edges == right_evaluates_on_edges:
             pass
-        # If only left child has gradient, compute diffusivity for right child
-        elif left_has_grad_not_div and not right_has_grad_not_div:
-            disc_right = self.compute_diffusivity(disc_right)
-        # If only right child has gradient, compute diffusivity for left child
-        elif right_has_grad_not_div and not left_has_grad_not_div:
-            disc_left = self.compute_diffusivity(disc_left)
+        # If only left child evaluates on edges, map right child onto edges
+        elif left_evaluates_on_edges and not right_evaluates_on_edges:
+            disc_right = self.node_to_edge(disc_right)
+        # If only right child evaluates on edges, map left child onto edges
+        elif right_evaluates_on_edges and not left_evaluates_on_edges:
+            disc_left = self.node_to_edge(disc_left)
         # Return new binary operator with appropriate class
-        return bin_op.__class__(disc_left, disc_right)
+        out = bin_op.__class__(disc_left, disc_right)
+        self.test_shape(out)
+        return out
 
-    def compute_diffusivity(self, discretised_symbol):
+    def concatenation(self, disc_children):
+        """Discrete concatenation, taking `edge_to_node` for children that evaluate on
+        edges.
+        See :meth:`pybamm.SpatialMethod.concatenation`
         """
-        Compute the diffusivity at cell edges, based on the diffusivity at cell nodes.
+        for idx, child in enumerate(disc_children):
+            n_nodes = sum(
+                len(mesh.nodes) for mesh in self.mesh.combine_submeshes(*child.domain)
+            )
+            n_edges = sum(
+                len(mesh.edges) for mesh in self.mesh.combine_submeshes(*child.domain)
+            )
+            child_size = child.size
+            if child_size != n_nodes:
+                # Average any children that evaluate on the edges (size n_edges) to
+                # evaluate on nodes instead, so that concatenation works properly
+                if child_size == n_edges:
+                    disc_children[idx] = self.edge_to_node(child)
+                else:
+                    raise pybamm.ShapeError(
+                        """
+                        child must have size n_nodes (number of nodes in the mesh)
+                        or n_edges (number of edges in the mesh)
+                        """
+                    )
+        return pybamm.DomainConcatenation(disc_children, self.mesh)
+
+    def edge_to_node(self, discretised_symbol):
+        """
+        Convert a discretised symbol evaluated on the cell edges to a discretised symbol
+        evaluated on the cell nodes.
+        See :meth:`pybamm.FiniteVolume.shift`
+        """
+        return self.shift(discretised_symbol, "edge to node")
+
+    def node_to_edge(self, discretised_symbol):
+        """
+        Convert a discretised symbol evaluated on the cell nodes to a discretised symbol
+        evaluated on the cell edges.
+        See :meth:`pybamm.FiniteVolume.shift`
+        """
+        return self.shift(discretised_symbol, "node to edge")
+
+    def shift(self, discretised_symbol, shift_key):
+        """
+        Convert a discretised symbol evaluated at edges/nodes, to a discretised symbol
+        evaluated at nodes/edges.
         For now we just take the arithemtic mean, though it may be better to take the
         harmonic mean based on [1].
 
@@ -515,18 +620,22 @@ class FiniteVolume(pybamm.SpatialMethod):
         ----------
         discretised_symbol : :class:`pybamm.Symbol`
             Symbol to be averaged. When evaluated, this symbol returns either a scalar
-            or an array of shape (n,), where n is the number of points in the mesh for
-            the symbol's domain (n = self.mesh[symbol.domain].npts)
+            or an array of shape (n,) or (n+1,), where n is the number of points in the
+            mesh for the symbol's domain (n = self.mesh[symbol.domain].npts)
+        shift_key : str
+            Whether to shift from nodes to edges ("node to edge"), or from edges to
+            nodes ("edge to node")
 
         Returns
         -------
-        :class:`pybamm.Function`
+        :class:`pybamm.Symbol`
             Averaged symbol. When evaluated, this returns either a scalar or an array of
-            shape (n+1,) as appropriate.
+            shape (n+1,) (if `shift_key = "node to edge"`) or (n,) (if
+            `shift_key = "edge to node"`)
         """
 
         def arithmetic_mean(array):
-            """Calculate the arithemetic mean of an array using matrix multiplication"""
+            """Calculate the arithmetic mean of an array using matrix multiplication"""
             # Create appropriate submesh by combining submeshes in domain
             submesh_list = self.mesh.combine_submeshes(*array.domain)
 
@@ -536,23 +645,38 @@ class FiniteVolume(pybamm.SpatialMethod):
             # Create 1D matrix using submesh
             n = submesh.npts
 
-            sub_matrix_left = csr_matrix(([1.5, -0.5], ([0, 0], [0, 1])), shape=(1, n))
-            sub_matrix_center = diags([0.5, 0.5], [0, 1], shape=(n - 1, n))
-            sub_matrix_right = csr_matrix(
-                ([-0.5, 1.5], ([0, 0], [n - 2, n - 1])), shape=(1, n)
-            )
-            sub_matrix = vstack([sub_matrix_left, sub_matrix_center, sub_matrix_right])
-
+            if shift_key == "node to edge":
+                sub_matrix_left = csr_matrix(
+                    ([1.5, -0.5], ([0, 0], [0, 1])), shape=(1, n)
+                )
+                sub_matrix_center = diags([0.5, 0.5], [0, 1], shape=(n - 1, n))
+                sub_matrix_right = csr_matrix(
+                    ([-0.5, 1.5], ([0, 0], [n - 2, n - 1])), shape=(1, n)
+                )
+                sub_matrix = vstack(
+                    [sub_matrix_left, sub_matrix_center, sub_matrix_right]
+                )
+            elif shift_key == "edge to node":
+                sub_matrix = diags([0.5, 0.5], [0, 1], shape=(n, n + 1))
+            else:
+                raise ValueError("shift key '{}' not recognised".format(shift_key))
             # Second dimension length
             second_dim_len = len(submesh_list)
 
             # Generate full matrix from the submatrix
-            matrix = kron(eye(second_dim_len), sub_matrix)
+            # Convert to csr_matrix so that we can take the index (row-slicing), which
+            # is not supported by the default kron format
+            # Note that this makes column-slicing inefficient, but this should not be an
+            # issue
+            matrix = csr_matrix(kron(eye(second_dim_len), sub_matrix))
 
             return pybamm.Matrix(matrix) @ array
 
         # If discretised_symbol evaluates to number there is no need to average
         if discretised_symbol.evaluates_to_number():
-            return discretised_symbol
+            out = discretised_symbol
         else:
-            return arithmetic_mean(discretised_symbol)
+            out = arithmetic_mean(discretised_symbol)
+
+        self.test_shape(out)
+        return out

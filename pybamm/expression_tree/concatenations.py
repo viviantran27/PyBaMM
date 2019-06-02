@@ -60,6 +60,16 @@ class Concatenation(pybamm.Symbol):
                 children_eval[idx] = child.evaluate(t, y)
             return self._concatenation_evaluate(children_eval)
 
+    def new_copy(self):
+        """ See :meth:`pybamm.Symbol.new_copy()`. """
+        new_children = [child.new_copy() for child in self.children]
+        return self._concatenation_new_copy(new_children)
+
+    def _concatenation_new_copy(self, children):
+        """ See :meth:`pybamm.Symbol.new_copy()`. """
+        new_symbol = self.__class__(*children)
+        return new_symbol
+
     def _concatenation_simplify(self, children):
         """ See :meth:`pybamm.Symbol.simplify()`. """
         new_symbol = self.__class__(*children)
@@ -212,6 +222,11 @@ class DomainConcatenation(Concatenation):
         else:
             return SparseStack(*[child.jac(variable) for child in children])
 
+    def _concatenation_new_copy(self, children):
+        """ See :meth:`pybamm.Symbol.new_copy()`. """
+        new_symbol = self.__class__(children, self.mesh, self)
+        return new_symbol
+
     def _concatenation_simplify(self, children):
         """ See :meth:`pybamm.Symbol.simplify()`. """
         # Simplify Concatenation of StateVectors to a single StateVector
@@ -253,22 +268,6 @@ class SparseStack(Concatenation):
     def __init__(self, *children):
         children = list(children)
         super().__init__(*children, name="sparse stack", check_domain=False)
-
-    def evaluate(self, t=None, y=None, known_evals=None):
-        """ See :meth:`pybamm.Symbol.evaluate()`. """
-        children = self.cached_children
-        if known_evals is not None:
-            if self.id not in known_evals:
-                children_eval = [None] * len(children)
-                for idx, child in enumerate(children):
-                    children_eval[idx], known_evals = child.evaluate(t, y, known_evals)
-                known_evals[self.id] = self._concatenation_evaluate(children_eval)
-            return known_evals[self.id], known_evals
-        else:
-            children_eval = [None] * len(children)
-            for idx, child in enumerate(children):
-                children_eval[idx] = child.evaluate(t, y)
-            return self._concatenation_evaluate(children_eval)
 
     def _concatenation_evaluate(self, children_eval):
         """ See :meth:`Concatenation.evaluate()`. """

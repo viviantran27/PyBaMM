@@ -21,10 +21,10 @@ phi_s_p = pybamm.Variable("Positive electrode potential", ["positive electrode"]
 
 # Potential difference
 delta_phi_n = pybamm.Variable(
-    "Negative electrode potential difference", ["negative electrode"]
+    "Negative electrode surface potential difference", ["negative electrode"]
 )
 delta_phi_p = pybamm.Variable(
-    "Positive electrode potential difference", ["positive electrode"]
+    "Positive electrode surface potential difference", ["positive electrode"]
 )
 
 # Particle concentration
@@ -46,3 +46,9 @@ eps_piecewise_constant = pybamm.Concatenation(
     pybamm.Broadcast(eps_s_pc, ["separator"]),
     pybamm.Broadcast(eps_p_pc, ["positive electrode"]),
 )
+
+# Electrolyte pressure
+pressure_n = pybamm.Variable("Negative electrolyte pressure", ["negative electrode"])
+pressure_s = pybamm.Variable("Separator electrolyte pressure", ["separator"])
+pressure_p = pybamm.Variable("Positive electrolyte pressure", ["positive electrode"])
+pressure = pybamm.Concatenation(pressure_n, pressure_s, pressure_p)

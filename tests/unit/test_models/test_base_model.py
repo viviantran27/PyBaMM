@@ -94,6 +94,11 @@ class TestBaseModel(unittest.TestCase):
         model.variables = variables
         self.assertEqual(variables, model.variables)
 
+    def test_jac_set_get(self):
+        model = pybamm.BaseModel()
+        model.jacobian = "test"
+        self.assertEqual(model.jacobian, "test")
+
     def test_model_dict_behaviour(self):
         model = pybamm.BaseModel()
         key = pybamm.Symbol("c")
@@ -329,6 +334,22 @@ class TestBaseModel(unittest.TestCase):
         # Check None entries have been removed from the variables dictionary
         for key, item in model._variables.items():
             self.assertIsNotNone(item)
+
+
+class TestStandardBatteryBaseModel(unittest.TestCase):
+    def test_default_solver(self):
+        model = pybamm.StandardBatteryBaseModel()
+        self.assertIsInstance(
+            model.default_solver, (pybamm.ScipySolver, pybamm.ScikitsOdeSolver)
+        )
+
+        # check that default_solver gives you a new solver, not an internal object
+        solver = model.default_solver
+        solver = pybamm.BaseModel()
+        self.assertIsInstance(
+            model.default_solver, (pybamm.ScipySolver, pybamm.ScikitsOdeSolver)
+        )
+        self.assertIsInstance(solver, pybamm.BaseModel)
 
 
 if __name__ == "__main__":

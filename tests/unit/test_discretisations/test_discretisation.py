@@ -5,7 +5,11 @@ import pybamm
 
 import numpy as np
 import unittest
-from tests import get_mesh_for_testing, get_discretisation_for_testing
+from tests import (
+    get_mesh_for_testing,
+    get_discretisation_for_testing,
+    get_1p1d_discretisation_for_testing,
+)
 from scipy.sparse import block_diag
 
 
@@ -35,6 +39,10 @@ class TestDiscretise(unittest.TestCase):
         initial_conditions = {a: pybamm.Scalar(2), b: pybamm.Scalar(3)}
         with self.assertRaises(pybamm.ModelError):
             result = disc._concatenate_in_order(initial_conditions, check_complete=True)
+
+    def test_no_mesh(self):
+        disc = pybamm.Discretisation(None, None)
+        self.assertEqual(disc._spatial_methods, {})
 
     def test_discretise_slicing(self):
         # create discretisation
@@ -274,7 +282,7 @@ class TestDiscretise(unittest.TestCase):
         combined_submesh = mesh.combine_submeshes(*whole_cell)
 
         y = combined_submesh[0].nodes[:, np.newaxis] ** 2
-        disc._bcs = boundary_conditions
+        disc.bcs = boundary_conditions
 
         disc.set_variable_slices(list(rhs.keys()))
         # rhs - grad and div are identity operators here
@@ -532,6 +540,13 @@ class TestDiscretise(unittest.TestCase):
         )
         np.testing.assert_array_equal(jacobian_actual, jacobian.toarray())
 
+        # test known_evals
+        expr = pybamm.SparseStack(jac_rhs, jac_algebraic)
+        jacobian, known_evals = expr.evaluate(0, y0, known_evals={})
+        np.testing.assert_array_equal(jacobian_actual, jacobian.toarray())
+        jacobian = expr.evaluate(0, y0, known_evals=known_evals)[0]
+        np.testing.assert_array_equal(jacobian_actual, jacobian.toarray())
+
     def test_process_model_concatenation(self):
         # concatenation of variables as the key
         cn = pybamm.Variable("c", domain=["negative electrode"])
@@ -620,12 +635,49 @@ class TestDiscretise(unittest.TestCase):
         self.assertIsInstance(broad_disc.children[1], pybamm.Vector)
 
         # process Broadcast variable
-        disc._y_slices = {var.id: slice(53)}
+        disc._y_slices = {var.id: slice(1)}
         broad1 = pybamm.Broadcast(var, ["negative electrode"])
         broad1_disc = disc.process_symbol(broad1)
         self.assertIsInstance(broad1_disc, pybamm.Multiplication)
         self.assertIsInstance(broad1_disc.children[0], pybamm.StateVector)
         self.assertIsInstance(broad1_disc.children[1], pybamm.Vector)
+
+    def test_broadcast_2D(self):
+        # broadcast in 2D --> Outer symbol
+        var = pybamm.Variable("var", ["current collector"])
+        disc = get_1p1d_discretisation_for_testing()
+        mesh = disc.mesh
+        broad = pybamm.Broadcast(var, "separator")
+
+        disc.set_variable_slices([var])
+        broad_disc = disc.process_symbol(broad)
+        self.assertIsInstance(broad_disc, pybamm.Outer)
+        self.assertIsInstance(broad_disc.children[0], pybamm.StateVector)
+        self.assertIsInstance(broad_disc.children[1], pybamm.Vector)
+        self.assertEqual(
+            broad_disc.shape,
+            (mesh["separator"][0].npts * mesh["current collector"][0].npts, 1),
+        )
+
+    def test_outer(self):
+        var = pybamm.Variable("var", ["current collector"])
+        x = pybamm.SpatialVariable("x_s", ["separator"])
+
+        # create discretisation
+        disc = get_1p1d_discretisation_for_testing()
+        mesh = disc.mesh
+
+        # process Outer variable
+        disc.set_variable_slices([var])
+        outer = pybamm.outer(var, x)
+        outer_disc = disc.process_symbol(outer)
+        self.assertIsInstance(outer_disc, pybamm.Outer)
+        self.assertIsInstance(outer_disc.children[0], pybamm.StateVector)
+        self.assertIsInstance(outer_disc.children[1], pybamm.Vector)
+        self.assertEqual(
+            outer_disc.shape,
+            (mesh["separator"][0].npts * mesh["current collector"][0].npts, 1),
+        )
 
     def test_concatenation(self):
         a = pybamm.Symbol("a")
@@ -660,35 +712,35 @@ class TestDiscretise(unittest.TestCase):
         )[:, np.newaxis]
         np.testing.assert_allclose(eqn_disc.evaluate(), expected_vector)
 
-    def test_discretise_spatial_variable(self):
-        # create discretisation
+    def test_exceptions(self):
+        c_n = pybamm.Variable("c", domain=["negative electrode"])
+        N_n = pybamm.grad(c_n)
+        c_s = pybamm.Variable("c", domain=["separator"])
+        N_s = pybamm.grad(c_s)
+        model = pybamm.BaseModel()
+        model.rhs = {c_n: pybamm.div(N_n), c_s: pybamm.div(N_s)}
+        model.initial_conditions = {c_n: pybamm.Scalar(3), c_s: pybamm.Scalar(1)}
+        model.boundary_conditions = {
+            c_n: {"left": (0, "Neumann"), "right": (0, "Neumann")},
+            c_s: {"left": (0, "Neumann"), "right": (0, "Neumann")},
+        }
+
         disc = get_discretisation_for_testing()
 
-        # space
-        x1 = pybamm.SpatialVariable("x", ["negative electrode"])
-        x1_disc = disc.process_symbol(x1)
-        self.assertIsInstance(x1_disc, pybamm.Vector)
-        np.testing.assert_array_equal(
-            x1_disc.evaluate(), disc.mesh["negative electrode"][0].nodes[:, np.newaxis]
-        )
+        # check raises error if different sized key and output var
+        model.variables = {c_n.name: c_s}
+        with self.assertRaisesRegex(pybamm.ModelError, "variable and its eqn"):
+            disc.process_model(model, inplace=False)
 
-        x2 = pybamm.SpatialVariable("x", ["negative electrode", "separator"])
-        x2_disc = disc.process_symbol(x2)
-        self.assertIsInstance(x2_disc, pybamm.Vector)
-        np.testing.assert_array_equal(
-            x2_disc.evaluate(),
-            disc.mesh.combine_submeshes("negative electrode", "separator")[0].nodes[
-                :, np.newaxis
-            ],
-        )
+        # check doesn't raise if concatenation
+        model.variables = {c_n.name: pybamm.Concatenation(c_n, c_s)}
+        disc.process_model(model, inplace=False)
 
-        r = 3 * pybamm.SpatialVariable("r", ["negative particle"])
-        r_disc = disc.process_symbol(r)
-        self.assertIsInstance(r_disc.children[1], pybamm.Vector)
-        np.testing.assert_array_equal(
-            r_disc.evaluate(),
-            3 * disc.mesh["negative particle"][0].nodes[:, np.newaxis],
-        )
+        # check doesn't raise if broadcast
+        model.variables = {
+            c_n.name: pybamm.Broadcast(pybamm.Scalar(2), ["negative electrode"])
+        }
+        disc.process_model(model, inplace=False)
 
 
 if __name__ == "__main__":

@@ -34,12 +34,23 @@ class Discretisation(object):
             self._spatial_methods = {
                 dom: method(mesh) for dom, method in spatial_methods.items()
             }
-        self._bcs = {}
+        self.bcs = {}
         self._y_slices = {}
+        self._discretised_symbols = {}
 
     @property
     def mesh(self):
         return self._mesh
+
+    @property
+    def bcs(self):
+        return self._bcs
+
+    @bcs.setter
+    def bcs(self, value):
+        self._bcs = value
+        # reset discretised_symbols
+        self._discretised_symbols = {}
 
     def process_model(self, model, inplace=True):
         """Discretise a model.
@@ -72,7 +83,7 @@ class Discretisation(object):
         self.set_variable_slices(variables)
 
         # set boundary conditions (only need key ids for boundary_conditions)
-        self._bcs = self.process_boundary_conditions(model)
+        self.bcs = self.process_boundary_conditions(model)
 
         # set up inplace vs not inplace
         if inplace:
@@ -148,6 +159,9 @@ class Discretisation(object):
         assert isinstance(self._y_slices, dict), ValueError(
             """y_slices should be dict, not {}""".format(type(self._y_slices))
         )
+
+        # reset discretised_symbols
+        self._discretised_symbols = {}
 
     def process_initial_conditions(self, model):
         """Discretise model initial_conditions.
@@ -287,15 +301,14 @@ class Discretisation(object):
             else:
                 mass_list.append(
                     self._spatial_methods[var.domain[0]]
-                    .mass_matrix(var, self._bcs)
+                    .mass_matrix(var, self.bcs)
                     .entries
                 )
 
         # Create lumped mass matrix (of zeros) of the correct shape for the
         # discretised algebraic equations
         if model.algebraic.keys():
-            y0 = model.concatenated_initial_conditions
-            mass_algebraic_size = model.concatenated_algebraic.evaluate(0, y0).shape[0]
+            mass_algebraic_size = model.concatenated_algebraic.shape[0]
             mass_algebraic = csr_matrix((mass_algebraic_size, mass_algebraic_size))
             mass_list.append(mass_algebraic)
 
@@ -324,23 +337,18 @@ class Discretisation(object):
         for eqn_key, eqn in var_eqn_dict.items():
             # Broadcast if the equation evaluates to a number(e.g. Scalar)
 
-            if eqn.evaluates_to_number():
-                if not isinstance(eqn_key, str):
-                    if eqn_key.domain == []:
-                        eqn = pybamm.Broadcast(eqn, eqn_key.domain)
-                    else:
-                        eqn = self._spatial_methods[eqn_key.domain[0]].broadcast(
-                            eqn, eqn_key.domain
-                        )
-
-            new_var_eqn_dict[eqn_key] = self.process_symbol(eqn)
+            if eqn.evaluates_to_number() and not isinstance(eqn_key, str):
+                eqn = pybamm.Broadcast(eqn, eqn_key.domain)
 
             # note we are sending in the key.id here so we don't have to
             # keep calling .id
+            pybamm.logger.debug("**Discretise {!s}".format(eqn_key))
+            new_var_eqn_dict[eqn_key] = self.process_symbol(eqn)
         return new_var_eqn_dict
 
     def process_symbol(self, symbol):
         """Discretise operators in model equations.
+        If a symbol has already been discretised, the stored value is returned.
 
         Parameters
         ----------
@@ -353,7 +361,18 @@ class Discretisation(object):
             Discretised symbol
 
         """
-        pybamm.logger.debug("Discretise {!s}".format(symbol))
+        try:
+            return self._discretised_symbols[symbol.id]
+        except KeyError:
+            discretised_symbol = self._process_symbol(symbol)
+            self._discretised_symbols[symbol.id] = discretised_symbol
+            return discretised_symbol
+
+    def _process_symbol(self, symbol):
+        """ See :meth:`Discretisation.process_symbol()`. """
+
+        if symbol.domain != []:
+            spatial_method = self._spatial_methods[symbol.domain[0]]
 
         if isinstance(symbol, pybamm.BinaryOperator):
             # Pre-process children
@@ -363,94 +382,64 @@ class Discretisation(object):
             if symbol.domain == []:
                 return symbol.__class__(disc_left, disc_right)
             else:
-                return self._spatial_methods[symbol.domain[0]].process_binary_operators(
+                return spatial_method.process_binary_operators(
                     symbol, left, right, disc_left, disc_right
                 )
-
-        elif isinstance(symbol, pybamm.Gradient):
-            child = symbol.children[0]
-            discretised_child = self.process_symbol(child)
-            return self._spatial_methods[child.domain[0]].gradient(
-                child, discretised_child, self._bcs
-            )
-
-        elif isinstance(symbol, pybamm.Divergence):
-            child = symbol.children[0]
-            discretised_child = self.process_symbol(child)
-            return self._spatial_methods[child.domain[0]].divergence(
-                child, discretised_child, self._bcs
-            )
-
-        elif isinstance(symbol, pybamm.IndefiniteIntegral):
-            child = symbol.children[0]
-            discretised_child = self.process_symbol(child)
-            return self._spatial_methods[child.domain[0]].indefinite_integral(
-                child.domain, child, discretised_child
-            )
-
-        elif isinstance(symbol, pybamm.Integral):
-            child = symbol.children[0]
-            discretised_child = self.process_symbol(child)
-            return self._spatial_methods[child.domain[0]].integral(
-                child.domain, child, discretised_child
-            )
-
-        elif isinstance(symbol, pybamm.Broadcast):
-            # Process child first
-            new_child = self.process_symbol(symbol.children[0])
-            # Broadcast new_child to the domain specified by symbol.domain
-            # Different discretisations may broadcast differently
-            if symbol.domain == []:
-                symbol = new_child * pybamm.Vector(np.array([1]))
-            else:
-                symbol = self._spatial_methods[symbol.domain[0]].broadcast(
-                    new_child, symbol.domain
-                )
-            return symbol
-
-        elif isinstance(symbol, pybamm.BoundaryOperator):
-            child = symbol.children[0]
-            discretised_child = self.process_symbol(child)
-            return self._spatial_methods[child.domain[0]].boundary_value_or_flux(
-                symbol, discretised_child
-            )
-
-        elif isinstance(symbol, pybamm.Function):
-            new_child = self.process_symbol(symbol.children[0])
-            return pybamm.Function(symbol.func, new_child)
-
         elif isinstance(symbol, pybamm.UnaryOperator):
-            new_child = self.process_symbol(symbol.children[0])
-            return symbol.__class__(new_child)
+            child = symbol.child
+            disc_child = self.process_symbol(child)
+            pybamm.SpatialMethod.test_shape(disc_child)
+            if child.domain != []:
+                child_spatial_method = self._spatial_methods[child.domain[0]]
+            if isinstance(symbol, pybamm.Gradient):
+                return child_spatial_method.gradient(child, disc_child, self.bcs)
+
+            elif isinstance(symbol, pybamm.Divergence):
+                return child_spatial_method.divergence(child, disc_child, self.bcs)
+
+            elif isinstance(symbol, pybamm.IndefiniteIntegral):
+                return child_spatial_method.indefinite_integral(
+                    child.domain, child, disc_child
+                )
+
+            elif isinstance(symbol, pybamm.Integral):
+                return child_spatial_method.integral(child.domain, child, disc_child)
+
+            elif isinstance(symbol, pybamm.Broadcast):
+                # Broadcast new_child to the domain specified by symbol.domain
+                # Different discretisations may broadcast differently
+                if symbol.domain == []:
+                    symbol = disc_child * pybamm.Vector(np.array([1]))
+                else:
+                    symbol = spatial_method.broadcast(disc_child, symbol.domain)
+                return symbol
+
+            elif isinstance(symbol, pybamm.BoundaryOperator):
+                return child_spatial_method.boundary_value_or_flux(symbol, disc_child)
+
+            else:
+                return symbol._unary_new_copy(disc_child)
 
         elif isinstance(symbol, pybamm.Variable):
             return pybamm.StateVector(self._y_slices[symbol.id], domain=symbol.domain)
 
         elif isinstance(symbol, pybamm.SpatialVariable):
-            return self._spatial_methods[symbol.domain[0]].spatial_variable(symbol)
+            return spatial_method.spatial_variable(symbol)
 
         elif isinstance(symbol, pybamm.Concatenation):
             new_children = [self.process_symbol(child) for child in symbol.children]
-            new_symbol = pybamm.DomainConcatenation(new_children, self.mesh)
+            new_symbol = spatial_method.concatenation(new_children)
 
             return new_symbol
 
-        elif isinstance(symbol, pybamm.Scalar):
-            return pybamm.Scalar(symbol.value, symbol.name, symbol.domain)
-
-        elif isinstance(symbol, pybamm.Array):
-            return symbol.__class__(symbol.entries, symbol.name, symbol.domain)
-
-        elif isinstance(symbol, pybamm.StateVector):
-            return symbol.__class__(symbol.y_slice, symbol.name, symbol.domain)
-
-        elif isinstance(symbol, pybamm.Time):
-            return pybamm.Time()
-
         else:
-            raise NotImplementedError(
-                "Cannot discretise symbol of type '{}'".format(type(symbol))
-            )
+            # Backup option: return new copy of the object
+            try:
+                return symbol.new_copy()
+            except NotImplementedError:
+                raise NotImplementedError(
+                    "Cannot discretise symbol of type '{}'".format(type(symbol))
+                )
 
     def concatenate(self, *symbols):
         return pybamm.NumpyConcatenation(*symbols)
@@ -510,7 +499,12 @@ class Discretisation(object):
 
     def check_model(self, model):
         """ Perform some basic checks to make sure the discretised model makes sense."""
-        # Check initial conditions are a numpy array
+        self.check_initial_conditions(model)
+        self.check_initial_conditions_rhs(model)
+        self.check_variables(model)
+
+    def check_initial_conditions(self, model):
+        """Check initial conditions are a numpy array"""
         # Individual
         for var, eqn in model.initial_conditions.items():
             assert type(eqn.evaluate(0, None)) is np.ndarray, pybamm.ModelError(
@@ -533,27 +527,24 @@ class Discretisation(object):
             )
         )
 
-        # Check initial conditions and rhs have the same shape
+    def check_initial_conditions_rhs(self, model):
+        """Check initial conditions and rhs have the same shape"""
         y0 = model.concatenated_initial_conditions
         # Individual
         for var in model.rhs.keys():
             assert (
-                model.rhs[var].evaluate(0, y0).shape
-                == model.initial_conditions[var].evaluate(0, None).shape
+                model.rhs[var].shape == model.initial_conditions[var].shape
             ), pybamm.ModelError(
                 """
                 rhs and initial_conditions must have the same shape after discretisation
                 but rhs.shape = {} and initial_conditions.shape = {} for variable '{}'.
                 """.format(
-                    model.rhs[var].evaluate(0, y0).shape,
-                    model.initial_conditions[var].evaluate(0, None).shape,
-                    var,
+                    model.rhs[var].shape, model.initial_conditions[var].shape, var
                 )
             )
         # Concatenated
         assert (
-            model.concatenated_rhs.evaluate(0, y0).shape[0]
-            + model.concatenated_algebraic.evaluate(0, y0).shape[0]
+            model.concatenated_rhs.shape[0] + model.concatenated_algebraic.shape[0]
             == y0.shape[0]
         ), pybamm.ModelError(
             """
@@ -561,35 +552,47 @@ class Discretisation(object):
             same shape after discretisation but rhs.shape = {}, algebraic.shape = {},
             and initial_conditions.shape = {}.
             """.format(
-                model.concatenated_rhs.evaluate(0, y0).shape,
-                model.concatenated_algebraic.evaluate(0, y0).shape,
+                model.concatenated_rhs.shape,
+                model.concatenated_algebraic.shape,
                 y0.shape,
             )
         )
 
-        # Check variables in variable list against rhs
-        # Be lenient with size check if the variable in model.variables is broadcasted
-        # If broadcasted, variable is a multiplication with a vector of ones
+    def check_variables(self, model):
+        """
+        Check variables in variable list against rhs
+        Be lenient with size check if the variable in model.variables is broadcasted, or
+        a concatenation, or an outer product
+        (if broadcasted, variable is a multiplication with a vector of ones)
+        """
         for rhs_var in model.rhs.keys():
             if rhs_var.name in model.variables.keys():
                 var = model.variables[rhs_var.name]
-                if not (
-                    model.rhs[rhs_var].evaluate(0, y0).shape
-                    == var.evaluate(0, y0).shape
-                    or isinstance(var, pybamm.Concatenation)
-                    or (
-                        isinstance(var, pybamm.Multiplication)
-                        and isinstance(var.right, pybamm.Vector)
-                        and np.all(var.right.entries == 1)
-                    )
+
+                different_shapes = not np.array_equal(
+                    model.rhs[rhs_var].shape, var.shape
+                )
+
+                not_concatenation = not isinstance(var, pybamm.Concatenation)
+                not_outer = not isinstance(var, pybamm.Outer)
+
+                not_mult_by_one_vec = not (
+                    isinstance(var, pybamm.Multiplication)
+                    and isinstance(var.right, pybamm.Vector)
+                    and np.all(var.right.entries == 1)
+                )
+
+                if (
+                    different_shapes
+                    and not_concatenation
+                    and not_outer
+                    and not_mult_by_one_vec
                 ):
                     raise pybamm.ModelError(
                         """
                     variable and its eqn must have the same shape after discretisation
                     but variable.shape = {} and rhs.shape = {} for variable '{}'.
                     """.format(
-                            var.evaluate(0, y0).shape,
-                            model.rhs[rhs_var].evaluate(0, y0).shape,
-                            var,
+                            var.shape, model.rhs[rhs_var].shape, var
                         )
                     )

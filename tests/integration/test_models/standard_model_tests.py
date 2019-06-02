@@ -133,8 +133,8 @@ class OptimisationsTest(object):
             parameter_values = model.default_parameter_values
         # Process model and geometry
         parameter_values.process_model(model)
-        parameter_values.process_geometry(model.default_geometry)
         geometry = model.default_geometry
+        parameter_values.process_geometry(geometry)
         # Set discretisation
         if disc is None:
             mesh = pybamm.Mesh(
@@ -146,7 +146,7 @@ class OptimisationsTest(object):
 
         self.model = model
 
-    def evaluate_model(self, simplify=False, use_known_evals=False):
+    def evaluate_model(self, simplify=False, use_known_evals=False, to_python=False):
         result = np.empty((0, 1))
         for eqn in [self.model.concatenated_rhs, self.model.concatenated_algebraic]:
             if simplify:
@@ -155,8 +155,12 @@ class OptimisationsTest(object):
             y = self.model.concatenated_initial_conditions
             if use_known_evals:
                 eqn_eval, known_evals = eqn.evaluate(0, y, known_evals={})
+            elif to_python:
+                evaluator = pybamm.EvaluatorPython(eqn)
+                eqn_eval = evaluator.evaluate(0, y)
             else:
                 eqn_eval = eqn.evaluate(0, y)
+
             if eqn_eval.shape == (0,):
                 eqn_eval = eqn_eval[:, np.newaxis]
 
