@@ -1,10 +1,8 @@
 #
 # Manufactured solution class
 #
-import pybamm
-
-import copy
 import autograd.numpy as np
+import pybamm
 
 
 class ManufacturedSolution(object):
@@ -91,9 +89,6 @@ class ManufacturedSolution(object):
             source_term += self.manufactured_variables[var.id].diff(pybamm.t)
             # Add source term to equation
             model.rhs[var] += source_term
-            import ipdb
-
-            ipdb.set_trace()
         for var, eqn in model.algebraic.items():
             # Calculate source term
             source_term = -self.process_symbol(eqn)
@@ -228,18 +223,14 @@ class ManufacturedSolution(object):
                 new_symbol = self.gradient(new_child)
             elif isinstance(symbol, pybamm.Divergence):
                 new_symbol = self.divergence(new_child)
-            elif isinstance(symbol, pybamm.NumpyBroadcast):
-                new_symbol = pybamm.NumpyBroadcast(
-                    new_child, symbol.domain, symbol.mesh
-                )
             elif isinstance(symbol, pybamm.Broadcast):
                 new_symbol = pybamm.Broadcast(new_child, symbol.domain)
             elif isinstance(symbol, pybamm.Function):
                 new_symbol = pybamm.Function(symbol.func, new_child)
             elif isinstance(symbol, pybamm.Integral):
-                new_symbol = pybamm.Integral(new_child, symbol.integration_variable)
-            elif isinstance(symbol, pybamm.BoundaryValue):
-                new_symbol = pybamm.BoundaryValue(new_child, symbol.side)
+                new_symbol = symbol.__class__(new_child, symbol.integration_variable)
+            elif isinstance(symbol, pybamm.BoundaryOperator):
+                new_symbol = symbol.__class__(new_child, symbol.side)
             else:
                 new_symbol = symbol.__class__(new_child)
             # ensure domain remains the same
@@ -259,9 +250,7 @@ class ManufacturedSolution(object):
                 return symbol.__class__(*new_children)
 
         else:
-            new_symbol = copy.deepcopy(symbol)
-            new_symbol.parent = None
-            return new_symbol
+            return symbol.new_copy()
 
     def gradient(self, symbol):
         """

@@ -56,8 +56,7 @@ class TestSimpleODEModel(unittest.TestCase):
         for approx_exact in approx_exact_ns_dict.values():
             approx, exact = approx_exact[1]
             t = np.linspace(0, 1, 100)
-            x = approx.x_sol
-            errors = approx(t, x) - exact(t, x)
+            errors = approx(t, 0) - exact(t, 0)
             np.testing.assert_almost_equal(errors, 0, decimal=5)
 
 

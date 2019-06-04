@@ -195,16 +195,15 @@ def get_manufactured_solution_errors(model, ns):
 
     # Function for convergence testing
     def get_approx_exact(n):
-        model_copy = copy.deepcopy(model)
         # Set up discretisation
         var = pybamm.standard_spatial_vars
         submesh_pts = {var.x_n: n, var.x_s: n, var.x_p: n, var.r_n: n, var.r_p: n}
-        mesh = pybamm.Mesh(geometry, model_copy.default_submesh_types, submesh_pts)
-        disc = pybamm.Discretisation(mesh, model_copy.default_spatial_methods)
+        mesh = pybamm.Mesh(geometry, model.default_submesh_types, submesh_pts)
+        disc = pybamm.Discretisation(mesh, model.default_spatial_methods)
 
         # Discretise and solve
-        disc.process_model(model_copy)
-        solver.solve(model_copy, t_eval)
+        model_disc = disc.process_model(model, inplace=False)
+        solver.solve(model_disc, t_eval)
         t, y = solver.t, solver.y
         # Process model and exact solutions
         all_approx_exact = {}
@@ -214,16 +213,13 @@ def get_manufactured_solution_errors(model, ns):
         ) in ms.manufactured_variable_strings.items():
             # Approximate solution from solving the model
             approx = pybamm.ProcessedVariable(
-                model_copy.variables[var_string], t, y, mesh=disc.mesh
+                model_disc.variables[var_string], t, y, mesh=disc.mesh
             )
             # Exact solution from manufactured solution
             exact = pybamm.ProcessedVariable(
                 disc.process_symbol(manufactured_variable), t, y, mesh=disc.mesh
             )
             all_approx_exact[var_string] = (approx, exact)
-            import ipdb
-
-            ipdb.set_trace()
 
         # error
         return all_approx_exact

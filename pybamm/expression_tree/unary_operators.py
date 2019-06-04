@@ -159,7 +159,9 @@ class Function(UnaryOperator):
     def _diff(self, variable):
         """ See :meth:`pybamm.Symbol._diff()`. """
         child = self.orphans[0]
-        return child.diff(variable) * Function(autograd.grad(self.func), child)
+        return child.diff(variable) * Function(
+            autograd.elementwise_grad(self.func), child
+        )
 
     def jac(self, variable):
         """ See :meth:`pybamm.Symbol.jac()`. """

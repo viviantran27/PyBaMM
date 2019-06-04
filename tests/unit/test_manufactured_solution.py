@@ -9,6 +9,10 @@ import numpy as np
 import unittest
 
 
+def one(x):
+    return 0 * x + 1
+
+
 class TestManufacturedSolution(unittest.TestCase):
     def test_manufacture_variable(self):
         ms = pybamm.ManufacturedSolution()
@@ -19,7 +23,7 @@ class TestManufacturedSolution(unittest.TestCase):
         mesh = disc.mesh
         man_var_disc = disc.process_symbol(manufactured_var)
         self.assertEqual(
-            man_var_disc.evaluate(t=0).shape, (mesh["negative particle"][0].npts,)
+            man_var_disc.evaluate(t=0).shape, (mesh["negative particle"][0].npts, 1)
         )
 
     def test_process_symbol(self):
@@ -75,7 +79,7 @@ class TestManufacturedSolution(unittest.TestCase):
             ),
             (pybamm.grad(d), 1),
             (pybamm.div(pybamm.grad(d)), 0),
-            (pybamm.div(pybamm.Vector(x_eval) * pybamm.grad(d)), 0),
+            (pybamm.div(pybamm.Function(one, x) * pybamm.grad(b)), 2),
         ]:
             eqn_proc = ms.process_symbol(eqn)
             eqn_proc_disc = disc.process_symbol(eqn_proc)
@@ -83,7 +87,6 @@ class TestManufacturedSolution(unittest.TestCase):
                 eqn_proc_disc.evaluate(), expected, decimal=14
             )
 
-    @unittest.skip("")
     def test_manufacture_model(self):
         # Create known variables
         a = pybamm.Variable("a", domain=["negative electrode"])
@@ -117,8 +120,8 @@ class TestManufacturedSolution(unittest.TestCase):
         # initial and boundary conditions will be overwritten
         model.initial_conditions = {a: 0, b: 0, c: 0}
         model.boundary_conditions = {
-            flux_a: {"left": 0, "right": 0},
-            c: {"left": 0, "right": 0},
+            a: {"left": (0, "Neumann"), "right": (0, "Neumann")},
+            c: {"left": (0, "Dirichlet"), "right": (0, "Dirichlet")},
         }
         ms.process_model(model, manufactured_variables)
 
