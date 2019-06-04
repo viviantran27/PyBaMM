@@ -78,12 +78,27 @@ class TestReactionDiffusionModel(unittest.TestCase):
 
     def test_manufactured_solution(self):
         model = pybamm.ReactionDiffusionModel()
-        exact, approx = tests.get_manufactured_solution_errors(model, False)
+
+        # Get errors
+        ns = 10 * 2 ** np.arange(4)
+        # Test convergence for each variable
+        approx_exact_ns_dict = tests.get_manufactured_solution_errors(model, ns)
         # ODE model: the error should be almost zero for each var (no convergence test)
-        for var in exact.keys():
-            np.testing.assert_almost_equal(
-                exact[var].entries - approx[var].entries, 0, decimal=-1
-            )
+        for approx_exact in approx_exact_ns_dict.values():
+            x = approx_exact[ns[0]][0].x_sol
+            for t in np.linspace(0.01, 1, 5):
+                # expect quadratic convergence everywhere
+                err_norm = np.array(
+                    [
+                        np.linalg.norm(approx(t, x) - exact(t, x), np.inf)
+                        for approx, exact in approx_exact.values()
+                    ]
+                )
+                rates = np.log2(err_norm[:-1] / err_norm[1:])
+                import ipdb
+
+                ipdb.set_trace()
+                np.testing.assert_array_less(1.99 * np.ones_like(rates), rates)
 
 
 if __name__ == "__main__":

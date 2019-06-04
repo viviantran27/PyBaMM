@@ -66,6 +66,13 @@ class UnaryOperator(pybamm.Symbol):
             child = self.child.evaluate(t, y)
             return self._unary_evaluate(child)
 
+    def evaluate_for_shape(self, t=None, y=None):
+        """
+        Default behaviour: unary operator has same shape as child
+        See :meth:`pybamm.Symbol.evaluate_for_shape()`
+        """
+        return self.children[0].evaluate_for_shape()
+
 
 class Negate(UnaryOperator):
     """A node in the expression tree representing a `-` negation operator
@@ -81,12 +88,9 @@ class Negate(UnaryOperator):
         """ See :meth:`pybamm.Symbol.__str__()`. """
         return "{}{!s}".format(self.name, self.child)
 
-    def diff(self, variable):
-        """ See :meth:`pybamm.Symbol.diff()`. """
-        if variable.id == self.id:
-            return pybamm.Scalar(1)
-        else:
-            return -self.child.diff(variable)
+    def _diff(self, variable):
+        """ See :meth:`pybamm.Symbol._diff()`. """
+        return -self.child.diff(variable)
 
     def jac(self, variable):
         """ See :meth:`pybamm.Symbol.jac()`. """
@@ -152,21 +156,10 @@ class Function(UnaryOperator):
         else:
             self.takes_no_params = len(signature(func).parameters) == 0
 
-    def diff(self, variable):
-        """ See :meth:`pybamm.Symbol.diff()`. """
-        if variable.id == self.id:
-            return pybamm.Scalar(1)
-        else:
-            child = self.orphans[0]
-            if variable.id in [symbol.id for symbol in child.pre_order()]:
-                # if variable appears in the function,use autograd to differentiate
-                # function, and apply chain rule
-                return child.diff(variable) * Function(
-                    autograd.elementwise_grad(self.func), child
-                )
-            else:
-                # otherwise the derivative of the function is zero
-                return pybamm.Scalar(0)
+    def _diff(self, variable):
+        """ See :meth:`pybamm.Symbol._diff()`. """
+        child = self.orphans[0]
+        return child.diff(variable) * Function(autograd.grad(self.func), child)
 
     def jac(self, variable):
         """ See :meth:`pybamm.Symbol.jac()`. """
@@ -266,6 +259,9 @@ class Index(UnaryOperator):
         """ See :meth:`UnaryOperator._unary_new_copy()`. """
 
         return self.__class__(child, self.index)
+
+    def evaluate_for_shape(self):
+        return self.children[0].evaluate_for_shape()[self.slice]
 
 
 class SpatialOperator(UnaryOperator):
@@ -403,6 +399,10 @@ class Integral(SpatialOperator):
 
         return self.__class__(child, self.integration_variable)
 
+    def evaluate_for_shape(self):
+        """ See :meth:`pybamm.Symbol.evaluate_for_shape_using_domain()` """
+        return pybamm.evaluate_for_shape_using_domain(self.domain)
+
 
 class IndefiniteIntegral(Integral):
     """A node in the expression tree representing an indefinite integral operator
@@ -433,6 +433,9 @@ class IndefiniteIntegral(Integral):
             self.name += " on {}".format(integration_variable.domain)
         # the integrated variable has the same domain as the child
         self.domain = child.domain
+
+    def evaluate_for_shape(self):
+        return self.children[0].evaluate_for_shape()
 
 
 class BoundaryOperator(SpatialOperator):
@@ -471,6 +474,10 @@ class BoundaryOperator(SpatialOperator):
     def _unary_new_copy(self, child):
         """ See :meth:`UnaryOperator._unary_new_copy()`. """
         return self.__class__(child, self.side)
+
+    def evaluate_for_shape(self):
+        """ See :meth:`pybamm.Symbol.evaluate_for_shape_using_domain()` """
+        return pybamm.evaluate_for_shape_using_domain(self.domain)
 
 
 class BoundaryValue(BoundaryOperator):
