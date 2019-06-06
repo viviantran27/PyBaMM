@@ -58,6 +58,7 @@ class DaeSolver(pybamm.BaseSolver):
         timer = pybamm.Timer()
         start_time = timer.time()
         concatenated_rhs, concatenated_algebraic, y0, events, jac = self.set_up(model)
+
         set_up_time = timer.time() - start_time
 
         def residuals(t, y, ydot):

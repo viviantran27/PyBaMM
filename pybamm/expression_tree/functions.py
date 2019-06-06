@@ -2,6 +2,7 @@
 # Function classes and methods
 #
 import autograd
+import numbers
 import numpy as np
 import pybamm
 from inspect import signature
@@ -27,6 +28,9 @@ class Function(pybamm.Symbol):
 
         name = "function ({})".format(function.__name__)
         children_list = list(children)
+        for idx, child in enumerate(children_list):
+            if isinstance(child, numbers.Number):
+                children_list[idx] = pybamm.Scalar(child)
         domain = self.get_children_domains(children_list)
 
         self.function = function
@@ -273,6 +277,22 @@ class Log(SpecificFunction):
 def log(child):
     " Returns logarithmic function of child. "
     return Log(child)
+
+
+class Log10(SpecificFunction):
+    """ Logarithmic function, with base 10 """
+
+    def __init__(self, child):
+        super().__init__(np.log10, child)
+
+    def _diff(self, children):
+        """ See :meth:`pybamm.Symbol._diff()`. """
+        return 1 / (np.log(10) * children[0])
+
+
+def log10(child):
+    " Returns logarithmic function, with base 10, of child. "
+    return Log10(child)
 
 
 def max(child):

@@ -2,6 +2,7 @@
 # Open-circuit voltage in the negative (lead) electrode
 #
 import autograd.numpy as np
+import pybamm
 
 
 def lead_electrode_ocv_Bode1977(m):

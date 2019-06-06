@@ -132,6 +132,14 @@ class TestSpecificFunctions(unittest.TestCase):
         self.assertEqual(fun.evaluate(), np.log(3))
         self.assertEqual(fun.diff(a).evaluate(), 1 / 3)
 
+    def test_log10(self):
+        a = pybamm.Scalar(3)
+        fun = pybamm.log10(a)
+        self.assertIsInstance(fun, pybamm.Log10)
+        self.assertEqual(fun.children[0].id, a.id)
+        self.assertEqual(fun.evaluate(), np.log10(3))
+        self.assertEqual(fun.diff(a).evaluate(), 1 / (np.log(10) * 3))
+
     def test_max(self):
         a = pybamm.Vector(np.array([1, 2, 3]))
         fun = pybamm.max(a)

@@ -214,22 +214,7 @@ class ParameterValues(dict):
             return pybamm.Scalar(value, name=symbol.name, domain=symbol.domain)
 
         elif isinstance(symbol, pybamm.FunctionParameter):
-            new_children = [self.process_symbol(child) for child in symbol.children]
-            function_name = self[symbol.name]
-
-            if callable(function_name):
-                function = pybamm.Function(function_name, *new_children)
-            else:
-                function = pybamm.Function(
-                    pybamm.load_function(function_name), *new_children
-                )
-
-            if symbol.diff_variable is None:
-                return function
-            else:
-                # return differentiated function
-                new_diff_variable = self.process_symbol(symbol.children[0])
-                return function.diff(new_diff_variable)
+            return self._process_function_parameter(symbol)
 
         elif isinstance(symbol, pybamm.BinaryOperator):
             # process children
@@ -284,6 +269,31 @@ class ParameterValues(dict):
                         type(symbol)
                     )
                 )
+
+    def _process_function_parameter(self, symbol):
+        """
+        Process a :class:`pybamm.FunctionParameter` symbol.
+        See :meth:`ParameterValues.process_symbol()`.
+        """
+        new_children = [self.process_symbol(child) for child in symbol.children]
+        function_name = self[symbol.name]
+
+        if callable(function_name):
+            function = function_name
+        else:
+            function = pybamm.load_function(function_name)
+        # try:
+        #     function = function(*new_children)
+        #     assert isinstance(function, pybamm.Symbol)
+        # except Exception:
+        function = pybamm.Function(function, *new_children)
+
+        if symbol.diff_variable is None:
+            return function
+        else:
+            # return differentiated function
+            new_diff_variable = self.process_symbol(symbol.children[0])
+            return function.diff(new_diff_variable)
 
     def update_scalars(self, symbol):
         """Update the value of any Scalars in the expression tree.

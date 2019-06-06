@@ -24,6 +24,11 @@ Functions
 
 .. autofunction:: pybamm.log
 
+.. autoclass:: pybamm.Log10
+  :members:
+
+.. autofunction:: pybamm.log10
+
 .. autofunction:: pybamm.max
 
 .. autofunction:: pybamm.min
