@@ -173,7 +173,7 @@ class QuickPlot(object):
         variables in each subplot
         """
         self.axis = {}
-        for key, variable_lists in self.variables.items():            
+        for key, variable_lists in self.variables.items():
             if variable_lists[0][0].dimensions == 1:
                 x = None
                 x_min = self.min_t
