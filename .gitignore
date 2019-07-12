@@ -35,6 +35,10 @@ config.py
 matplotlibrc
 *.pickle
 
+# training materials
+!training_workshop/exercise_sheet/
+!training_workshop/exercise_sheet/*.pdf
+
 # ideas
 ideas/
 .idea/

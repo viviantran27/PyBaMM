@@ -6,6 +6,9 @@ import pybamm
 import numpy as np
 import matplotlib.pyplot as plt
 
+"--------------------------------------------------------------------------------------"
+"Setting up the model"
+
 # 1. Initialise an empty model ---------------------------------------------------------
 model = pybamm.BaseModel()
 

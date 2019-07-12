@@ -6,6 +6,9 @@ import pybamm
 import numpy as np
 import matplotlib.pyplot as plt
 
+"--------------------------------------------------------------------------------------"
+"Setting up the model"
+
 # 1. Initialise model ------------------------------------------------------------------
 model = pybamm.BaseModel()
 
@@ -13,7 +16,7 @@ model = pybamm.BaseModel()
 R = pybamm.Parameter("Particle radius [m]")
 D = pybamm.Parameter("Diffusion coefficient [m2.s-1]")
 j = pybamm.Parameter("Interfacial current density [A.m-2]")
-F = pybamm.Parameter("Faraday constant []")
+F = pybamm.Parameter("Faraday constant [C.mol-1]")
 c0 = pybamm.Parameter("Initial concentration [mol.m-3]")
 
 c = pybamm.Variable("Concentration [mol.m-3]", domain="negative particle")
@@ -54,7 +57,7 @@ param = pybamm.ParameterValues(
         "Particle radius [m]": 10e-6,
         "Diffusion coefficient [m2.s-1]": 3.9e-14,
         "Interfacial current density [A.m-2]": 1.4,
-        "Faraday constant []": 96485,
+        "Faraday constant [C.mol-1]": 96485,
         "Initial concentration [mol.m-3]": 2.5e4,
     }
 )
