@@ -40,6 +40,7 @@ delta = L_x / H
 
 # Electrical
 I_typ = pybamm.electrical_parameters.I_typ
+V_typ = pybamm.electrical_parameters.V_typ
 Q = pybamm.electrical_parameters.Q
 C_rate = pybamm.electrical_parameters.C_rate
 n_electrodes_parallel = pybamm.electrical_parameters.n_electrodes_parallel
@@ -441,3 +442,10 @@ current_with_time = (
 current_density_with_time = (
     dimensional_current_density_with_time / i_typ * pybamm.Function(np.sign, I_typ)
 )
+
+# --------------------------------------------------------------------------------------
+"7. Input voltage"
+dimensional_voltage_with_time = pybamm.FunctionParameter(
+    "Voltage function", pybamm.t * tau_discharge
+)
+voltage_with_time = dimensional_voltage_with_time / V_typ

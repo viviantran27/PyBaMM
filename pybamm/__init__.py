@@ -232,6 +232,17 @@ from .parameters.standard_current_functions.get_user_current import GetUserCurre
 from .parameters.standard_current_functions.get_current_data import GetCurrentData
 
 #
+# Voltage profiles
+#
+
+from .parameters.standard_voltage_functions.base_voltage import GetVoltage
+from .parameters.standard_voltage_functions.get_constant_voltage import (
+    GetConstantVoltage,
+)
+from .parameters.standard_voltage_functions.get_user_voltage import GetUserVoltage
+from .parameters.standard_voltage_functions.get_voltage_data import GetVoltageData
+
+#
 # other
 #
 from .processed_variable import post_process_variables, ProcessedVariable

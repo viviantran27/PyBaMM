@@ -15,6 +15,7 @@ def abs_non_zero(x):
 # --------------------------------------------------------------------------------------
 # Dimensional Parameters
 I_typ = pybamm.Parameter("Typical current [A]")
+V_typ = pybamm.Parameter("Typical voltage [V]")
 Q = pybamm.Parameter("Cell capacity [A.h]")
 C_rate = abs(I_typ / Q)
 n_electrodes_parallel = pybamm.Parameter(
@@ -38,6 +39,12 @@ dimensional_current_density_with_time = dimensional_current_with_time / (
     n_electrodes_parallel * pybamm.geometric_parameters.A_cc
 )
 
+# similarly for voltage functions:
+dimensional_voltage_with_time = pybamm.FunctionParameter(
+    "Voltage function", pybamm.t * timescale
+)
+
+
 # Dimensionless current
 current_with_time = (
     dimensional_current_with_time / I_typ * pybamm.Function(np.sign, I_typ)
@@ -45,3 +52,5 @@ current_with_time = (
 current_density_with_time = (
     dimensional_current_density_with_time / i_typ * pybamm.Function(np.sign, I_typ)
 )
+
+voltage_with_time = dimensional_voltage_with_time / V_typ
