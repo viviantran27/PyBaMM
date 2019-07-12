@@ -60,16 +60,17 @@ disc.process_model(model)
 
 # solve
 solver = pybamm.ScipySolver()
-t = np.linspace(0, 1, 100)
+t = np.linspace(0, 1, 20)
 solution = solver.solve(model, t)
 
-# process solution for plotting
+# post-process, so that the solution can be called at any time t or space r
+# (using interpolation)
 c = pybamm.ProcessedVariable(
     model.variables["Concentration"], solution.t, solution.y, mesh
 )
 
 # plot
-fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 8))
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 4))
 
 ax1.plot(solution.t, c(solution.t, r=1))
 ax1.set_xlabel("t")

@@ -78,12 +78,9 @@ solver = pybamm.ScipySolver()
 t = np.linspace(0, 3600, 900)
 solution = solver.solve(model, t)
 
-# quick plot (won't work?)
-# output_variables = ["Concentration [mol.m-3]", "Surface concentration [mol.m-3]", "Flux [mol.m-2.s-1]"]
-# plot = pybamm.QuickPlot(model, mesh, solution, output_variables)
-# plot.dynamic_plot()
 
-# Extract output variables
+# post-process, so that the solution can be called at any time t or space r
+# (using interpolation)
 c_surf = pybamm.ProcessedVariable(
     model.variables["Surface concentration [mol.m-3]"], solution.t, solution.y, mesh
 )
