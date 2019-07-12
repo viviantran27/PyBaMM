@@ -19,8 +19,13 @@ class Full(BaseModel):
     **Extends:** :class:`pybamm.electrode.ohm.BaseModel`
     """
 
-    def __init__(self, param, domain, reactions):
+    def __init__(self, param, domain, reactions, options=None):
         super().__init__(param, domain, reactions)
+
+        if options:
+            self.options = options
+        else:
+            self.options = {"probelem type": "galvanostatic"}
 
     def get_fundamental_variables(self):
 
@@ -68,6 +73,19 @@ class Full(BaseModel):
 
     def set_boundary_conditions(self, variables):
 
+        if self.options["problem type"] == "galvanostatic":
+            self._set_galvanostatic_boundary_conditions(variables)
+        elif self.options["problem type"] == "potentiostatic":
+            self._set_potentiostatic_boundary_conditions(variables)
+        else:
+            raise pybamm.OptionError(
+                """The option 'problem type' must be either: 'galvanostatic'
+                or 'potentiostatic' and not {}.""".format(
+                    self.options["problem type"]
+                )
+            )
+
+    def _set_galvanostatic_boundary_conditions(self, variables):
         phi_s = variables[self.domain + " electrode potential"]
         eps = variables[self.domain + " electrode porosity"]
         i_boundary_cc = variables["Current collector current density"]
@@ -83,6 +101,21 @@ class Full(BaseModel):
                 i_boundary_cc / pybamm.boundary_value(-sigma_eff, "right"),
                 "Neumann",
             )
+
+        self.boundary_conditions[phi_s] = {"left": lbc, "right": rbc}
+
+    def _set_potentiostatic_boundary_conditions(self, variables):
+
+        phi_s = variables[self.domain + " electrode potential"]
+        v = variables["Applied voltage"]
+
+        if self.domain == "Negative":
+            lbc = (pybamm.Scalar(0), "Dirichlet")
+            rbc = (pybamm.Scalar(0), "Neumann")
+
+        elif self.domain == "Positive":
+            lbc = (pybamm.Scalar(0), "Neumann")
+            rbc = (v, "Dirichlet")
 
         self.boundary_conditions[phi_s] = {"left": lbc, "right": rbc}
 
