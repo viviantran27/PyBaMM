@@ -34,8 +34,12 @@ class BaseBatteryModel(pybamm.BaseModel):
             ),
             {
                 "Typical current [A]": 1,
+                "Typical voltage [V]": 3.5,
                 "Current function": pybamm.GetConstantCurrent(
                     pybamm.standard_parameters_lithium_ion.I_typ
+                ),
+                "Voltage function": pybamm.GetConstantVoltage(
+                    pybamm.standard_parameters_lithium_ion.V_typ
                 ),
                 "Electrolyte diffusivity": os.path.join(
                     input_path, "electrolyte_diffusivity_Capiglia1999.py"

@@ -19,9 +19,9 @@ class DFN(BaseModel):
         self.set_current_collector_submodel()
         self.set_porosity_submodel()
         self.set_convection_submodel()
+        self.set_solid_submodel()
         self.set_interfacial_submodel()
         self.set_particle_submodel()
-        self.set_solid_submodel()
         self.set_electrolyte_submodel()
         self.set_thermal_submodel()
 
