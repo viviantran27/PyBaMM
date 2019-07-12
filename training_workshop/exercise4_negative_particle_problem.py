@@ -1,12 +1,43 @@
-# Modelling linear diffusion in a sphere using PyBaMM
+#
+# Ex4: Solving diffusion in a particle with physical paramaters in PyBaMM
+#
 
 import pybamm
 import numpy as np
 import matplotlib.pyplot as plt
 
 # 1. Initialise model ------------------------------------------------------------------
-param = pybamm.my_parameters
-model = pybamm.MySphericalDiffusion(param)
+model = pybamm.BaseModel()
+
+# 2. Define parameters and variables ---------------------------------------------------
+R = pybamm.Parameter("Particle radius [m]")
+D = pybamm.Parameter("Diffusion coefficient [m2.s-1]")
+j = pybamm.Parameter("Interfacial current density [A.m-2]")
+F = pybamm.Parameter("Faraday constant []")
+c0 = pybamm.Parameter("Initial concentration [mol.m-3]")
+
+c = pybamm.Variable("Concentration [mol.m-3]", domain="negative particle")
+
+# 3. State governing equations ---------------------------------------------------------
+N = -D * pybamm.grad(c)  # flux
+dcdt = -pybamm.div(N)
+
+model.rhs = {c: dcdt}  # add equation to rhs dictionary
+
+# 4. State boundary conditions ---------------------------------------------------------
+lbc = pybamm.Scalar(0)
+rbc = -j / F / D
+model.boundary_conditions = {c: {"left": (lbc, "Dirichlet"), "right": (rbc, "Neumann")}}
+
+# 5. State initial conditions ----------------------------------------------------------
+model.initial_conditions = {c: c0}
+
+# 6. State output variables ------------------------------------------------------------
+model.variables = {
+    "Concentration [mol.m-3]": c,
+    "Surface concentration [mol.m-3]": pybamm.surf(c),
+    "Flux [mol.m-2.s-1]": N,
+}
 
 "--------------------------------------------------------------------------------------"
 "Using the model"
@@ -15,9 +46,7 @@ model = pybamm.MySphericalDiffusion(param)
 r = pybamm.SpatialVariable(
     "r", domain=["negative particle"], coord_sys="spherical polar"
 )
-geometry = {
-    "negative particle": {"primary": {r: {"min": pybamm.Scalar(0), "max": param.R}}}
-}
+geometry = {"negative particle": {"primary": {r: {"min": pybamm.Scalar(0), "max": R}}}}
 
 # parameter values
 param = pybamm.ParameterValues(
