@@ -1,7 +1,7 @@
 # Fdb version 3
-["pdflatex"] 1563788223 "exercise_sheet.tex" "/home/timms/Documents/PyBaMM/training_workshop/exercise_sheet/exercise_sheet.pdf" "exercise_sheet" 1563788225
+["pdflatex"] 1563789610 "exercise_sheet.tex" "/home/timms/Documents/PyBaMM/training_workshop/exercise_sheet/exercise_sheet.pdf" "exercise_sheet" 1563789612
   "/etc/texmf/web2c/texmf.cnf" 1534405824 727 6f7e5720456ad44156f3c8625a02d2e8 ""
-  "/home/timms/Documents/PyBaMM/training_workshop/exercise_sheet/exercise_sheet.aux" 1563788225 1129 280867d5a25f6c4e350bf401a25294ac ""
+  "/home/timms/Documents/PyBaMM/training_workshop/exercise_sheet/exercise_sheet.aux" 1563789611 1129 280867d5a25f6c4e350bf401a25294ac ""
   "/usr/share/texlive/texmf-dist/fonts/enc/dvips/droid/droid-01.enc" 1480098667 3208 774a845f3c996f69f4af73dfaa7ec993 ""
   "/usr/share/texlive/texmf-dist/fonts/enc/dvips/droid/droid-03.enc" 1480098667 3575 a615c75e8351765beee0ecafb2d78daa ""
   "/usr/share/texlive/texmf-dist/fonts/map/fontname/texfonts.map" 1511824771 3332 103109f5612ad95229751940c61aada0 ""
@@ -196,11 +196,11 @@
   "/usr/share/texmf/web2c/texmf.cnf" 1520210507 32485 c64754543d8ac501bea6e75e209ea521 ""
   "/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map" 1534376338 2703184 9d06f2c9f0596079f3bbb68313e46d63 ""
   "/var/lib/texmf/web2c/pdftex/pdflatex.fmt" 1539333097 4127239 4a4b2018e2c2d637b61c87924b0ec385 ""
-  "exercise_sheet.aux" 1563788225 1129 280867d5a25f6c4e350bf401a25294ac ""
-  "exercise_sheet.tex" 1563788219 12489 d44bf781630dc56431ed1c90cc045f20 ""
+  "exercise_sheet.aux" 1563789611 1129 280867d5a25f6c4e350bf401a25294ac ""
+  "exercise_sheet.tex" 1563789139 12514 54bceb275181b5fb02dfba467786daa2 ""
   (generated)
-  "/home/timms/Documents/PyBaMM/training_workshop/exercise_sheet/exercise_sheet.log"
+  "exercise_sheet.pdf"
   "exercise_sheet.log"
   "/home/timms/Documents/PyBaMM/training_workshop/exercise_sheet/exercise_sheet.pdf"
-  "exercise_sheet.pdf"
   "exercise_sheet.aux"
+  "/home/timms/Documents/PyBaMM/training_workshop/exercise_sheet/exercise_sheet.log"
