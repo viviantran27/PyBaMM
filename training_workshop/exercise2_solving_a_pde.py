@@ -45,7 +45,7 @@ geometry = {
     }
 }
 
-# parameter values
+# parameter values (empty, since we have no parameters)
 param = pybamm.ParameterValues()
 
 # process model and geometry

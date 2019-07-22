@@ -148,7 +148,7 @@ from .models.full_battery_models import lithium_ion
 # Other models
 from .models.reaction_diffusion import ReactionDiffusionModel
 from .models.simple_ode_model import SimpleODEModel
-from .models.my_models.spherical_diffusion import MySphericalDiffusion
+from .models.my_spherical_diffusion import MySphericalDiffusion
 
 #
 # Submodel classes
