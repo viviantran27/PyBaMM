@@ -51,7 +51,6 @@ geometry = {
 # parameter values
 param = pybamm.ParameterValues({"Diffusion coefficient": 0.5})
 
-
 # process model and geometry
 param.process_model(model)
 param.process_geometry(geometry)
@@ -67,7 +66,7 @@ disc.process_model(model)
 
 # solve
 solver = pybamm.ScipySolver()
-t = np.linspace(0, 1, 20)
+t = np.linspace(0, 1, 100)
 solution = solver.solve(model, t)
 
 # post-process, so that the solutions can be called at any time t or space r

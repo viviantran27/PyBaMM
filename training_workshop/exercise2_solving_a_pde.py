@@ -63,7 +63,7 @@ disc.process_model(model)
 
 # solve
 solver = pybamm.ScipySolver()
-t = np.linspace(0, 1, 20)
+t = np.linspace(0, 1, 100)
 solution = solver.solve(model, t)
 
 # post-process, so that the solution can be called at any time t or space r
@@ -78,8 +78,9 @@ fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(13, 4))
 ax1.plot(solution.t, c(solution.t, r=1))
 ax1.set_xlabel("t")
 ax1.set_ylabel("Surface concentration")
-ax2.plot(solution.t, c(t=1, r=np.linspace(0, 1, 100)))
+r = np.linspace(0, 1, 100)
+ax2.plot(r, c(t=0.5, r=r))
 ax2.set_xlabel("r")
-ax2.set_ylabel("Concentration")
+ax2.set_ylabel("Concentration at t=0.5")
 plt.tight_layout()
 plt.show()

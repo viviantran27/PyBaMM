@@ -81,7 +81,6 @@ solver = pybamm.ScipySolver()
 t = np.linspace(0, 3600, 900)
 solution = solver.solve(model, t)
 
-
 # post-process, so that the solution can be called at any time t or space r
 # (using interpolation)
 c_surf = pybamm.ProcessedVariable(
