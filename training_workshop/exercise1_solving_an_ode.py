@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 # 1. Initialise an empty model ---------------------------------------------------------
 model = pybamm.BaseModel()
 
-# 2. Define variables -------------------------------------------------------------------
+# 2. Define variables ------------------------------------------------------------------
 x = pybamm.Variable("x")
 y = pybamm.Variable("y")
 

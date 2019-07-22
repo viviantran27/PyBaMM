@@ -9,6 +9,7 @@ class MySphericalDiffusion(pybamm.BaseModel):
 
     **Extends:** :class:`pybamm.BaseModel`
     """
+
     def __init__(self, param, name="Spherical Diffusion"):
         # Initialise base class
         super().__init__(name)
@@ -29,7 +30,9 @@ class MySphericalDiffusion(pybamm.BaseModel):
         # Set boundary conditions
         lbc = pybamm.Scalar(0)
         rbc = -self.param.j / self.param.F / self.param.D
-        self.boundary_conditions = {c: {"left": (lbc, "Dirichlet"), "right": (rbc, "Neumann")}}
+        self.boundary_conditions = {
+            c: {"left": (lbc, "Dirichlet"), "right": (rbc, "Neumann")}
+        }
 
         # Set initial conditions
         self.initial_conditions = {c: self.param.c0}
