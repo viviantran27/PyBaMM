@@ -11,7 +11,8 @@ class TestUniformModel(unittest.TestCase):
     def test_public_functions(self):
         param = pybamm.standard_parameters_lead_acid
 
-        submodel = pybamm.current_collector.Uniform(param)
+        options = {"problem type": "galavanostatic"}
+        submodel = pybamm.current_collector.Uniform(param, options)
         std_tests = tests.StandardSubModelTests(submodel)
         std_tests.test_all()
 

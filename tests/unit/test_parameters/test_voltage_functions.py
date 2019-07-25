@@ -12,7 +12,7 @@ class TestVoltageFunctions(unittest.TestCase):
         function = pybamm.GetVoltage()
         self.assertEqual(function(10), 1)
 
-    def test_constant_current(self):
+    def test_constant_voltage(self):
         function = pybamm.GetConstantVoltage(voltage=4)
         assert isinstance(function(0), numbers.Number)
         assert isinstance(function(np.zeros(3)), numbers.Number)
@@ -30,37 +30,7 @@ class TestVoltageFunctions(unittest.TestCase):
         processed_voltage = parameter_values.process_symbol(voltage)
         self.assertIsInstance(processed_voltage.simplify(), pybamm.Scalar)
 
-    def test_get_current_data(self):
-        # test units
-        function_list = [
-            pybamm.GetVoltageData("US06.csv", units="[V]"),
-            pybamm.GetVoltageData("car_current.csv", units="[]", voltage_scale=10),
-        ]
-        for function in function_list:
-            function.interpolate()
-
-        # test process parameters
-        dimensional_voltage = pybamm.electrical_parameters.dimensional_voltage_with_time
-        parameter_values = pybamm.ParameterValues(
-            {
-                "Typical voltage [V]": 2,
-                "Typical timescale [s]": 1,
-                "Voltage function": pybamm.GetCurrentData(
-                    "car_voltage.csv", units="[]"
-                ),
-            }
-        )
-        dimensional_voltage_eval = parameter_values.process_symbol(dimensional_voltage)
-
-        def voltage(t):
-            return dimensional_voltage_eval.evaluate(t=t)
-
-        function_list.append(voltage)
-
-        standard_tests = StandardVoltageFunctionTests(function_list, always_array=True)
-        standard_tests.test_all()
-
-    def test_user_current(self):
+    def test_user_voltage(self):
         # create user-defined sin function
 
         def my_fun(t, A, omega):

@@ -18,8 +18,8 @@ class SingleParticlePotentialPair(BaseModel):
     **Extends:** :class:`pybamm.current_collector.BaseModel`
     """
 
-    def __init__(self, param):
-        super().__init__(param)
+    def __init__(self, param, options):
+        super().__init__(param, options)
 
     def get_fundamental_variables(self):
 

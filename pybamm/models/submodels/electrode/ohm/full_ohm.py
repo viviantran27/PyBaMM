@@ -19,13 +19,9 @@ class Full(BaseModel):
     **Extends:** :class:`pybamm.electrode.ohm.BaseModel`
     """
 
-    def __init__(self, param, domain, reactions, options=None):
+    def __init__(self, param, domain, reactions, options):
         super().__init__(param, domain, reactions)
-
-        if options:
-            self.options = options
-        else:
-            self.options = {"probelem type": "galvanostatic"}
+        self.options = options
 
     def get_fundamental_variables(self):
 

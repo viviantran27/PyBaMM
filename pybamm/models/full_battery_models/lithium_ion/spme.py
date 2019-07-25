@@ -41,7 +41,7 @@ class SPMe(BaseModel):
 
         if self.options["bc_options"]["dimensionality"] == 0:
             self.submodels["current collector"] = pybamm.current_collector.Uniform(
-                self.param
+                self.param, self.options
             )
         elif self.options["bc_options"]["dimensionality"] == 1:
             raise NotImplementedError(
@@ -50,7 +50,9 @@ class SPMe(BaseModel):
         elif self.options["bc_options"]["dimensionality"] == 2:
             self.submodels[
                 "current collector"
-            ] = pybamm.current_collector.SingleParticlePotentialPair(self.param)
+            ] = pybamm.current_collector.SingleParticlePotentialPair(
+                self.param, self.options
+            )
         else:
             raise pybamm.ModelError(
                 "Dimension of current collectors must be 0, 1, or 2, not {}".format(

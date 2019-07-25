@@ -75,7 +75,7 @@ class HigherOrderBaseModel(BaseModel):
 
     def set_current_collector_submodel(self):
         self.submodels["current collector"] = pybamm.current_collector.Uniform(
-            self.param
+            self.param, self.options
         )
 
     def set_average_interfacial_submodel(self):

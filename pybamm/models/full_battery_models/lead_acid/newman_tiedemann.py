@@ -35,7 +35,7 @@ class NewmanTiedemann(BaseModel):
 
     def set_current_collector_submodel(self):
         self.submodels["current collector"] = pybamm.current_collector.Uniform(
-            self.param
+            self.param, self.options
         )
 
     def set_porosity_submodel(self):
@@ -57,8 +57,12 @@ class NewmanTiedemann(BaseModel):
 
     def set_solid_submodel(self):
         if self.options["surface form"] is False:
-            submod_n = pybamm.electrode.ohm.Full(self.param, "Negative", self.reactions)
-            submod_p = pybamm.electrode.ohm.Full(self.param, "Positive", self.reactions)
+            submod_n = pybamm.electrode.ohm.Full(
+                self.param, "Negative", self.reactions, self.options
+            )
+            submod_p = pybamm.electrode.ohm.Full(
+                self.param, "Positive", self.reactions, self.options
+            )
         else:
             submod_n = pybamm.electrode.ohm.SurfaceForm(self.param, "Negative")
             submod_p = pybamm.electrode.ohm.SurfaceForm(self.param, "Positive")
