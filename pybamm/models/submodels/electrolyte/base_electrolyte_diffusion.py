@@ -41,18 +41,32 @@ class BaseElectrolyteDiffusion(pybamm.BaseSubModel):
         c_e_typ = self.param.c_e_typ
         c_e_n, c_e_s, c_e_p = c_e.orphans
         c_e_av = pybamm.average(c_e)
+        c_e_n_av = pybamm.average(c_e_n)
+        c_e_s_av = pybamm.average(c_e_s)
+        c_e_p_av = pybamm.average(c_e_p)
 
         variables = {
             "Electrolyte concentration": c_e,
             "Electrolyte concentration [mol.m-3]": c_e_typ * c_e,
+            "Electrolyte concentration [Molar]": c_e_typ * c_e / 1000,
             "Average electrolyte concentration": c_e_av,
             "Average electrolyte concentration [mol.m-3]": c_e_typ * c_e_av,
+            "Average electrolyte concentration [Molar]": c_e_typ * c_e_av / 1000,
             "Negative electrolyte concentration": c_e_n,
             "Negative electrolyte concentration [mol.m-3]": c_e_typ * c_e_n,
+            "Negative electrolyte concentration [Molar]": c_e_typ * c_e_n / 1000,
             "Separator electrolyte concentration": c_e_s,
             "Separator electrolyte concentration [mol.m-3]": c_e_typ * c_e_s,
+            "Separator electrolyte concentration [Molar]": c_e_typ * c_e_s / 1000,
             "Positive electrolyte concentration": c_e_p,
             "Positive electrolyte concentration [mol.m-3]": c_e_typ * c_e_p,
+            "Positive electrolyte concentration [Molar]": c_e_typ * c_e_p / 1000,
+            "Average negative electrolyte concentration": c_e_n_av,
+            "Average negative electrolyte concentration [mol.m-3]": c_e_typ * c_e_n_av,
+            "Average separator electrolyte concentration": c_e_s_av,
+            "Average separator electrolyte concentration [mol.m-3]": c_e_typ * c_e_s_av,
+            "Average positive electrolyte concentration": c_e_p_av,
+            "Average positive electrolyte concentration [mol.m-3]": c_e_typ * c_e_p_av,
         }
 
         return variables
@@ -75,7 +89,7 @@ class BaseElectrolyteDiffusion(pybamm.BaseSubModel):
         """
 
         param = self.param
-        D_e_typ = param.D_e(param.c_e_typ)
+        D_e_typ = param.D_e(param.c_e_typ, param.T_ref)
         flux_scale = D_e_typ * param.c_e_typ / param.L_x
 
         variables = {

@@ -16,7 +16,7 @@ class BaseBatteryModel(pybamm.BaseModel):
 
     def __init__(self, options=None, name="Unnamed battery model"):
         super().__init__(name)
-        self._extra_options = options
+        self.options = options
         self.set_standard_output_variables()
         self.submodels = OrderedDict()  # ordered dict not default in 3.5
         self._built = False
@@ -58,6 +58,12 @@ class BaseBatteryModel(pybamm.BaseModel):
                 ),
                 "Positive electrode diffusivity": os.path.join(
                     input_path, "lico2_diffusivity_Dualfoil.py"
+                ),
+                "Negative electrode reaction rate": os.path.join(
+                    input_path, "graphite_electrolyte_reaction_rate.py"
+                ),
+                "Positive electrode reaction rate": os.path.join(
+                    input_path, "lico2_electrolyte_reaction_rate.py"
                 ),
                 "Negative electrode OCV entropic change": os.path.join(
                     input_path, "graphite_entropic_change_Moura.py"
@@ -119,6 +125,10 @@ class BaseBatteryModel(pybamm.BaseModel):
 
     @property
     def options(self):
+        return self._options
+
+    @options.setter
+    def options(self, extra_options):
         default_options = {
             "bc_options": {"dimensionality": 0},
             "surface form": False,
@@ -127,13 +137,16 @@ class BaseBatteryModel(pybamm.BaseModel):
             "first-order potential": "linear",
             "side reactions": [],
             "interfacial surface area": "constant",
-            "Voltage": "On",
+            "higher-order concentration": "composite",
         }
-        if self._extra_options is None:
-            options = default_options
-        else:
-            # any extra options overwrite the default options
-            options = {**default_options, **self._extra_options}
+        options = default_options
+        # any extra options overwrite the default options
+        if extra_options is not None:
+            for name, opt in extra_options.items():
+                if name in default_options:
+                    options[name] = opt
+                else:
+                    raise pybamm.OptionError("option {} not recognised".format(name))
 
         # Some standard checks to make sure options are compatible
         if (
@@ -153,7 +166,7 @@ class BaseBatteryModel(pybamm.BaseModel):
                     )
                 )
 
-        return options
+        self._options = options
 
     def set_standard_output_variables(self):
         # Standard output variables
@@ -293,11 +306,12 @@ class BaseBatteryModel(pybamm.BaseModel):
             )
 
     def build_model(self):
+        pybamm.logger.info("Building {}".format(self.name))
 
         # Get the fundamental variables
         for submodel_name, submodel in self.submodels.items():
             pybamm.logger.debug(
-                "Getting fundamental variables for {} ({})".format(
+                "Getting fundamental variables for {} submodel ({})".format(
                     submodel_name, self.name
                 )
             )
@@ -306,38 +320,47 @@ class BaseBatteryModel(pybamm.BaseModel):
         # Get coupled variables
         for submodel_name, submodel in self.submodels.items():
             pybamm.logger.debug(
-                "Getting coupled variables for {} ({})".format(submodel_name, self.name)
+                "Getting coupled variables for {} submodel ({})".format(
+                    submodel_name, self.name
+                )
             )
             self.variables.update(submodel.get_coupled_variables(self.variables))
 
             # Set model equations
         for submodel_name, submodel in self.submodels.items():
             pybamm.logger.debug(
-                "Setting rhs for {} ({})".format(submodel_name, self.name)
+                "Setting rhs for {} submodel ({})".format(submodel_name, self.name)
             )
             submodel.set_rhs(self.variables)
             pybamm.logger.debug(
-                "Setting algebraic for {} ({})".format(submodel_name, self.name)
+                "Setting algebraic for {} submodel ({})".format(
+                    submodel_name, self.name
+                )
             )
             submodel.set_algebraic(self.variables)
             pybamm.logger.debug(
-                "Setting boundary conditions for {} ({})".format(
+                "Setting boundary conditions for {} submodel ({})".format(
                     submodel_name, self.name
                 )
             )
             submodel.set_boundary_conditions(self.variables)
             pybamm.logger.debug(
-                "Setting initial conditions for {} ({})".format(
+                "Setting initial conditions for {} submodel ({})".format(
                     submodel_name, self.name
                 )
             )
             submodel.set_initial_conditions(self.variables)
             submodel.set_events(self.variables)
-            pybamm.logger.debug("Updating {} ({})".format(submodel_name, self.name))
+            pybamm.logger.debug(
+                "Updating {} submodel ({})".format(submodel_name, self.name)
+            )
             self.update(submodel)
 
         pybamm.logger.debug("Setting voltage variables")
         self.set_voltage_variables()
+
+        pybamm.logger.debug("Setting SoC variables")
+        self.set_soc_variables()
 
         self._built = True
 
@@ -453,9 +476,39 @@ class BaseBatteryModel(pybamm.BaseModel):
             }
         )
 
+        # Battery-wide variables
+        eta_e_av_dim = self.variables.get("Average electrolyte ohmic losses [V]", 0)
+        eta_c_av_dim = self.variables.get("Average concentration overpotential [V]", 0)
+        num_cells = pybamm.Parameter(
+            "Number of cells connected in series to make a battery"
+        )
+
+        self.variables.update(
+            {
+                "Average battery open circuit voltage [V]": ocv_av_dim * num_cells,
+                "Measured battery open circuit voltage [V]": ocv_dim * num_cells,
+                "Average battery reaction overpotential [V]": eta_r_av_dim * num_cells,
+                "Average battery solid phase ohmic losses [V]": delta_phi_s_av_dim
+                * num_cells,
+                "Average battery electrolyte ohmic losses [V]": eta_e_av_dim
+                * num_cells,
+                "Average battery concentration overpotential [V]": eta_c_av_dim
+                * num_cells,
+                "Battery voltage [V]": V_dim * num_cells,
+            }
+        )
+
         # Cut-off voltage
         voltage = self.variables["Terminal voltage"]
         self.events["Minimum voltage"] = voltage - self.param.voltage_low_cut
+        self.events["Maximum voltage"] = voltage - self.param.voltage_high_cut
+
+    def set_soc_variables(self):
+        """
+        Set variables relating to the state of charge.
+        This function is overriden by the base battery models
+        """
+        pass
 
     def process_parameters_and_discretise(self, symbol):
         """
