@@ -352,7 +352,7 @@ class ParameterValues(dict):
                     continue
             elif isinstance(x, pybamm.Function):
                 # Need to update values in parameters_eval dict of current functions
-                if isinstance(x.function, pybamm.GetCurrent):
+                if isinstance(x.function, (pybamm.GetCurrent, pybamm.GetVoltage)):
                     for param, sym in x.function.parameters.items():
                         if isinstance(sym, pybamm.Scalar):
                             try:
@@ -360,7 +360,9 @@ class ParameterValues(dict):
                             except KeyError:
                                 # KeyError -> name not in parameter dict, don't update
                                 continue
-                    if isinstance(x.function, pybamm.GetCurrentData):
+                    if isinstance(
+                        x.function, (pybamm.GetCurrentData, pybamm.GetVoltageData)
+                    ):
                         # update interpolant
                         x.function.interpolate()
 

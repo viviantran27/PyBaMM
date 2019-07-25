@@ -22,7 +22,7 @@ class TestVoltageFunctions(unittest.TestCase):
         voltage = pybamm.electrical_parameters.voltage_with_time
         parameter_values = pybamm.ParameterValues(
             {
-                "Typical voltage [A]": 2,
+                "Typical voltage [V]": 2,
                 "Typical timescale [s]": 1,
                 "Voltage function": pybamm.GetConstantVoltage(),
             }

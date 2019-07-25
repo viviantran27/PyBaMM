@@ -187,6 +187,8 @@ class Function(pybamm.Symbol):
         elif isinstance(self.function, pybamm.GetConstantCurrent):
             # If self.function() is a constant current then simplify to scalar
             return pybamm.Scalar(self.function.parameters_eval["Current [A]"])
+        elif isinstance(self.function, pybamm.GetConstantVoltage):
+            return pybamm.Scalar(self.function.parameters_eval["Cell voltage [V]"])
         else:
             return pybamm.Function(self.function, *simplified_children)
 

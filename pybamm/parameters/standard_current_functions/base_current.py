@@ -6,7 +6,7 @@
 class GetCurrent(object):
     """
     The base class for setting the input current for a simulation. The parameters
-    dictionary holds the symbols of any paramters required to evaluate the current.
+    dictionary holds the symbols of any parameters required to evaluate the current.
     During processing, the evaluated parameters are stored in parameters_eval.
     """
 
