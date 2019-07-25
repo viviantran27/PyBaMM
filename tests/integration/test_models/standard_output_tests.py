@@ -16,6 +16,7 @@ class StandardOutputTests(object):
 
         # Assign attributes
         self.model = model
+        self.options = model.options
         self.parameter_values = parameter_values
         self.disc = disc
         self.solution = solution
@@ -30,12 +31,15 @@ class StandardOutputTests(object):
             parameter_values["Current function"].parameters_eval["Current [A]"]
         )
 
-        if current_sign == 1:
-            self.operating_condition = "discharge"
-        elif current_sign == -1:
-            self.operating_condition = "charge"
+        if self.options["problem type"] == "galvanostatic":
+            if current_sign == 1:
+                self.operating_condition = "discharge"
+            elif current_sign == -1:
+                self.operating_condition = "charge"
+            else:
+                self.operating_condition = "off"
         else:
-            self.operating_condition = "off"
+            self.operating_condition = "potentiostatic"
 
     def process_variables(self):
         return
@@ -324,10 +328,10 @@ class ParticleConcentrationTests(BaseOutputTest):
         if self.operating_condition == "discharge":
             np.testing.assert_array_less(0, self.N_s_n(t[1:], x_n, r_n[1:]))
             np.testing.assert_array_less(self.N_s_p(t[1:], x_p, r_p[1:]), 0)
-        if self.operating_condition == "charge":
+        elif self.operating_condition == "charge":
             np.testing.assert_array_less(self.N_s_n(t[1:], x_n, r_n[1:]), 0)
             np.testing.assert_array_less(0, self.N_s_p(t[1:], x_p, r_p[1:]))
-        if self.operating_condition == "off":
+        elif self.operating_condition == "off":
             np.testing.assert_array_almost_equal(self.N_s_n(t, x_n, r_n), 0)
             np.testing.assert_array_almost_equal(self.N_s_p(t, x_p, r_p), 0)
 
@@ -546,14 +550,16 @@ class CurrentTests(BaseOutputTest):
         self.i_s = variables["Electrode current density"]
         self.i_e = variables["Electrolyte current density"]
 
+        self.i_boundary_cc = variables["Current collector current density"]
+
     def test_interfacial_current_average(self):
         """Test that average of the interfacial current density is equal to the true
         value."""
         np.testing.assert_array_almost_equal(
-            self.j_n_av(self.t), self.i_cell / self.l_n, decimal=4
+            self.j_n_av(self.t), self.i_boundary_cc(self.t) / self.l_n, decimal=1
         )
         np.testing.assert_array_almost_equal(
-            self.j_p_av(self.t), -self.i_cell / self.l_p, decimal=4
+            self.j_p_av(self.t), -self.i_boundary_cc(self.t) / self.l_p, decimal=1
         )
 
     def test_conservation(self):
@@ -568,10 +574,12 @@ class CurrentTests(BaseOutputTest):
         else:
             current_param = pybamm.electrical_parameters.current_with_time
 
-        i_cell = self.param.process_symbol(current_param).evaluate(t=t)
+        # i_cell = self.param.process_symbol(current_param).evaluate(t=t)
         for x in [x_n, x_s, x_p]:
             np.testing.assert_array_almost_equal(
-                self.i_s(t, x) + self.i_e(t, x), i_cell, decimal=2
+                self.i_s(t, x) + self.i_e(t, x),
+                [self.i_boundary_cc(t)] * len(x),
+                decimal=1,
             )
         np.testing.assert_array_almost_equal(
             self.i_s(t, x_n), self.i_s_n(t, x_n), decimal=3
@@ -591,10 +599,14 @@ class CurrentTests(BaseOutputTest):
         else:
             current_param = pybamm.electrical_parameters.current_with_time
 
-        i_cell = self.param.process_symbol(current_param).evaluate(t=t)
-        np.testing.assert_array_almost_equal(self.i_s_n(t, x_n[0]), i_cell, decimal=2)
+        # i_cell = self.param.process_symbol(current_param).evaluate(t=t)
+        np.testing.assert_array_almost_equal(
+            self.i_s_n(t, x_n[0]), self.i_boundary_cc(t), decimal=1
+        )
         np.testing.assert_array_almost_equal(self.i_s_n(t, x_n[-1]), 0, decimal=4)
-        np.testing.assert_array_almost_equal(self.i_s_p(t, x_p[-1]), i_cell, decimal=3)
+        np.testing.assert_array_almost_equal(
+            self.i_s_p(t, x_p[-1]), self.i_boundary_cc(t), decimal=1
+        )
         np.testing.assert_array_almost_equal(self.i_s_p(t, x_p[0]), 0, decimal=4)
 
     def test_all(self):

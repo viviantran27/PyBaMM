@@ -101,8 +101,9 @@ class BaseElectrolyteConductivity(pybamm.BaseSubModel):
         }
 
         if isinstance(i_e, pybamm.Concatenation):
-            i_e_n, _, i_e_p = i_e.orphans
+            i_e_n, i_e_s, i_e_p = i_e.orphans
             variables.update(self._get_domain_current_variables(i_e_n, "Negative"))
+            variables.update(self._get_domain_current_variables(i_e_s, "Separator"))
             variables.update(self._get_domain_current_variables(i_e_p, "Positive"))
 
         return variables

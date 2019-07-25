@@ -7,6 +7,8 @@ import tests
 import numpy as np
 import unittest
 
+pybamm.set_logging_level("INFO")
+
 
 def run_standard_dfn_tests(options):
     model = pybamm.lithium_ion.DFN(options)

@@ -58,18 +58,18 @@ class Full(BaseModel):
         if self.domain == "Positive":
             variables.update(self._get_standard_whole_cell_current_variables(variables))
 
-        if (
-            self.domain == "Positive"
-            and self.options["problem type"] == "potentiostatic"
-        ):
-            variables.update(self._get_current_collector_current_density(i_s))
+        # if (
+        #     self.domain == "Positive"
+        #     and self.options["problem type"] == "potentiostatic"
+        # ):
+        #     variables.update(self._get_current_collector_current_density(i_s))
 
         return variables
 
-    def _get_current_collector_current_density(self, i_s):
-        i_boundary_cc = pybamm.BoundaryValue(i_s, "right")
-        variables = {"Current collector current density": i_boundary_cc}
-        return variables
+    # def _get_current_collector_current_density(self, i_s):
+    #     i_boundary_cc = pybamm.average(pybamm.Inner(i_s, i_s))
+    #     variables = {"Current collector current density": i_boundary_cc}
+    #     return variables
 
     def set_algebraic(self, variables):
 
@@ -116,7 +116,6 @@ class Full(BaseModel):
         self.boundary_conditions[phi_s] = {"left": lbc, "right": rbc}
 
     def _set_potentiostatic_boundary_conditions(self, variables):
-
         phi_s = variables[self.domain + " electrode potential"]
         v_cc = variables["Local current collector potential difference"]
 

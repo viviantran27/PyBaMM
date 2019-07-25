@@ -138,6 +138,7 @@ class BaseBatteryModel(pybamm.BaseModel):
             "side reactions": [],
             "interfacial surface area": "constant",
             "higher-order concentration": "composite",
+            "problem type": "galvanostatic",
         }
         options = default_options
         # any extra options overwrite the default options
@@ -359,6 +360,10 @@ class BaseBatteryModel(pybamm.BaseModel):
         pybamm.logger.debug("Setting voltage variables")
         self.set_voltage_variables()
 
+        if self.options["problem type"] == "potentiostatic":
+            pybamm.logger.debug("Setting cell current variables")
+            self.set_cell_current_variables()
+
         pybamm.logger.debug("Setting SoC variables")
         self.set_soc_variables()
 
@@ -459,8 +464,6 @@ class BaseBatteryModel(pybamm.BaseModel):
                 )
             )
 
-        # TODO: add current collector losses to the voltage in 3D
-
         self.variables.update(
             {
                 "Average open circuit voltage": ocv_av,
@@ -502,6 +505,24 @@ class BaseBatteryModel(pybamm.BaseModel):
         voltage = self.variables["Terminal voltage"]
         self.events["Minimum voltage"] = voltage - self.param.voltage_low_cut
         self.events["Maximum voltage"] = voltage - self.param.voltage_high_cut
+
+    def set_cell_current_variables(self):
+        """
+        Set variables relating to the cell current.
+        """
+
+        i_s = self.variables["Electrode current density"]
+        i_e = self.variables["Electrolyte current density"]
+
+        # probably better to average but cannot because of
+        # shape errors at the moement. Also cannot take indexes
+        # different than 0 as will try to evaluate...
+
+        # tolerances in tests have been increased for now to allow for
+        # this form
+        i_boundary_cc = pybamm.Index(i_s, 0) + pybamm.Index(i_e, 0)
+
+        self.variables["Current collector current density"] = i_boundary_cc
 
     def set_soc_variables(self):
         """

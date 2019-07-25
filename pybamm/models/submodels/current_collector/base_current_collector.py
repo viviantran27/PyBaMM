@@ -16,8 +16,9 @@ class BaseModel(pybamm.BaseSubModel):
     **Extends:** :class:`pybamm.BaseSubModel`
     """
 
-    def __init__(self, param):
+    def __init__(self, param, options):
         super().__init__(param)
+        self.options = options
 
     def _get_standard_potential_variables(self, phi_s_cn, phi_s_cp):
         """

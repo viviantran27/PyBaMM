@@ -18,12 +18,8 @@ class Uniform(BaseModel):
     **Extends:** :class:`pybamm.current_collector.BaseModel`
     """
 
-    def __init__(self, param, options=None):
-        super().__init__(param)
-        if options:
-            self.options = options
-        else:
-            self.options = {"problem type": "potentiostatic"}
+    def __init__(self, param, options):
+        super().__init__(param, options)
 
     def get_fundamental_variables(self):
         if self.options["problem type"] == "potentiostatic":
@@ -42,10 +38,8 @@ class Uniform(BaseModel):
         return variables
 
     def _get_potentiostatic_fundamental_variables(self):
-
         phi_s_cn = pybamm.Scalar(0)
         phi_s_cp = self.param.voltage_with_time
-
         variables = self._get_standard_potential_variables(phi_s_cn, phi_s_cp)
         return variables
 
