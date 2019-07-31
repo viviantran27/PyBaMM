@@ -102,16 +102,6 @@ class BaseOutputTest(object):
 
         self.i_cell = param.process_symbol(current_param).evaluate(self.t)
 
-    def get_var(self, var):
-        "Helper function to reduce repeated code."
-        pybamm.logger.debug("Processing {} for {}".format(var, self.model.name))
-        return pybamm.ProcessedVariable(
-            self.model.variables[var],
-            self.solution.t,
-            self.solution.y,
-            mesh=self.disc.mesh,
-        )
-
 
 class VoltageTests(BaseOutputTest):
     def __init__(self, model, param, disc, solution, operating_condition):
@@ -435,17 +425,27 @@ class PotentialTests(BaseOutputTest):
 
         self.phi_s_n = variables["Negative electrode potential [V]"]
         self.phi_s_p = variables["Positive electrode potential [V]"]
+        self.phi_s_n_av = variables["Average negative electrode potential [V]"]
+        self.phi_s_p_av = variables["Average positive electrode potential [V]"]
 
         self.phi_e = variables["Electrolyte potential [V]"]
         self.phi_e_n = variables["Negative electrolyte potential [V]"]
         self.phi_e_s = variables["Separator electrolyte potential [V]"]
         self.phi_e_p = variables["Positive electrolyte potential [V]"]
+        self.phi_e_n_av = variables["Average negative electrolyte potential [V]"]
+        self.phi_e_p_av = variables["Average positive electrolyte potential [V]"]
 
         self.delta_phi_n = variables[
             "Negative electrode surface potential difference [V]"
         ]
         self.delta_phi_p = variables[
             "Positive electrode surface potential difference [V]"
+        ]
+        self.delta_phi_n_av = variables[
+            "Average negative electrode surface potential difference [V]"
+        ]
+        self.delta_phi_p_av = variables[
+            "Average positive electrode surface potential difference [V]"
         ]
 
         self.grad_phi_e = variables["Gradient of electrolyte potential"]
@@ -479,13 +479,16 @@ class PotentialTests(BaseOutputTest):
         )
 
     def test_average_potential_differences(self):
-        """Test electrolyte potential is less than the negative electrode potential.
-        Test that the positive electrode potential is greater than the negative
-        electrode potential."""
+        """Test that average potential differences are the difference between electrode
+        potential and electrolyte potential"""
+        t = self.t
 
-        # TODO: these tests with averages
-
-        np.testing.assert_array_less(-self.phi_s_p(self.t, self.x_p), 0)
+        np.testing.assert_array_almost_equal(
+            self.phi_s_n_av(t) - self.phi_e_n_av(t), self.delta_phi_n_av(t)
+        )
+        np.testing.assert_array_almost_equal(
+            self.phi_s_p_av(t) - self.phi_e_p_av(t), self.delta_phi_p_av(t)
+        )
 
     def test_gradient_splitting(self):
 
@@ -505,6 +508,7 @@ class PotentialTests(BaseOutputTest):
         self.test_negative_electrode_potential_profile()
         self.test_positive_electrode_potential_profile()
         self.test_potential_differences()
+        self.test_average_potential_differences()
 
 
 class CurrentTests(BaseOutputTest):

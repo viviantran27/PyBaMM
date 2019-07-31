@@ -193,7 +193,7 @@ class ProcessedVariable(object):
         )
 
     def initialise_3D(self):
-        if self.base_variable.has_symbol_of_class(pybamm.Outer):
+        if self.base_variable.has_symbol_of_classes(pybamm.Outer):
             # bit of a hack for now
             len_x = self.mesh.combine_submeshes(*self.domain)[0].npts
         else:
@@ -211,7 +211,7 @@ class ProcessedVariable(object):
                 )
 
                 # another hack sorry
-                if self.base_variable.has_symbol_of_class(pybamm.Outer):
+                if self.base_variable.has_symbol_of_classes(pybamm.Outer):
                     temporary = np.reshape(eval_and_known_evals[0], [len_r, len_x])
                     entries[:, :, idx] = np.transpose(temporary)
                 else:
@@ -227,12 +227,12 @@ class ProcessedVariable(object):
         # Process the discretisation to get x values
         if self.domain == [
             "negative electrode"
-        ] and self.base_variable.has_symbol_of_class(pybamm.Outer):
+        ] and self.base_variable.has_symbol_of_classes(pybamm.Outer):
             nodes = self.mesh.combine_submeshes(*["negative particle"])[0].nodes
             edges = self.mesh.combine_submeshes(*["negative particle"])[0].edges
         elif self.domain == [
             "positive electrode"
-        ] and self.base_variable.has_symbol_of_class(pybamm.Outer):
+        ] and self.base_variable.has_symbol_of_classes(pybamm.Outer):
             nodes = self.mesh.combine_submeshes(*["positive particle"])[0].nodes
             edges = self.mesh.combine_submeshes(*["positive particle"])[0].edges
         else:
@@ -315,19 +315,33 @@ class ProcessedVariable(object):
         if self.dimensions == 1:
             return self._interpolation_function(t)
         elif self.dimensions == 2:
-            if self.scale == "micro":
+            return self.call_2D(t, x, r)
+        elif self.dimensions == 3:
+            return self.call_3D(t, x, r)
+
+    def call_2D(self, t, x, r):
+        "Evaluate a 2D variable"
+        if self.scale == "micro":
+            if r is not None:
                 return self._interpolation_function(t, r)
             else:
+                raise ValueError("r cannot be None for microscale variable")
+        else:
+            if x is not None:
                 return self._interpolation_function(t, x)
-        elif self.dimensions == 3:
-            if isinstance(x, np.ndarray):
-                if isinstance(r, np.ndarray) and isinstance(t, np.ndarray):
-                    x = x[:, np.newaxis, np.newaxis]
-                    r = r[:, np.newaxis]
-                elif isinstance(r, np.ndarray) or isinstance(t, np.ndarray):
-                    x = x[:, np.newaxis]
             else:
-                if isinstance(r, np.ndarray) and isinstance(t, np.ndarray):
-                    r = r[:, np.newaxis]
+                raise ValueError("x cannot be None for macroscale variable")
 
-            return self._interpolation_function((x, r, t))
+    def call_3D(self, t, x, r):
+        "Evaluate a 3D variable"
+        if isinstance(x, np.ndarray):
+            if isinstance(r, np.ndarray) and isinstance(t, np.ndarray):
+                x = x[:, np.newaxis, np.newaxis]
+                r = r[:, np.newaxis]
+            elif isinstance(r, np.ndarray) or isinstance(t, np.ndarray):
+                x = x[:, np.newaxis]
+        else:
+            if isinstance(r, np.ndarray) and isinstance(t, np.ndarray):
+                r = r[:, np.newaxis]
+
+        return self._interpolation_function((x, r, t))

@@ -21,13 +21,13 @@ class BaseInterface(pybamm.BaseSubModel):
     def __init__(self, param, domain):
         super().__init__(param, domain)
 
-    def _get_delta_phi_s(self, variables):
-        "Calculate delta_phi_s, and derived variables, using phi_s and phi_e"
+    def _get_delta_phi(self, variables):
+        "Calculate delta_phi, and derived variables, using phi_s and phi_e"
         phi_s = variables[self.domain + " electrode potential"]
         phi_e = variables[self.domain + " electrolyte potential"]
-        delta_phi_s = phi_s - phi_e
+        delta_phi = phi_s - phi_e
         variables.update(
-            self._get_standard_surface_potential_difference_variables(delta_phi_s)
+            self._get_standard_surface_potential_difference_variables(delta_phi)
         )
         return variables
 
@@ -49,6 +49,11 @@ class BaseInterface(pybamm.BaseSubModel):
     def _get_standard_interfacial_current_variables(self, j):
 
         i_typ = self.param.i_typ
+        L_x = self.param.L_x
+        if self.domain == "Negative":
+            j_scale = i_typ / (self.param.a_n_dim * L_x)
+        elif self.domain == "Positive":
+            j_scale = i_typ / (self.param.a_p_dim * L_x)
 
         # Average, and broadcast if necessary
         j_av = pybamm.average(j)
@@ -68,13 +73,23 @@ class BaseInterface(pybamm.BaseSubModel):
             + self.reaction_name
             + " interfacial current density": j_av,
             self.domain
+            + " electrode"
             + self.reaction_name
-            + " interfacial current density [A.m-2]": i_typ * j,
+            + " interfacial current density [A.m-2]": j_scale * j,
             "Average "
             + self.domain.lower()
             + " electrode"
             + self.reaction_name
-            + " interfacial current density [A.m-2]": i_typ * j_av,
+            + " interfacial current density [A.m-2]": j_scale * j_av,
+            self.domain
+            + " electrode"
+            + self.reaction_name
+            + " interfacial current density per volume [A.m-3]": i_typ / L_x * j,
+            "Average "
+            + self.domain.lower()
+            + " electrode"
+            + self.reaction_name
+            + " interfacial current density per volume [A.m-3]": i_typ / L_x * j_av,
         }
 
         return variables
@@ -82,6 +97,11 @@ class BaseInterface(pybamm.BaseSubModel):
     def _get_standard_total_interfacial_current_variables(self, j_tot_av):
 
         i_typ = self.param.i_typ
+        L_x = self.param.L_x
+        if self.domain == "Negative":
+            j_scale = i_typ / (self.param.a_n_dim * L_x)
+        elif self.domain == "Positive":
+            j_scale = i_typ / (self.param.a_p_dim * L_x)
 
         variables = {
             "Average "
@@ -89,7 +109,13 @@ class BaseInterface(pybamm.BaseSubModel):
             + " electrode total interfacial current density": j_tot_av,
             "Average "
             + self.domain.lower()
-            + " electrode total interfacial current density [A.m-2]": i_typ * j_tot_av,
+            + " electrode total interfacial current density [A.m-2]": j_scale
+            * j_tot_av,
+            "Average "
+            + self.domain.lower()
+            + " electrode total interfacial current density per volume [A.m-3]": i_typ
+            / L_x
+            * j_tot_av,
         }
 
         return variables
@@ -97,22 +123,33 @@ class BaseInterface(pybamm.BaseSubModel):
     def _get_standard_whole_cell_interfacial_current_variables(self, variables):
 
         i_typ = self.param.i_typ
+        L_x = self.param.L_x
+        j_n_scale = i_typ / (self.param.a_n_dim * L_x)
+        j_p_scale = i_typ / (self.param.a_p_dim * L_x)
 
-        j_n = variables["Negative electrode interfacial current density"]
+        j_n = variables[
+            "Negative electrode" + self.reaction_name + " interfacial current density"
+        ]
         j_s = pybamm.Broadcast(0, ["separator"])
-        j_p = variables["Positive electrode interfacial current density"]
+        j_p = variables[
+            "Positive electrode" + self.reaction_name + " interfacial current density"
+        ]
         j = pybamm.Concatenation(j_n, j_s, j_p)
+        j_dim = pybamm.Concatenation(j_n_scale * j_n, j_s, j_p_scale * j_p)
 
         if self.reaction_name == "":
             variables = {
                 "Interfacial current density": j,
-                "Interfacial current density [A.m-2]": i_typ * j,
+                "Interfacial current density [A.m-2]": j_dim,
+                "Interfacial current density per volume [A.m-3]": i_typ / L_x * j,
             }
         else:
             reaction_name = self.reaction_name[1:].capitalize()
             variables = {
                 reaction_name + " interfacial current density": j,
-                reaction_name + " interfacial current density [A.m-2]": i_typ * j,
+                reaction_name + " interfacial current density [A.m-2]": j_dim,
+                reaction_name
+                + " interfacial current density per volume [A.m-3]": i_typ / L_x * j,
             }
 
         return variables
@@ -120,6 +157,12 @@ class BaseInterface(pybamm.BaseSubModel):
     def _get_standard_exchange_current_variables(self, j0):
 
         i_typ = self.param.i_typ
+        L_x = self.param.L_x
+        if self.domain == "Negative":
+            j_scale = i_typ / (self.param.a_n_dim * L_x)
+        elif self.domain == "Positive":
+            j_scale = i_typ / (self.param.a_p_dim * L_x)
+
         # Average, and broadcast if necessary
         j0_av = pybamm.average(j0)
         if j0.domain == []:
@@ -142,12 +185,21 @@ class BaseInterface(pybamm.BaseSubModel):
             self.domain
             + " electrode"
             + self.reaction_name
-            + " exchange current density [A.m-2]": i_typ * j0,
+            + " exchange current density [A.m-2]": j_scale * j0,
             "Average "
             + self.domain.lower()
             + " electrode"
             + self.reaction_name
-            + " exchange current density [A.m-2]": i_typ * j0_av,
+            + " exchange current density [A.m-2]": j_scale * j0_av,
+            self.domain
+            + " electrode"
+            + self.reaction_name
+            + " exchange current density per volume [A.m-3]": i_typ / L_x * j0,
+            "Average "
+            + self.domain.lower()
+            + " electrode"
+            + self.reaction_name
+            + " exchange current density per volume [A.m-3]": i_typ / L_x * j0_av,
         }
 
         return variables
@@ -155,22 +207,33 @@ class BaseInterface(pybamm.BaseSubModel):
     def _get_standard_whole_cell_exchange_current_variables(self, variables):
 
         i_typ = self.param.i_typ
+        L_x = self.param.L_x
+        j_n_scale = i_typ / (self.param.a_n_dim * L_x)
+        j_p_scale = i_typ / (self.param.a_p_dim * L_x)
 
-        j0_n = variables["Negative electrode exchange current density"]
+        j0_n = variables[
+            "Negative electrode" + self.reaction_name + " exchange current density"
+        ]
         j0_s = pybamm.Broadcast(0, ["separator"])
-        j0_p = variables["Positive electrode exchange current density"]
+        j0_p = variables[
+            "Positive electrode" + self.reaction_name + " exchange current density"
+        ]
         j0 = pybamm.Concatenation(j0_n, j0_s, j0_p)
+        j0_dim = pybamm.Concatenation(j_n_scale * j0_n, j0_s, j_p_scale * j0_p)
 
         if self.reaction_name == "":
             variables = {
                 "Exchange current density": j0,
-                "Exchange current density [A.m-2]": i_typ * j0,
+                "Exchange current density [A.m-2]": j0_dim,
+                "Exchange current density per volume [A.m-3]": i_typ / L_x * j0,
             }
         else:
             reaction_name = self.reaction_name[1:].capitalize()
             variables = {
                 reaction_name + " exchange current density": j0,
-                reaction_name + " exchange current density [A.m-2]": i_typ * j0,
+                reaction_name + " exchange current density [A.m-2]": j0_dim,
+                reaction_name
+                + " exchange current density per volume [A.m-3]": i_typ / L_x * j0,
             }
 
         return variables

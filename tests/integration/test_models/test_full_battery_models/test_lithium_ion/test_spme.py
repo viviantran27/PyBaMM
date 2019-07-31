@@ -15,6 +15,8 @@ class TestSPMe(unittest.TestCase):
         modeltest = tests.StandardModelTest(model)
         modeltest.test_all()
 
+    @unittest.skipIf(pybamm.have_scikits_odes(), "scikits.odes not installed")
+    @unittest.skipIf(pybamm.have_scikit_fem(), "scikits.odes not installed")
     def test_basic_processing_2plus1D(self):
         options = {"bc_options": {"dimensionality": 2}}
         model = pybamm.lithium_ion.SPMe(options)
@@ -47,6 +49,7 @@ class TestSPMe(unittest.TestCase):
         np.testing.assert_array_almost_equal(original, simp_and_python)
 
     def test_thermal(self):
+        pybamm.settings.debug_mode = True
         options = {"thermal": "lumped"}
         model = pybamm.lithium_ion.SPMe(options)
         modeltest = tests.StandardModelTest(model)

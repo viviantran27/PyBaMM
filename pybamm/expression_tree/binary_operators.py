@@ -150,6 +150,10 @@ class BinaryOperator(pybamm.Symbol):
         """ Perform binary operation on nodes 'left' and 'right'. """
         raise NotImplementedError
 
+    def evaluates_on_edges(self):
+        """ See :meth:`pybamm.Symbol.evaluates_on_edges()`. """
+        return self.left.evaluates_on_edges() or self.right.evaluates_on_edges()
+
 
 class Power(BinaryOperator):
     """A node in the expression tree representing a `**` power operator
@@ -351,12 +355,12 @@ class Multiplication(BinaryOperator):
             if right.shape_for_testing == ():
                 return pybamm.Scalar(0)
             else:
-                return pybamm.Array(np.zeros(right.shape))
+                return pybamm.Array(np.zeros(right.shape_for_testing))
         if is_scalar_zero(right):
             if left.shape_for_testing == ():
                 return pybamm.Scalar(0)
             else:
-                return pybamm.Array(np.zeros(left.shape))
+                return pybamm.Array(np.zeros(left.shape_for_testing))
 
         # if one of the children is a zero matrix, we have to be careful about shapes
         if is_matrix_zero(left) or is_matrix_zero(right):
@@ -480,14 +484,14 @@ class Division(BinaryOperator):
             if right.shape_for_testing == ():
                 return pybamm.Scalar(0)
             else:
-                return pybamm.Array(np.zeros(right.shape))
+                return pybamm.Array(np.zeros(right.shape_for_testing))
 
         # anything divided by zero returns inf
         if is_scalar_zero(right):
             if left.shape_for_testing == ():
                 return pybamm.Scalar(np.inf)
             else:
-                return pybamm.Array(np.inf * np.ones(left.shape))
+                return pybamm.Array(np.inf * np.ones(left.shape_for_testing))
 
         # anything divided by one is itself
         if is_one(right):
@@ -579,6 +583,10 @@ class Inner(BinaryOperator):
 
         return pybamm.simplify_multiplication_division(self.__class__, left, right)
 
+    def evaluates_on_edges(self):
+        """ See :meth:`pybamm.Symbol.evaluates_on_edges()`. """
+        return False
+
 
 def inner(left, right):
     """
@@ -616,7 +624,7 @@ class Outer(BinaryOperator):
             )
         # cannot have Variable, StateVector or Matrix in the right symbol, as these
         # can already be 2D objects (so we can't take an outer product with them)
-        if right.has_symbol_of_class(
+        if right.has_symbol_of_classes(
             (pybamm.Variable, pybamm.StateVector, pybamm.Matrix)
         ):
             raise TypeError(
