@@ -109,6 +109,7 @@ from .expression_tree.unary_operators import (
     z_average,
     yz_average,
     boundary_value,
+    r_average,
 )
 from .expression_tree.functions import *
 from .expression_tree.parameter import Parameter, FunctionParameter
@@ -237,6 +238,8 @@ from .solvers.scikits_dae_solver import ScikitsDaeSolver
 from .solvers.scikits_ode_solver import ScikitsOdeSolver
 from .solvers.scikits_ode_solver import have_scikits_odes
 from .solvers.algebraic_solver import AlgebraicSolver
+from .solvers.klu_sparse_solver import KLU
+
 
 #
 # Current profiles
