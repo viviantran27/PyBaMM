@@ -45,13 +45,6 @@ geometry = {
     }
 }
 
-# parameter values (empty, since we have no parameters)
-param = pybamm.ParameterValues()
-
-# process model and geometry
-param.process_model(model)
-param.process_geometry(geometry)
-
 # mesh and discretise
 submesh_types = {"negative particle": pybamm.Uniform1DSubMesh}
 var_pts = {r: 20}

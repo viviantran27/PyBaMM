@@ -204,13 +204,6 @@ geometry = {
     }
 }
 
-# parameter values (empty, since we have no parameters)
-param = pybamm.ParameterValues()
-
-# process model and geometry
-param.process_model(model)
-param.process_geometry(geometry)
-
 # mesh and discretise
 submesh_types = {"negative particle": pybamm.Uniform1DSubMesh}
 var_pts = {r: 20}
@@ -288,12 +281,15 @@ where $c$ is the concentration, $r$ the radial coordinate, $t$ time, $R$ the par
 \section*{Exercise 5 -- making a model class}
 Now that you have created a script which solves the negative particle problem you have all of the ingredients you need to create a model. PyBaMM is designed to be used in a modular fashion: users create their own models or submodels which may be combined to capture different physical phenomena. Within this framework, it is easy to add new physics to an existing model, without the need to write a new code from scratch. As well as being able to include different models, users can also quickly change between different spatial discretisations and solvers, so that solution strategies may be easily compared within the same modelling framework. \\
 
-Create a new file called \texttt{my\_spherical\_diffusion.py} and save it in \texttt{pybamm/models}. Before starting work on you model, you will need to add it to the file \texttt{PyBaMM/\_\_init\_\_.py} so that it is imported as part of pybamm (see line 151 of Listing~\ref{Ex5_init}).
+Create a new file called \texttt{my\_spherical\_diffusion.py} and save it in \texttt{pybamm/models}. Before starting work on you model, you will need to add it to the file \texttt{PyBaMM/\_\_init\_\_.py} so that it is imported as part of pybamm (see line 178 of Listing~\ref{Ex5_init}).
 
-\begin{lstlisting}[label={Ex5_init},caption=Adding you new model to the init file., firstnumber=148]
-# Other models
-from .models.reaction_diffusion import ReactionDiffusionModel
-from .models.simple_ode_model import SimpleODEModel
+\begin{lstlisting}[label={Ex5_init},caption=Adding you new model to the init file., firstnumber=172]
+# Battery models
+from .models.full_battery_models.base_battery_model import BaseBatteryModel
+from .models.full_battery_models import lead_acid
+from .models.full_battery_models import lithium_ion
+
+# User models
 from .models.my_spherical_diffusion import MySphericalDiffusion
 \end{lstlisting}
 
@@ -319,9 +315,9 @@ class MySphericalDiffusion(pybamm.BaseModel):
         ## ADD THE DETAILS OF THE MODEL HERE ##
 \end{lstlisting}
 
-You will often want to reuse the same parameters across a number of models, so it can be useful to store them in a standard parameters file instead of redefining them each time you would like to use them. Create a file \texttt{my\_parameters.py} and save it in \texttt{pybamm/parameters}. Here you can add the definitions the parameters you used in Exercise 4. Add your parameters file to \texttt{PyBaMM/\_\_init\_\_.py} so that it is imported as part of pybamm (see line 180 of Listing~\ref{Ex5_params}).
+You will often want to reuse the same parameters across a number of models, so it can be useful to store them in a standard parameters file instead of redefining them each time you would like to use them. Create a file \texttt{my\_parameters.py} and save it in \texttt{pybamm/parameters}. Here you can add the definitions the parameters you used in Exercise 4. Add your parameters file to \texttt{PyBaMM/\_\_init\_\_.py} so that it is imported as part of pybamm (see line 207 of Listing~\ref{Ex5_params}).
 
-\begin{lstlisting}[label={Ex5_params},caption=Adding your parameters to the init file., firstnumber=170]
+\begin{lstlisting}[label={Ex5_params},caption=Adding your parameters to the init file., firstnumber=197]
 #
 # Parameters class and methods
 #
@@ -332,7 +328,7 @@ from .parameters import electrical_parameters
 from .parameters import thermal_parameters
 from .parameters import standard_parameters_lithium_ion, standard_parameters_lead_acid
 from .parameters.print_parameters import print_parameters, print_evaluated_parameters
-from .parameters import my_parameters
+from .parameters import parameter_sets, my_parameters
 \end{lstlisting}
 
 Now that you have defined your parameters and created your model, they can be easily call up for use in a script (see Listing~\ref{Ex5_usemodel}). Once the model is loaded, you can define the geometry, mesh and discretisation, and solve as before.

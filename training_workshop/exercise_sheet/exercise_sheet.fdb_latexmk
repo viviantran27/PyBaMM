@@ -1,7 +1,7 @@
 # Fdb version 3
-["pdflatex"] 1563789610 "exercise_sheet.tex" "/home/timms/Documents/PyBaMM/training_workshop/exercise_sheet/exercise_sheet.pdf" "exercise_sheet" 1563789612
-  "/etc/texmf/web2c/texmf.cnf" 1534405824 727 6f7e5720456ad44156f3c8625a02d2e8 ""
-  "/home/timms/Documents/PyBaMM/training_workshop/exercise_sheet/exercise_sheet.aux" 1563789611 1129 280867d5a25f6c4e350bf401a25294ac ""
+["pdflatex"] 1571668049 "exercise_sheet.tex" "/home/user/Documents/PyBaMM/training_workshop/exercise_sheet/exercise_sheet.pdf" "exercise_sheet" 1571668050
+  "/etc/texmf/web2c/texmf.cnf" 1549288965 727 6f7e5720456ad44156f3c8625a02d2e8 ""
+  "/home/user/Documents/PyBaMM/training_workshop/exercise_sheet/exercise_sheet.aux" 1571668049 1129 280867d5a25f6c4e350bf401a25294ac ""
   "/usr/share/texlive/texmf-dist/fonts/enc/dvips/droid/droid-01.enc" 1480098667 3208 774a845f3c996f69f4af73dfaa7ec993 ""
   "/usr/share/texlive/texmf-dist/fonts/enc/dvips/droid/droid-03.enc" 1480098667 3575 a615c75e8351765beee0ecafb2d78daa ""
   "/usr/share/texlive/texmf-dist/fonts/map/fontname/texfonts.map" 1511824771 3332 103109f5612ad95229751940c61aada0 ""
@@ -194,13 +194,15 @@
   "/usr/share/texmf/tex/latex/tex-gyre/t1qhv.fd" 1254269485 2378 01e898189bf06467f2f6fe33decbff09 ""
   "/usr/share/texmf/tex/latex/tex-gyre/tgheros.sty" 1254269485 2130 2b41e80713f78d339e74c19d96fe70a1 ""
   "/usr/share/texmf/web2c/texmf.cnf" 1520210507 32485 c64754543d8ac501bea6e75e209ea521 ""
-  "/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map" 1534376338 2703184 9d06f2c9f0596079f3bbb68313e46d63 ""
-  "/var/lib/texmf/web2c/pdftex/pdflatex.fmt" 1539333097 4127239 4a4b2018e2c2d637b61c87924b0ec385 ""
-  "exercise_sheet.aux" 1563789611 1129 280867d5a25f6c4e350bf401a25294ac ""
-  "exercise_sheet.tex" 1563789139 12514 54bceb275181b5fb02dfba467786daa2 ""
+  "/var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map" 1549294416 2703184 9d06f2c9f0596079f3bbb68313e46d63 ""
+  "/var/lib/texmf/web2c/pdftex/pdflatex.fmt" 1549292348 4128379 6c6dda63836133a2aaebb6dd144ccdc2 ""
+  "exercise_sheet.aux" 1571668049 1129 280867d5a25f6c4e350bf401a25294ac ""
+  "exercise_sheet.tex" 1571668000 12431 65c8e582c77107009557b2d5ad2e0deb ""
   (generated)
   "exercise_sheet.pdf"
+  "/home/timms/Documents/PyBaMM/training_workshop/exercise_sheet/exercise_sheet.log"
   "exercise_sheet.log"
   "/home/timms/Documents/PyBaMM/training_workshop/exercise_sheet/exercise_sheet.pdf"
+  "/home/user/Documents/PyBaMM/training_workshop/exercise_sheet/exercise_sheet.pdf"
   "exercise_sheet.aux"
-  "/home/timms/Documents/PyBaMM/training_workshop/exercise_sheet/exercise_sheet.log"
+  "/home/user/Documents/PyBaMM/training_workshop/exercise_sheet/exercise_sheet.log"

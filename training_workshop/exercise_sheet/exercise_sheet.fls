@@ -1,10 +1,10 @@
-PWD /home/timms/Documents/PyBaMM/training_workshop/exercise_sheet
+PWD /home/user/Documents/PyBaMM/training_workshop/exercise_sheet
 INPUT /etc/texmf/web2c/texmf.cnf
 INPUT /usr/share/texmf/web2c/texmf.cnf
 INPUT /usr/share/texlive/texmf-dist/web2c/texmf.cnf
 INPUT /var/lib/texmf/web2c/pdftex/pdflatex.fmt
-INPUT /home/timms/Documents/PyBaMM/training_workshop/exercise_sheet/exercise_sheet.tex
-OUTPUT /home/timms/Documents/PyBaMM/training_workshop/exercise_sheet/exercise_sheet.log
+INPUT /home/user/Documents/PyBaMM/training_workshop/exercise_sheet/exercise_sheet.tex
+OUTPUT /home/user/Documents/PyBaMM/training_workshop/exercise_sheet/exercise_sheet.log
 INPUT /usr/share/texlive/texmf-dist/tex/latex/base/article.cls
 INPUT /usr/share/texlive/texmf-dist/tex/latex/base/article.cls
 INPUT /usr/share/texlive/texmf-dist/tex/latex/base/size11.clo
@@ -229,9 +229,9 @@ INPUT /usr/share/texlive/texmf-dist/tex/latex/listings/listings.cfg
 INPUT /usr/share/texlive/texmf-dist/tex/latex/listings/listings.cfg
 INPUT /usr/share/texlive/texmf-dist/tex/latex/listings/lstlang1.sty
 INPUT /usr/share/texlive/texmf-dist/tex/latex/listings/lstlang1.sty
-INPUT /home/timms/Documents/PyBaMM/training_workshop/exercise_sheet/exercise_sheet.aux
-INPUT /home/timms/Documents/PyBaMM/training_workshop/exercise_sheet/exercise_sheet.aux
-OUTPUT /home/timms/Documents/PyBaMM/training_workshop/exercise_sheet/exercise_sheet.aux
+INPUT /home/user/Documents/PyBaMM/training_workshop/exercise_sheet/exercise_sheet.aux
+INPUT /home/user/Documents/PyBaMM/training_workshop/exercise_sheet/exercise_sheet.aux
+OUTPUT /home/user/Documents/PyBaMM/training_workshop/exercise_sheet/exercise_sheet.aux
 INPUT /usr/share/texlive/texmf-dist/tex/latex/base/ts1cmr.fd
 INPUT /usr/share/texlive/texmf-dist/tex/latex/base/ts1cmr.fd
 INPUT /usr/share/texmf/tex/latex/tex-gyre/t1qhv.fd
@@ -317,7 +317,7 @@ INPUT /usr/share/texlive/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm5.tfm
 INPUT /usr/share/texlive/texmf-dist/fonts/tfm/public/cm/cmssi10.tfm
 INPUT /usr/share/texlive/texmf-dist/fonts/tfm/public/cm/cmssi8.tfm
 INPUT /usr/share/texlive/texmf-dist/fonts/tfm/public/cm/cmssi8.tfm
-OUTPUT /home/timms/Documents/PyBaMM/training_workshop/exercise_sheet/exercise_sheet.pdf
+OUTPUT /home/user/Documents/PyBaMM/training_workshop/exercise_sheet/exercise_sheet.pdf
 INPUT /var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map
 INPUT /usr/share/texlive/texmf-dist/fonts/vf/public/droid/DroidSansMono-t1.vf
 INPUT /usr/share/texlive/texmf-dist/fonts/tfm/public/droid/DroidSansMono-01.tfm
@@ -333,7 +333,7 @@ INPUT /usr/share/texlive/texmf-dist/fonts/tfm/public/droid/DroidSansMono-01.tfm
 INPUT /usr/share/texlive/texmf-dist/fonts/tfm/public/droid/DroidSansMono-02.tfm
 INPUT /usr/share/texlive/texmf-dist/fonts/tfm/public/droid/DroidSansMono-03.tfm
 INPUT /usr/share/texlive/texmf-dist/fonts/tfm/public/droid/DroidSansMono-04.tfm
-INPUT /home/timms/Documents/PyBaMM/training_workshop/exercise_sheet/exercise_sheet.aux
+INPUT /home/user/Documents/PyBaMM/training_workshop/exercise_sheet/exercise_sheet.aux
 INPUT /usr/share/texlive/texmf-dist/fonts/enc/dvips/droid/droid-03.enc
 INPUT /usr/share/texlive/texmf-dist/fonts/enc/dvips/droid/droid-01.enc
 INPUT /usr/share/texmf/fonts/enc/dvips/tex-gyre/q-ec.enc
