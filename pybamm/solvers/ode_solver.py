@@ -10,14 +10,16 @@ class OdeSolver(pybamm.BaseSolver):
 
     Parameters
     ----------
-    tolerance : float, optional
-        The tolerance for the solver (default is 1e-8).
+    rtol : float, optional
+        The relative tolerance for the solver (default is 1e-6).
+    atol : float, optional
+        The absolute tolerance for the solver (default is 1e-6).
     """
 
-    def __init__(self, method=None, tol=1e-8):
-        super().__init__(method, tol)
+    def __init__(self, method=None, rtol=1e-6, atol=1e-6):
+        super().__init__(method, rtol, atol)
 
-    def solve(self, model, t_eval):
+    def compute_solution(self, model, t_eval):
         """Calculate the solution of the model at specified times.
 
         Parameters
@@ -29,68 +31,24 @@ class OdeSolver(pybamm.BaseSolver):
             The times at which to compute the solution
 
         """
-        pybamm.logger.info("Start solving {}".format(model.name))
-
-        # Set up
         timer = pybamm.Timer()
-        start_time = timer.time()
-        concatenated_rhs, y0, model_events, jac_rhs = self.set_up(model)
-        set_up_time = timer.time() - start_time
 
-        # Create function to evaluate rhs
-        def dydt(t, y):
-            pybamm.logger.debug("Evaluating RHS for {} at t={}".format(model.name, t))
-            y = y[:, np.newaxis]
-            dy = concatenated_rhs.evaluate(t, y, known_evals={})[0]
-            return dy[:, 0]
-
-        # Create event-dependent function to evaluate events
-        def event_fun(event):
-            def eval_event(t, y):
-                return event.evaluate(t, y)
-
-            return eval_event
-
-        events = [event_fun(event) for event in model_events.values()]
-
-        # Create function to evaluate jacobian
-        if jac_rhs is not None:
-
-            def jacobian(t, y):
-                return jac_rhs.evaluate(t, y, known_evals={})[0]
-
-        else:
-            jacobian = None
-
-        # Solve
         solve_start_time = timer.time()
         pybamm.logger.info("Calling ODE solver")
         solution = self.integrate(
-            dydt,
-            y0,
+            self.dydt,
+            self.y0,
             t_eval,
-            events=events,
+            events=self.event_funs,
             mass_matrix=model.mass_matrix.entries,
-            jacobian=jacobian,
+            jacobian=self.jacobian,
         )
-
-        # Assign times
-        solution.solve_time = timer.time() - solve_start_time
-        solution.total_time = timer.time() - start_time
-        solution.set_up_time = set_up_time
+        solve_time = timer.time() - solve_start_time
 
         # Identify the event that caused termination
-        termination = self.get_termination_reason(solution, model_events)
+        termination = self.get_termination_reason(solution, self.events)
 
-        pybamm.logger.info("Finish solving {} ({})".format(model.name, termination))
-        pybamm.logger.info(
-            "Set-up time: {}, Solve time: {}, Total time: {}".format(
-                timer.format(solution.set_up_time),
-                timer.format(solution.solve_time),
-                timer.format(solution.total_time),
-            )
-        )
-        return solution
+        return solution, solve_time, termination
 
     def set_up(self, model):
         """Unpack model, perform checks, simplify and calculate jacobian.
@@ -101,17 +59,6 @@ class OdeSolver(pybamm.BaseSolver):
             The model whose solution to calculate. Must have attributes rhs and
             initial_conditions
 
-        Returns
-        -------
-        concatenated_rhs : :class:`pybamm.Concatenation`
-            Right-hand side of differential equations
-        y0 : :class:`numpy.array`
-            Vector of initial conditions
-        events : dict
-            Dictionary of events at which the model should terminate
-        jac_rhs : :class:`pybamm.SparseStack`
-            Jacobian matrix for the differential equations
-
         Raises
         ------
         :class:`pybamm.SolverError`
@@ -119,13 +66,16 @@ class OdeSolver(pybamm.BaseSolver):
             should be used instead)
 
         """
+        # Check for algebraic equations
         if len(model.algebraic) > 0:
             raise pybamm.SolverError(
                 """Cannot use ODE solver to solve model with DAEs"""
             )
 
+        # create simplified rhs and event expressions
         concatenated_rhs = model.concatenated_rhs
         events = model.events
+
         if model.use_simplify:
             # set up simplification object, for re-use of dict
             simp = pybamm.Simplification()
@@ -141,9 +91,10 @@ class OdeSolver(pybamm.BaseSolver):
         if model.use_jacobian:
             # Create Jacobian from simplified rhs
             y = pybamm.StateVector(slice(0, np.size(y0)))
-
             pybamm.logger.info("Calculating jacobian")
             jac_rhs = concatenated_rhs.jac(y)
+            model.jacobian = jac_rhs
+
             if model.use_simplify:
                 pybamm.logger.info("Simplifying jacobian")
                 jac_rhs = simp.simplify(jac_rhs)
@@ -151,7 +102,6 @@ class OdeSolver(pybamm.BaseSolver):
             if model.use_to_python:
                 pybamm.logger.info("Converting jacobian to python")
                 jac_rhs = pybamm.EvaluatorPython(jac_rhs)
-
         else:
             jac_rhs = None
 
@@ -163,7 +113,37 @@ class OdeSolver(pybamm.BaseSolver):
                 name: pybamm.EvaluatorPython(event) for name, event in events.items()
             }
 
-        return concatenated_rhs, y0, events, jac_rhs
+        # Create function to evaluate rhs
+        def dydt(t, y):
+            pybamm.logger.debug("Evaluating RHS for {} at t={}".format(model.name, t))
+            y = y[:, np.newaxis]
+            dy = concatenated_rhs.evaluate(t, y, known_evals={})[0]
+            return dy[:, 0]
+
+        # Create event-dependent function to evaluate events
+        def event_fun(event):
+            def eval_event(t, y):
+                return event.evaluate(t, y)
+
+            return eval_event
+
+        event_funs = [event_fun(event) for event in events.values()]
+
+        # Create function to evaluate jacobian
+        if jac_rhs is not None:
+
+            def jacobian(t, y):
+                return jac_rhs.evaluate(t, y, known_evals={})[0]
+
+        else:
+            jacobian = None
+
+        # Add the solver attributes
+        self.y0 = y0
+        self.dydt = dydt
+        self.events = events
+        self.event_funs = event_funs
+        self.jacobian = jacobian
 
     def integrate(
         self, derivs, y0, t_eval, events=None, mass_matrix=None, jacobian=None

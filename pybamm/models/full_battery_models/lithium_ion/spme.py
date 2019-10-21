@@ -6,16 +6,36 @@ from .base_lithium_ion_model import BaseModel
 
 
 class SPMe(BaseModel):
-    """Single Particle Model with Electrolyte (SPMe) of a lithium-ion battery.
+    """Single Particle Model with Electrolyte (SPMe) of a lithium-ion battery, from
+    [1]_.
+
+    Parameters
+    ----------
+    options : dict, optional
+        A dictionary of options to be passed to the model.
+    name : str, optional
+        The name of the model.
+    build :  bool, optional
+        Whether to build the model on instantiation. Default is True. Setting this
+        option to False allows users to change any number of the submodels before
+        building the complete model (submodels cannot be changed after the model is
+        built).
+
+    References
+    ----------
+    .. [1] SG Marquis, V Sulzer, R Timms, CP Please and SJ Chapman. “An asymptotic
+           derivation of a single particle model with electrolyte”. In: arXiv preprint
+           arXiv:1905.12553 (2019).
 
     **Extends:** :class:`pybamm.lithium_ion.BaseModel`
     """
 
-    def __init__(self, options=None, name="Single Particle Model with electrolyte"):
+    def __init__(
+        self, options=None, name="Single Particle Model with electrolyte", build=True
+    ):
         super().__init__(options, name)
 
         self.set_reactions()
-        self.set_current_collector_submodel()
         self.set_porosity_submodel()
         self.set_convection_submodel()
         self.set_interfacial_submodel()
@@ -24,39 +44,10 @@ class SPMe(BaseModel):
         self.set_electrolyte_submodel()
         self.set_positive_electrode_submodel()
         self.set_thermal_submodel()
+        self.set_current_collector_submodel()
 
-        self.build_model()
-
-        # Massive hack for consistent delta_phi = phi_s - phi_e
-        # This needs to be corrected
-        for domain in ["Negative", "Positive"]:
-            phi_s = self.variables[domain + " electrode potential"]
-            phi_e = self.variables[domain + " electrolyte potential"]
-            delta_phi = phi_s - phi_e
-            s = self.submodels[domain.lower() + " interface"]
-            var = s._get_standard_surface_potential_difference_variables(delta_phi)
-            self.variables.update(var)
-
-    def set_current_collector_submodel(self):
-
-        if self.options["bc_options"]["dimensionality"] == 0:
-            self.submodels["current collector"] = pybamm.current_collector.Uniform(
-                self.param
-            )
-        elif self.options["bc_options"]["dimensionality"] == 1:
-            raise NotImplementedError(
-                "One-dimensional current collector submodel not implemented."
-            )
-        elif self.options["bc_options"]["dimensionality"] == 2:
-            self.submodels[
-                "current collector"
-            ] = pybamm.current_collector.SingleParticlePotentialPair(self.param)
-        else:
-            raise pybamm.ModelError(
-                "Dimension of current collectors must be 0, 1, or 2, not {}".format(
-                    self.options["bc_options"]["dimensionality"]
-                )
-            )
+        if build:
+            self.build_model()
 
     def set_porosity_submodel(self):
 
@@ -77,12 +68,20 @@ class SPMe(BaseModel):
 
     def set_particle_submodel(self):
 
-        self.submodels["negative particle"] = pybamm.particle.fickian.SingleParticle(
-            self.param, "Negative"
-        )
-        self.submodels["positive particle"] = pybamm.particle.fickian.SingleParticle(
-            self.param, "Positive"
-        )
+        if self.options["particle"] == "Fickian diffusion":
+            self.submodels[
+                "negative particle"
+            ] = pybamm.particle.fickian.SingleParticle(self.param, "Negative")
+            self.submodels[
+                "positive particle"
+            ] = pybamm.particle.fickian.SingleParticle(self.param, "Positive")
+        elif self.options["particle"] == "fast diffusion":
+            self.submodels["negative particle"] = pybamm.particle.fast.SingleParticle(
+                self.param, "Negative"
+            )
+            self.submodels["positive particle"] = pybamm.particle.fast.SingleParticle(
+                self.param, "Positive"
+            )
 
     def set_negative_electrode_submodel(self):
 
@@ -109,7 +108,7 @@ class SPMe(BaseModel):
 
     @property
     def default_geometry(self):
-        dimensionality = self.options["bc_options"]["dimensionality"]
+        dimensionality = self.options["dimensionality"]
         if dimensionality == 0:
             return pybamm.Geometry("1D macro", "1D micro")
         elif dimensionality == 1:
@@ -118,44 +117,12 @@ class SPMe(BaseModel):
             return pybamm.Geometry("2+1D macro", "(2+0)+1D micro")
 
     @property
-    def default_submesh_types(self):
-        base_submeshes = {
-            "negative electrode": pybamm.Uniform1DSubMesh,
-            "separator": pybamm.Uniform1DSubMesh,
-            "positive electrode": pybamm.Uniform1DSubMesh,
-            "negative particle": pybamm.Uniform1DSubMesh,
-            "positive particle": pybamm.Uniform1DSubMesh,
-            "current collector": pybamm.Uniform1DSubMesh,
-        }
-        dimensionality = self.options["bc_options"]["dimensionality"]
-        if dimensionality in [0, 1]:
-            return base_submeshes
-        elif dimensionality == 2:
-            base_submeshes["current collector"] = pybamm.Scikit2DSubMesh
-            return base_submeshes
-
-    @property
-    def default_spatial_methods(self):
-        base_spatial_methods = {
-            "macroscale": pybamm.FiniteVolume,
-            "negative particle": pybamm.FiniteVolume,
-            "positive particle": pybamm.FiniteVolume,
-            "current collector": pybamm.FiniteVolume,
-        }
-        dimensionality = self.options["bc_options"]["dimensionality"]
-        if dimensionality in [0, 1]:
-            return base_spatial_methods
-        elif dimensionality == 2:
-            base_spatial_methods["current collector"] = pybamm.ScikitFiniteElement
-            return base_spatial_methods
-
-    @property
     def default_solver(self):
         """
         Create and return the default solver for this model
         """
         # Different solver depending on whether we solve ODEs or DAEs
-        dimensionality = self.options["bc_options"]["dimensionality"]
+        dimensionality = self.options["dimensionality"]
         if dimensionality == 0:
             return pybamm.ScipySolver()
         else:

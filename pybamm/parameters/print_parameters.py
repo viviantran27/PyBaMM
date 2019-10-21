@@ -51,23 +51,17 @@ def print_parameters(parameters, parameter_values, output_file=None):
     Notes
     -----
     A C-rate of 1 C is the current required to fully discharge the battery in 1 hour,
-    2 C is current to discharge to the battery in 0.5 hours, etc
+    2 C is current to discharge the battery in 0.5 hours, etc
     """
     # If 'parameters' is a class, extract the dict
     if not isinstance(parameters, dict):
         parameters = {k: v for k, v in parameters.__dict__.items() if k not in ignore}
 
     evaluated_parameters = defaultdict(list)
-    # Calculate the currents required for C-rates of 1C and C / 10
-    try:
-        current_for_1C = parameter_values["Cell capacity [A.h]"]
-    except KeyError:
-        current_for_1C = 1
-    current_for_C_over_10 = current_for_1C / 10
     # Calculate parameters for each C-rate
-    for current in [current_for_1C, current_for_C_over_10]:
+    for Crate in [1, 10]:
         # Update Crate
-        parameter_values.update({"Typical current [A]": current})
+        parameter_values.update({"C-rate": Crate})
         for name, symbol in parameters.items():
             if not callable(symbol):
                 proc_symbol = parameter_values.process_symbol(symbol)
@@ -80,14 +74,13 @@ def print_parameters(parameters, parameter_values, output_file=None):
     # Calculate C-dependence of the parameters based on the difference between the
     # value at 1C and the value at C / 10
     for name, values in evaluated_parameters.items():
-        if abs(values[0] - values[1]) < 1e-10:
+        if values[1] == 0 or abs(values[0] / values[1] - 1) < 1e-10:
             C_dependence = ""
-        elif abs(values[0] - 10 * values[1]) < 1e-10:
+        elif abs(values[0] / values[1] - 10) < 1e-10:
             C_dependence = " * Crate"
-        elif abs(10 * values[0] - values[1]) < 1e-10:
+        elif abs(values[0] / values[1] - 0.1) < 1e-10:
             C_dependence = " / Crate"
         evaluated_parameters[name] = (values[0], C_dependence)
-
     # Print the evaluated_parameters dict to output_file
     if output_file:
         print_evaluated_parameters(evaluated_parameters, output_file)

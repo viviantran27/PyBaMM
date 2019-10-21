@@ -35,6 +35,7 @@ L_cp = pybamm.geometric_parameters.L_cp
 L_x = pybamm.geometric_parameters.L_x
 L_y = pybamm.geometric_parameters.L_y
 L_z = pybamm.geometric_parameters.L_z
+L = pybamm.geometric_parameters.L
 A_cc = pybamm.geometric_parameters.A_cc
 
 
@@ -76,12 +77,15 @@ sigma_cp_dimensional = pybamm.Parameter(
 a_n_dim = pybamm.geometric_parameters.a_n_dim
 a_p_dim = pybamm.geometric_parameters.a_p_dim
 a_k_dim = pybamm.Concatenation(
-    pybamm.Broadcast(a_n_dim, ["negative electrode"]),
-    pybamm.Broadcast(0, ["separator"]),
-    pybamm.Broadcast(a_p_dim, ["positive electrode"]),
+    pybamm.FullBroadcast(a_n_dim, ["negative electrode"], "current collector"),
+    pybamm.FullBroadcast(0, ["separator"], "current collector"),
+    pybamm.FullBroadcast(a_p_dim, ["positive electrode"], "current collector"),
 )
 R_n = pybamm.geometric_parameters.R_n
 R_p = pybamm.geometric_parameters.R_p
+b_n = pybamm.geometric_parameters.b_n
+b_s = pybamm.geometric_parameters.b_s
+b_p = pybamm.geometric_parameters.b_p
 b = pybamm.geometric_parameters.b
 
 # Electrochemical reactions
@@ -121,25 +125,29 @@ velocity_scale = pybamm.Scalar(1)
 
 def D_e_dimensional(c_e, T):
     "Dimensional diffusivity in electrolyte"
-    return pybamm.FunctionParameter("Electrolyte diffusivity", c_e, T, T_ref, E_D_e, R)
+    return pybamm.FunctionParameter(
+        "Electrolyte diffusivity [m2.s-1]", c_e, T, T_ref, E_D_e, R
+    )
 
 
 def kappa_e_dimensional(c_e, T):
     "Dimensional electrolyte conductivity"
-    return pybamm.FunctionParameter("Electrolyte conductivity", c_e, T, T_ref, E_k_e, R)
+    return pybamm.FunctionParameter(
+        "Electrolyte conductivity [S.m-1]", c_e, T, T_ref, E_k_e, R
+    )
 
 
 def D_n_dimensional(c_n, T):
     "Dimensional diffusivity in negative particle"
     return pybamm.FunctionParameter(
-        "Negative electrode diffusivity", c_n, T, T_ref, E_D_s_n, R
+        "Negative electrode diffusivity [m2.s-1]", c_n, T, T_ref, E_D_s_n, R
     )
 
 
 def D_p_dimensional(c_p, T):
     "Dimensional diffusivity in positive particle"
     return pybamm.FunctionParameter(
-        "Positive electrode diffusivity", c_p, T, T_ref, E_r_p, R
+        "Positive electrode diffusivity [m2.s-1]", c_p, T, T_ref, E_D_s_p, R
     )
 
 
@@ -158,28 +166,32 @@ def m_p_dimensional(T):
 
 
 def dUdT_n_dimensional(sto):
-    "Dimensional entropic change of the negative electrode open circuit voltage [V.K-1]"
+    """
+    Dimensional entropic change of the negative electrode open-circuit potential [V.K-1]
+    """
     return pybamm.FunctionParameter(
-        "Negative electrode OCV entropic change", sto, c_n_max
+        "Negative electrode OCP entropic change [V.K-1]", sto, c_n_max
     )
 
 
 def dUdT_p_dimensional(sto):
-    "Dimensional entropic change of the positive electrode open circuit voltage [V.K-1]"
+    """
+    Dimensional entropic change of the positive electrode open-circuit potential [V.K-1]
+    """
     return pybamm.FunctionParameter(
-        "Positive electrode OCV entropic change", sto, c_p_max
+        "Positive electrode OCP entropic change [V.K-1]", sto, c_p_max
     )
 
 
 def U_n_dimensional(sto, T):
-    "Dimensional open-circuit voltage in the negative electrode [V]"
-    u_ref = pybamm.FunctionParameter("Negative electrode OCV", sto)
+    "Dimensional open-circuit potential in the negative electrode [V]"
+    u_ref = pybamm.FunctionParameter("Negative electrode OCP [V]", sto)
     return u_ref + (T - T_ref) * dUdT_n_dimensional(sto)
 
 
 def U_p_dimensional(sto, T):
-    "Dimensional open-circuit voltage in the positive electrode [V]"
-    u_ref = pybamm.FunctionParameter("Positive electrode OCV", sto)
+    "Dimensional open-circuit potential in the positive electrode [V]"
+    u_ref = pybamm.FunctionParameter("Positive electrode OCP [V]", sto)
     return u_ref + (T - T_ref) * dUdT_p_dimensional(sto)
 
 
@@ -241,10 +253,10 @@ l_cn = pybamm.geometric_parameters.l_cn
 l_n = pybamm.geometric_parameters.l_n
 l_s = pybamm.geometric_parameters.l_s
 l_p = pybamm.geometric_parameters.l_p
+l_cp = pybamm.geometric_parameters.l_cp
 l_y = pybamm.geometric_parameters.l_y
 l_z = pybamm.geometric_parameters.l_z
-
-l_cp = pybamm.geometric_parameters.l_cp
+l = pybamm.geometric_parameters.l
 delta = pybamm.geometric_parameters.delta
 
 # Tab geometry
@@ -260,9 +272,9 @@ epsilon_n = pybamm.Parameter("Negative electrode porosity")
 epsilon_s = pybamm.Parameter("Separator porosity")
 epsilon_p = pybamm.Parameter("Positive electrode porosity")
 epsilon = pybamm.Concatenation(
-    pybamm.Broadcast(epsilon_n, ["negative electrode"]),
-    pybamm.Broadcast(epsilon_s, ["separator"]),
-    pybamm.Broadcast(epsilon_p, ["positive electrode"]),
+    pybamm.FullBroadcast(epsilon_n, ["negative electrode"], "current collector"),
+    pybamm.FullBroadcast(epsilon_s, ["separator"], "current collector"),
+    pybamm.FullBroadcast(epsilon_p, ["positive electrode"], "current collector"),
 )
 a_n = a_n_dim * R_n
 a_p = a_p_dim * R_p
@@ -272,12 +284,15 @@ sigma_cn = sigma_cn_dimensional * potential_scale / i_typ / L_x
 sigma_n = sigma_n_dim * potential_scale / i_typ / L_x
 sigma_p = sigma_p_dim * potential_scale / i_typ / L_x
 sigma_cp = sigma_cp_dimensional * potential_scale / i_typ / L_x
-
+sigma_cn_prime = sigma_cn * delta ** 2
+sigma_n_prime = sigma_n * delta
+sigma_p_prime = sigma_p * delta
+sigma_cp_prime = sigma_cp * delta ** 2
+sigma_cn_dbl_prime = sigma_cn_prime * delta
+sigma_cp_dbl_prime = sigma_cp_prime * delta
 # should rename this to avoid confusion with Butler-Volmer
-
-alpha = 1 / (sigma_cn * (L_x / L_z) ** 2 * l_cn) + 1 / (
-    sigma_cp * (L_x / L_z) ** 2 * l_cp
-)
+alpha = 1 / (sigma_cn * delta ** 2 * l_cn) + 1 / (sigma_cp * delta ** 2 * l_cp)
+alpha_prime = alpha / delta
 
 # Electrolyte Properties
 t_plus = pybamm.Parameter("Cation transference number")
@@ -422,7 +437,4 @@ dimensional_current_density_with_time = dimensional_current_with_time / (
 
 current_with_time = (
     dimensional_current_with_time / I_typ * pybamm.Function(np.sign, I_typ)
-)
-current_density_with_time = (
-    dimensional_current_density_with_time / i_typ * pybamm.Function(np.sign, I_typ)
 )

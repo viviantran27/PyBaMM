@@ -24,17 +24,24 @@ class TestLeadAcidLoqsSurfaceForm(unittest.TestCase):
         modeltest = tests.StandardModelTest(model)
         modeltest.test_all()
 
-    @unittest.skip("to be fixed using 2+1D spme fixes")
+    @unittest.skip("model not working for 1+1D differential")
     def test_basic_processing_1p1D_differential(self):
-        options = {"surface form": "differential", "bc_options": {"dimensionality": 1}}
+        options = {
+            "surface form": "differential",
+            "current collector": "potential pair",
+            "dimensionality": 1,
+        }
         model = pybamm.lead_acid.LOQS(options)
         modeltest = tests.StandardModelTest(model)
         modeltest.test_all(skip_output_tests=True)
 
-    @unittest.skip("to be fixed using 2+1D spme fixes")
     @unittest.skipIf(scikits_odes_spec is None, "scikits.odes not installed")
     def test_basic_processing_1p1D_algebraic(self):
-        options = {"surface form": "algebraic", "bc_options": {"dimensionality": 1}}
+        options = {
+            "surface form": "algebraic",
+            "current collector": "potential pair",
+            "dimensionality": 1,
+        }
         model = pybamm.lead_acid.LOQS(options)
         modeltest = tests.StandardModelTest(model)
         modeltest.test_all(skip_output_tests=True)
@@ -53,6 +60,15 @@ class TestLeadAcidLoqsSurfaceForm(unittest.TestCase):
         np.testing.assert_array_almost_equal(original, using_known_evals)
         np.testing.assert_array_almost_equal(original, simp_and_known, decimal=5)
         np.testing.assert_array_almost_equal(original, simp_and_python, decimal=5)
+
+    def test_set_up(self):
+        options = {"surface form": "differential"}
+        model = pybamm.lead_acid.LOQS(options)
+        optimtest = tests.OptimisationsTest(model)
+        optimtest.set_up_model(simplify=False, to_python=True)
+        optimtest.set_up_model(simplify=True, to_python=True)
+        optimtest.set_up_model(simplify=False, to_python=False)
+        optimtest.set_up_model(simplify=True, to_python=False)
 
 
 if __name__ == "__main__":

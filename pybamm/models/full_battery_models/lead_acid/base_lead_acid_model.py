@@ -3,7 +3,6 @@
 #
 
 import pybamm
-import os
 
 
 class BaseModel(pybamm.BaseBatteryModel):
@@ -22,51 +21,34 @@ class BaseModel(pybamm.BaseBatteryModel):
 
     @property
     def default_parameter_values(self):
-        input_path = os.path.join(pybamm.root_dir(), "input", "parameters", "lead-acid")
-        return pybamm.ParameterValues(
-            os.path.join(input_path, "default.csv"),
-            {
-                "Typical current [A]": 1,
-                "Current function": pybamm.GetConstantCurrent(
-                    pybamm.standard_parameters_lead_acid.I_typ
-                ),
-                "Electrolyte diffusivity": os.path.join(
-                    input_path, "electrolyte_diffusivity_Gu1997.py"
-                ),
-                "Electrolyte conductivity": os.path.join(
-                    input_path, "electrolyte_conductivity_Gu1997.py"
-                ),
-                "Electrolyte viscosity": os.path.join(
-                    input_path, "electrolyte_viscosity_Chapman1968.py"
-                ),
-                "Darken thermodynamic factor": os.path.join(
-                    input_path, "darken_thermodynamic_factor_Chapman1968.py"
-                ),
-                "Negative electrode OCV": os.path.join(
-                    input_path, "lead_electrode_ocv_Bode1977.py"
-                ),
-                "Positive electrode OCV": os.path.join(
-                    input_path, "lead_dioxide_electrode_ocv_Bode1977.py"
-                ),
-            },
-        )
+        return pybamm.ParameterValues(chemistry=pybamm.parameter_sets.Sulzer2019)
 
     @property
     def default_geometry(self):
-        return pybamm.Geometry("1D macro")
+        if self.options["dimensionality"] == 0:
+            return pybamm.Geometry("1D macro")
+        elif self.options["dimensionality"] == 1:
+            return pybamm.Geometry("1+1D macro")
+        elif self.options["dimensionality"] == 2:
+            return pybamm.Geometry("2+1D macro")
+
+    @property
+    def default_var_pts(self):
+        var = pybamm.standard_spatial_vars
+        return {var.x_n: 30, var.x_s: 30, var.x_p: 30, var.y: 10, var.z: 10}
 
     def set_standard_output_variables(self):
         super().set_standard_output_variables()
         # Current
-        icell = pybamm.standard_parameters_lead_acid.current_density_with_time
-        icell_dim = (
+        i_cell = pybamm.standard_parameters_lead_acid.current_with_time
+        i_cell_dim = (
             pybamm.standard_parameters_lead_acid.dimensional_current_density_with_time
         )
         I = pybamm.standard_parameters_lead_acid.dimensional_current_with_time
         self.variables.update(
             {
-                "Total current density": icell,
-                "Total current density [A.m-2]": icell_dim,
+                "Total current density": i_cell,
+                "Total current density [A.m-2]": i_cell_dim,
                 "Current [A]": I,
             }
         )
@@ -113,5 +95,12 @@ class BaseModel(pybamm.BaseBatteryModel):
     def set_soc_variables(self):
         "Set variables relating to the state of charge."
         # State of Charge defined as function of dimensionless electrolyte concentration
-        soc = self.variables["Average electrolyte concentration"] * 100
+        soc = self.variables["X-averaged electrolyte concentration"] * 100
         self.variables.update({"State of Charge": soc, "Depth of Discharge": 100 - soc})
+
+        # Fractional charge input
+        if "Fractional Charge Input" not in self.variables:
+            fci = pybamm.Variable("Fractional Charge Input", domain="current collector")
+            self.variables["Fractional Charge Input"] = fci
+            self.rhs[fci] = -self.param.current_with_time * 100
+            self.initial_conditions[fci] = self.param.q_init * 100
