@@ -13,6 +13,7 @@
 *.pyc
 *.py~
 .~lock*
+*.swp
 
 # Python cache
 *__pycache__/
@@ -36,10 +37,6 @@ config.py
 matplotlibrc
 *.pickle
 
-# training materials
-!training_workshop/exercise_sheet/
-!training_workshop/exercise_sheet/*.pdf
-
 # ideas
 ideas/
 .idea/
@@ -59,6 +56,7 @@ pyproject.toml
 # virtual enviroment
 venv/
 venv3.5/
+PyBaMM-env/
 bin/
 etc/
 lib/
@@ -71,3 +69,11 @@ pyvenv.cfg
 sundials
 sundials4
 SuiteSparse
+SuiteSparse/.gitignore
+
+# cmakefiles
+CMakeFiles
+Makefile
+*.cmake
+*.so
+
