@@ -5,7 +5,6 @@ import pybamm
 import tests.shared as shared
 
 import unittest
-import os
 
 
 class TestSimulation(unittest.TestCase):

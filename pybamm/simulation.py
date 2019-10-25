@@ -1,11 +1,7 @@
 #
 # Simulation class for a battery model
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
 import pybamm
-
-import argparse
 import numpy as np
 
 
@@ -15,24 +11,29 @@ class Simulation(object):
 
     Parameters
     ---------
-    model : pybamm.models.(modelname).(ModelName)() instance
-       The model to be used for the simulation. (modelname) and (ModelName)
-       refer to a module and class to be chosen.
-    parameter_values : :class:`pybamm.ParameterValues.Parameters` instance
-       The parameters to be used for the simulation.
-    discretisation : :class:`pybamm.discretisation.Mesh` instance
-       The discretisation to be used for the simulation.
-    solver : :class:`pybamm.solver.Solver` instance
-       The algorithm for solving the model.
+    model : :class:`pybamm.BaseModel`
+       The model to be simulated.
+    parameter_values : :class:`pybamm.ParameterValues`, optional
+       The parameters to be used for the simulation. Defaults to model default.
+    geometry : :class:`pybamm.Geometry`, optional
+       The geometry for the simulation. Defaults to model default.
+    submesh_types : dict of :class:`pybamm.MeshGenerator`, optional
+       The mesh types to be used for the simulation. Defaults to model default.
+    submesh_pts : dict of int, optional
+       The number of grid points in each subdomain. Defaults to model default.
+    spatial_method : dict of :class:`pybamm.SpatialMethod`, optional
+       The spatial discretisation for each subdomain. Defaults to model default.
+    solver : :class:`pybamm.solver.Solver`, optional
+       The algorithm for solving the model. Defaults to model default.
     name : string, optional
-       The simulation name.
+       The simulation name. Default is "Simulation for {model name}".
 
     Examples
     --------
     >>> import pybamm
-    >>> model = pybamm.lead_acid.LOQS()
+    >>> model = pybamm.lithium_ion.DFN()
     >>> sim = pybamm.Simulation(model)
-    >>> sim.run()
+    >>> sim.run(t_eval=np.linspace(0, 1))
 
     """
 
@@ -45,21 +46,16 @@ class Simulation(object):
         submesh_pts=None,
         spatial_methods=None,
         solver=None,
-        name="unnamed",
+        name=None,
     ):
         # Read defaults from model
-        if parameter_values is None:
-            parameter_values = model.default_parameter_values
-        if geometry is None:
-            geometry = model.default_geometry
-        if submesh_types is None:
-            submesh_types = model.default_submesh_types
-        if submesh_pts is None:
-            submesh_pts = model.default_submesh_pts
-        if solver is None:
-            solver = model.default_solver
-        if solver is None:
-            solver = model.default_solver
+        parameter_values = parameter_values or model.default_parameter_values
+        geometry = geometry or model.default_geometry
+        submesh_types = submesh_types or model.default_submesh_types
+        submesh_pts = submesh_pts or model.default_submesh_pts
+        spatial_methods = spatial_methods or model.default_spatial_methods
+        solver = solver or model.default_solver
+        name = name or "Simulation for {}".format(model.name)
 
         # Assign attributes
         self.model = model
@@ -71,24 +67,27 @@ class Simulation(object):
         self.solver = solver
         self.name = name
 
-        # Default evaluation time
-        self.default_t_eval = np.linspace(0, 1)
-
     def __str__(self):
         return self.name
 
-    def run(self, t_eval=None):
+    def run(self, t_eval, plot=False, output_variables=None):
         self.parameter_values.process_model(self.model)
         self.discretisation.process_model(self.model)
-        if t_eval is None:
-            t_eval = self.default_t_eval
-        self.solver.solve(self.model, t_eval)
+        self.solution = self.solver.solve(self.model, t_eval)
+        if plot is True:
+            self.plot(output_variables)
 
-    def load(self):
+    def save(self, filename):
+        "Save model results to file"
         raise NotImplementedError
 
-    def save(self):
+    def load(self, filename):
+        "Load model results to file"
         raise NotImplementedError
 
-    def plot(self):
-        raise NotImplementedError
+    def plot(self, output_variables=None):
+        "Quick plot of simulation results"
+        plot = pybamm.QuickPlot(
+            [self.model], self.mesh, [self.solution], output_variables
+        )
+        plot.dynamic_plot()
