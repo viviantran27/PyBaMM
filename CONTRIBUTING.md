@@ -41,7 +41,7 @@ You now have everything you need to start making changes!
 9. [Test your code!](#testing)
 10. PyBaMM has online documentation at http://pybamm.readthedocs.io/. To make sure any new methods or classes you added show up there, please read the [documentation](#documentation) section.
 11. If you added a major new feature, perhaps it should be showcased in an [example notebook](#example-notebooks).
-12. When you feel your code is finished, or at least warrants serious discussion, run the [pre-commit checks](#pre-commit-checks) and then create a [pull request](https://help.github.com/articles/about-pull-requests/) (PR) on [PyBaMM's GitHub page](https://github.com/tinosulzer/pybamm).
+12. When you feel your code is finished, or at least warrants serious discussion, run the [pre-commit checks](#pre-commit-checks) and then create a [pull request](https://help.github.com/articles/about-pull-requests/) (PR) on [PyBaMM's GitHub page](https://github.com/pybamm-team/PyBaMM).
 13. Once a PR has been created, it will be reviewed by any member of the community. Changes might be suggested which you can make by simply adding new commits to the branch. When everything's finished, someone with the right GitHub permissions will merge your changes into PyBaMM master repository.
 
 Finally, if you really, really, _really_ love developing PyBaMM, have a look at the current [project infrastructure](#infrastructure).
@@ -49,10 +49,10 @@ Finally, if you really, really, _really_ love developing PyBaMM, have a look at 
 
 ## Installation
 
-To install PyBaMM with all developer options, use:
+To install PyBaMM with all developer options, type:
 
-```
-$ pip install -e .[dev,docs]
+```bash
+pip install -e .[dev,docs]
 ```
 
 This will
@@ -68,8 +68,8 @@ PyBaMM follows the [PEP8 recommendations](https://www.python.org/dev/peps/pep-00
 
 We use [flake8](http://flake8.pycqa.org/en/latest/) to check our PEP8 adherence. To try this on your system, navigate to the PyBaMM directory in a console and type
 
-```
-$ flake8
+```bash
+flake8
 ```
 The configuration file
 ```
@@ -85,17 +85,12 @@ When you commit your changes they will be checked against flake8 automatically (
 We use [black](https://black.readthedocs.io/en/stable/) to automatically configure our code to adhere to PEP8. Black can be used in two ways:
 
 1. Command line: navigate to the PyBaMM directory in a console and type
-```
-$ black {source_file_or_directory}
-```
-2. Editor: black can be [configured](https://black.readthedocs.io/en/stable/editor_integration.html) to automatically reformat a python script each time the script is saved in an editor.
 
-By default, black sets the max line length to 88. To change this to the more common standard of 79, and you are using black from the command line, save the following to a file called `pyproject.toml`:
+```bash
+black {source_file_or_directory}
 ```
-[tool.black]
-line-length = 79
-```
-This file is ignored by git as it breaks Travis CI during installation at the line `pip install .`.
+
+2. Editor: black can be [configured](https://black.readthedocs.io/en/stable/editor_integration.html) to automatically reformat a python script each time the script is saved in an editor.
 
 If you want to use black in your editor, you may need to change the max line length in your editor settings.
 
@@ -106,20 +101,6 @@ Even when code has been formatted by black, you should still make sure that it a
 Naming is hard. In general, we aim for descriptive class, method, and argument names. Avoid abbreviations when possible without making names overly long, so `mean` is better than `mu`, but a class name like `MyClass` is fine.
 
 Class names are CamelCase, and start with an upper case letter, for example `MyOtherClass`. Method and variable names are lower case, and use underscores for word separation, for example `x` or `iteration_count`.
-
-### Python 2 and 3
-
-Python is currently in a long, long transition phase from Python 2 to Python 3. PyBaMM supports both Python 2 (version 2.7 and upwards) and Python 3 (version 3.4 and upwards).
-The easiest way to write code that works on both versions is to write for Python 3, (avoiding the more spectacular new features) and [then test on both versions](#testing).
-
-In addition, most scripts start with these lines:
-
-```
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-```
-
-These [future imports](https://docs.python.org/2/library/__future__.html) are ignored by Python 3, but tell Python 2 to mimmick some of its features. Notably, the ``division`` package changes the result of ``3 / 2`` from ``1`` to ``1.5`` (this means you can write ``1 / x`` instead of ``1.0 / x``).
 
 
 ## Dependencies and reusing code
@@ -161,10 +142,10 @@ This allows people to (1) use PyBaMM without ever importing Matplotlib and (2) c
 
 All code requires testing. We use the [unittest](https://docs.python.org/3.3/library/unittest.html) package for our tests. (These tests typically just check that the code runs without error, and so, are more _debugging_ than _testing_ in a strict sense. Nevertheless, they are very useful to have!)
 
-To run quick tests, use
+To run quick tests, type
 
-```
-$ python run-tests.py --unit
+```bash
+python run-tests.py --unit
 ```
 
 ### Writing tests
@@ -175,28 +156,112 @@ Next, add some simple (and speedy!) tests of your main features. If these run wi
 
 ### Running more tests
 
-If you want to check your tests on Python 2 and 3, use
+The tests are divided into `unit` tests, whose aim is to check individual bits of code (e.g. discretising a gradient operator, or solving a simple ODE), and `integration` tests, which check how parts of the program interact as a whole (e.g. solving a full model).
+If you want to check integration tests as well as unit tests, type
 
-```
-$ python run-tests.py --unit2 --unit3
+```bash
+python run-tests.py --unit --folder all
 ```
 
 When you commit anything to PyBaMM, these checks will also be run automatically (see [infrastructure](#infrastructure)).
 
 ### Testing notebooks
 
-To test all example notebooks, use
+To test all example scripts and notebooks, type
 
-```
-$ python run-tests.py --books
+```bash
+python run-tests.py --examples
 ```
 
 If notebooks fail because of changes to pybamm, it can be a bit of a hassle to debug. In these cases, you can create a temporary export of a notebook's Python content using
 
-```
-$ python run-tests.py --debook examples/notebooks/notebook-name.ipynb script.py
+```bash
+python run-tests.py --debook examples/notebooks/notebook-name.ipynb script.py
 ```
 
+### Debugging
+
+Often, the code you write won't pass the tests straight away, at which stage it will become necessary to debug.
+The key to successful debugging is to isolate the problem by finding the smallest possible example that causes the bug.
+In practice, there are a few tricks to help you to do this, which we give below.
+Once you've isolated the issue, it's a good idea to add a unit test that replicates this issue, so that you can easily check whether it's been fixed, and make sure that it's easily picked up if it crops up again.
+This also means that, if you can't fix the bug yourself, it will be much easier to ask for help (by opening a [bug-report issue](https://github.com/pybamm-team/PyBaMM/issues/new?template=bug_report.md)).
+
+1. Run individual test scripts instead of the whole test suite:
+```bash
+python tests/unit/path/to/test
+```
+You can also run an individual test from a particular script, e.g.
+```bash
+python tests/unit/test_quick_plot.py TestQuickPlot.test_failure
+```
+If you want to run several, but not all, the tests from a script, you can restrict which tests are run from a particular script by using the skipping decorator:
+```python
+@unittest.skip("")
+def test_bit_of_code(self):
+    ...
+```
+or by just commenting out all the tests you don't want to run
+2. Set break points, either in your IDE or using the python debugging module. To use the latter, add the following line where you want to set the break point
+```python
+import ipdb; ipdb.set_trace()
+```
+This will start the [Python interactive debugger](https://gist.github.com/mono0926/6326015). If you want to be able to use magic commands from `ipython`, such as `%timeit`, then set
+```python
+from IPython import embed; embed(); import ipdb; ipdb.set_trace()
+```
+at the break point instead.
+Figuring out where to start the debugger is the real challenge. Some good ways to set debugging break points are:
+  a. Try-except blocks. Suppose the line `do_something_complicated()` is raising a `ValueError`. Then you can put a try-except block around that line as:
+  ```python
+  try:
+      do_something_complicated()
+  except ValueError:
+      import ipdb; ipdb.set_trace()
+  ```
+  This will start the debugger at the point where the `ValueError` was raised, and allow you to investigate further. Sometimes, it is more informative to put the try-except block further up the call stack than exactly where the error is raised.
+  b. Warnings. If functions are raising warnings instead of errors, it can be hard to pinpoint where this is coming from. Here, you can use the `warnings` module to convert warnings to errors:
+  ```python
+  import warnings
+  warnings.simplefilter("error")
+  ```
+  Then you can use a try-except block, as in a., but with, for example, `RuntimeWarning` instead of `ValueError`.
+  c. Stepping through the expression tree. Most calls in PyBaMM are operations on [expression trees](https://github.com/pybamm-team/PyBaMM/blob/master/examples/notebooks/expression_tree/expression-tree.ipynb). To view an expression tree in ipython, you can use the `render` command:
+  ```python
+  expression_tree.render()
+  ```
+  You can then step through the expression tree, using the `children` attribute, to pinpoint exactly where a bug is coming from. For example, if `expression_tree.jac(y)` is failing, you can check `expression_tree.children[0].jac(y)`, then `expression_tree.children[0].children[0].jac(y)`, etc.
+3. To isolate whether a bug is in a model, its jacobian or its simplified version, you can set the `use_jacobian` and/or `use_simplify` attributes of the model to `False` (they are both `True` by default for most models).
+4. If a model isn't giving the answer you expect, you can try comparing it to other models. For example, you can investigate parameter limits in which two models should give the same answer by setting some parameters to be small or zero. The `StandardOutputComparison` class can be used to compare some standard outputs from battery models.
+5. To get more information about what is going on under the hood, and hence understand what is causing the bug, you can set the [logging](https://realpython.com/python-logging/) level to `DEBUG` by adding the following line to your test or script:
+```python3
+pybamm.set_logging_level("DEBUG")
+```
+6. In models that inherit from `pybamm.BaseBatteryModel` (i.e. any battery model), you can use `self.process_parameters_and_discretise` to process a symbol and see what it will look like.
+
+### Profiling
+
+Sometimes, a bit of code will take much longer than you expect to run. In this case, you can set
+```python
+from IPython import embed; embed(); import ipdb; ipdb.set_trace()
+```
+as above, and then use some of the profiling tools. In order of increasing detail:
+1. Simple timer. In ipython, the command
+```
+%time command_to_time()
+```
+tells you how long the line `command_to_time()` takes. You can use `%timeit` instead to run the command several times and obtain more accurate timings.
+2. Simple profiler. Using `%prun` instead of `%time` will give a brief profiling report
+3. Detailed profiler. You can install the detailed profiler `snakeviz` through pip:
+```bash
+pip install snakeviz
+```
+and then, in ipython, run
+```
+%load_ext snakeviz
+%snakeviz command_to_time()
+```
+This will open a window in your browser with detailed profiling information.
 
 ## Documentation
 
@@ -227,7 +292,7 @@ Next, open a browser, and navigate to your local PyBaMM directory (by typing the
 
 Major PyBaMM features are showcased in [Jupyter notebooks](https://jupyter.org/) stored in the [examples directory](examples/notebooks). Which features are "major" is of course wholly subjective, so please discuss on GitHub first!
 
-All example notebooks should be listed in [examples/README.md](https://github.com/tinosulzer/pybamm/examples/notebooks/README.md). Please follow the (naming and writing) style of existing notebooks where possible.
+All example notebooks should be listed in [examples/README.md](https://github.com/pybamm-team/PyBaMM/examples/notebooks/README.md). Please follow the (naming and writing) style of existing notebooks where possible.
 
 Where possible, notebooks are tested daily. A list of slow notebooks (which time-out and fail tests) is maintained in `.slow-books`, these notebooks will be excluded from daily testing.
 
@@ -244,38 +309,11 @@ Configuration files:
 setup.py
 ```
 
-Note that this file must be kept in sync with
-
-- The version number in [pybamm/__init__.py](pybamm/__init__.py).
-- The dependencies and dependency structure of the [pip requirements files](#pip).
-
-### PIP
-
-Installation of PyBaMM dependencies can also be handled by [PIP](http://pip.readthedocs.io/). This is needed for certain other tools too.
-
-Configuration files ([format](https://pip.readthedocs.io/en/1.1/requirements.html)):
-
-```
-requirements.txt
-requirements-dev.txt
-requirements-docs.txt
-```
-
-Note that these files must be kept in sync with
-
-- The dependencies and dependency structure of setuptools `setup.py`.
-
-The requirements files link to each other, so that calling `$ pip install -r requirements-dev.txt` will install everything listed in `requirements.txt` and `requirements-docs.txt` as well.
-
-It's always worth using an up-to-date version of pip. On older systems especially, having an up-to-date pip will prevent all kinds of version incompatibility issues:
-
-```
-$ pip install --upgrade pip
-```
+Note that this file must be kept in sync with the version number in [pybamm/__init__.py](pybamm/__init__.py).
 
 ### Travis CI
 
-All committed code is tested using [Travis CI](https://travis-ci.org/), tests are published on https://travis-ci.org/tinosulzer/pybamm.
+All committed code is tested using [Travis CI](https://travis-ci.org/), tests are published on https://travis-ci.org/pybamm-team/PyBaMM.
 
 Configuration files:
 
@@ -283,7 +321,8 @@ Configuration files:
 .travis.yaml
 ```
 
-Unit tests and flake8 testing is done for every commit. A nightly cronjob also tests the notebooks. Notebooks listed in `.slow-books` are excluded from these tests.
+For every commit, Travis runs unit tests, integration tests, doc tests, flake8 and notebook tests.
+<!-- Unit tests and flake8 testing is done for every commit. A nightly cronjob also tests the notebooks. Notebooks listed in `.slow-books` are excluded from these tests. -->
 
 <!-- ### Appveyor
 
@@ -292,7 +331,7 @@ Unit tests and flake8 testing is done for every commit. A nightly cronjob also t
 
 ### Codecov
 
-Code coverage (how much of our code is actually seen by the (linux) unit tests) is tested using [Codecov](https://docs.codecov.io/), a report is visible on https://codecov.io/gh/tinosulzer/pybamm.
+Code coverage (how much of our code is actually seen by the (linux) unit tests) is tested using [Codecov](https://docs.codecov.io/), a report is visible on https://codecov.io/gh/pybamm-team/PyBaMM.
 
 Configuration files:
 
@@ -306,7 +345,7 @@ Documentation is built using https://readthedocs.org/ and published on http://py
 
 ### Binder
 
-Editable notebooks are made available using [Binder](mybinder.readthedocs.io) at https://mybinder.org/v2/gh/tinosulzer/PyBaMM/master.
+Editable notebooks are made available using [Binder](mybinder.readthedocs.io) at https://mybinder.org/v2/gh/pybamm-team/PyBaMM/master.
 
 Configuration files:
 
@@ -318,7 +357,7 @@ postBuild
 
 GitHub does some magic with particular filenames. In particular:
 
-- The first page people see when they go to [our GitHub page](https://github.com/tinosulzer/PyBaMM) displays the contents of [README.md](README.md), which is written in the [Markdown](https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet) format. Some guidelines can be found [here](https://help.github.com/articles/about-readmes/).
+- The first page people see when they go to [our GitHub page](https://github.com/pybamm-team/PyBaMM) displays the contents of [README.md](README.md), which is written in the [Markdown](https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet) format. Some guidelines can be found [here](https://help.github.com/articles/about-readmes/).
 - The license for using PyBaMM is stored in [LICENSE](LICENSE), and [automatically](https://help.github.com/articles/adding-a-license-to-a-repository/) linked to by GitHub.
 - This file, [CONTRIBUTING.md](CONTRIBUTING.md) is recognised as the contribution guidelines and a link is [automatically](https://github.com/blog/1184-contributing-guidelines) displayed when new issues or pull requests are created.
 

@@ -4,12 +4,19 @@
 # The code in this file is adapted from Pints
 # (see https://github.com/pints-team/pints)
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
-
+import importlib
+import numpy as np
+import os
+import sys
 import timeit
-import cProfile
-import pstats
+import pathlib
+import pybamm
+from collections import defaultdict
+
+
+def root_dir():
+    """ return the root directory of the PyBaMM install directory """
+    return str(pathlib.Path(pybamm.__path__[0]).parent)
 
 
 class Timer(object):
@@ -72,9 +79,110 @@ class Timer(object):
         return timeit.default_timer() - self._start
 
 
-def profile(code, sort="cumulative", num=30):
-    """Common-use for cProfile"""
-    cProfile.run(code)
-    stats = pstats.Stats()
-    stats.sort_stats(sort)
-    return stats
+def load_function(filename):
+    """
+    Load a python function from a file "function_name.py" called "function_name".
+    The filename might either be an absolute path, in which case that specific file will
+    be used, or the file will be searched for relative to PyBaMM root.
+
+    Arguments
+    ---------
+    filename : str
+        The name of the file containing the function of the same name.
+
+    Returns
+    -------
+    function
+        The python function loaded from the file.
+    """
+
+    if not filename.endswith(".py"):
+        raise ValueError("Expected filename.py, but got {}".format(filename))
+
+    # If it's an absolute path, find that exact file
+    if os.path.isabs(filename):
+        if not os.path.isfile(filename):
+            raise ValueError(
+                "{} is an absolute path, but the file is not found".format(filename)
+            )
+
+        valid_filename = filename
+
+    # Else, search in the whole PyBaMM directory for matches
+    else:
+        search_path = pybamm.root_dir()
+
+        head, tail = os.path.split(filename)
+
+        matching_files = []
+
+        for root, _, files in os.walk(search_path):
+            for file in files:
+                if file == tail:
+                    full_path = os.path.join(root, file)
+                    if full_path.endswith(filename):
+                        matching_files.append(full_path)
+
+        if len(matching_files) == 0:
+            raise ValueError(
+                "{} cannot be found in the PyBaMM directory".format(filename)
+            )
+        elif len(matching_files) > 1:
+            raise ValueError(
+                "{} found multiple times in the PyBaMM directory".format(filename)
+            )
+
+        valid_filename = matching_files[0]
+
+    # Now: we have some /path/to/valid/filename.py
+    # Add "/path/to/vaid" to the python path, and load the module "filename".
+    # Then, check "filename" module contains "filename" function.  If it does, return
+    # that function object, or raise an exception
+
+    valid_path, valid_leaf = os.path.split(valid_filename)
+    sys.path.append(valid_path)
+
+    # Load the module, which must be the leaf of filename, minus the .py extension
+    valid_module = valid_leaf.replace(".py", "")
+    module_object = importlib.import_module(valid_module)
+
+    # Check that a function of the same name exists in the loaded module
+    if valid_module not in dir(module_object):
+        raise ValueError(
+            "No function {} found in module {}".format(valid_module, valid_module)
+        )
+
+    # Remove valid_path from sys_path to avoid clashes down the line
+    sys.path.remove(valid_path)
+
+    return getattr(module_object, valid_module)
+
+
+def rmse(x, y):
+    "Calculate the root-mean-square-error between two vectors x and y, ignoring NaNs"
+    # Check lengths
+    if len(x) != len(y):
+        raise ValueError("Vectors must have the same length")
+    return np.sqrt(np.nanmean((x - y) ** 2))
+
+
+def get_infinite_nested_dict():
+    """
+    Return a dictionary that allows infinite nesting without having to define level by
+    level.
+
+    See:
+    https://stackoverflow.com/questions/651794/whats-the-best-way-to-initialize-a-dict-of-dicts-in-python/652226#652226
+
+    Example
+    -------
+    >>> import pybamm
+    >>> d = pybamm.get_infinite_nested_dict()
+    >>> d["a"] = 1
+    >>> d["a"]
+    1
+    >>> d["b"]["c"]["d"] = 2
+    >>> d["b"]["c"] == {"d": 2}
+    True
+    """
+    return defaultdict(get_infinite_nested_dict)

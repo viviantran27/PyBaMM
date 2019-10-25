@@ -1,16 +1,19 @@
 *.txt
 *.pdf
 *.tmp
+*.png
 /local/
 
 # don't ignore important .txt files
 !requirements*
 !LICENSE.txt
+!CMakeLists.txt
 
 # running files
 *.pyc
 *.py~
 .~lock*
+*.swp
 
 # Python cache
 *__pycache__/
@@ -22,12 +25,17 @@ docs/_build/
 docs/build/
 build/
 
-# inputs except parameters
+# inputs except parameters and comsol data needed for scripts and notebooks
 input/*
 !input/parameters
+!input/comsol_results/
+!input/drive_cycles
 
 # simulation outputs
 out/
+config.py
+matplotlibrc
+*.pickle
 
 # ideas
 ideas/
@@ -40,18 +48,32 @@ dist/
 # coverage
 .coverage
 coverage.xml
+htmlcov/
 
 # black setup file seems to make Travis CI fail
 pyproject.toml
 
 # virtual enviroment
 venv/
+venv3.5/
+PyBaMM-env/
 bin/
 etc/
 lib/
 lib64
 share/
 pyvenv.cfg
+.vscode
 
 # sundials
 sundials
+sundials4
+SuiteSparse
+SuiteSparse/.gitignore
+
+# cmakefiles
+CMakeFiles
+Makefile
+*.cmake
+*.so
+

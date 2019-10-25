@@ -1,8 +1,6 @@
 #
 # Scalar class
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
 import pybamm
 
 
@@ -29,23 +27,11 @@ class Scalar(pybamm.Symbol):
 
         """
         # set default name if not provided
+        self.value = value
         if name is None:
-            name = str(value)
+            name = str(self.value)
 
         super().__init__(name, domain=domain)
-        self.value = value
-
-    @property
-    def id(self):
-        """
-        The immutable "identity" of a variable (for identifying y_slices).
-
-        This is identical to what we'd put in a __hash__ function
-        However, implementing __hash__ requires also implementing __eq__,
-        which would then mess with loop-checking in the anytree module
-        """
-
-        return hash((self.__class__, self.name, self.value))
 
     @property
     def value(self):
@@ -54,8 +40,24 @@ class Scalar(pybamm.Symbol):
 
     @value.setter
     def value(self, value):
-        self._value = value
+        self._value = float(value)
 
-    def evaluate(self, t=None, y=None):
-        """ See :meth:`pybamm.Symbol.evaluate()`. """
+    def set_id(self):
+        """ See :meth:`pybamm.Symbol.set_id()`. """
+        # We must include the value in the hash, since different scalars can be
+        # indistinguishable by class, name and domain alone
+        self._id = hash(
+            (self.__class__, self.name) + tuple(self.domain) + tuple(str(self._value))
+        )
+
+    def _base_evaluate(self, t=None, y=None):
+        """ See :meth:`pybamm.Symbol._base_evaluate()`. """
         return self._value
+
+    def _jac(self, variable):
+        """ See :meth:`pybamm.Symbol._jac()`. """
+        return pybamm.Scalar(0)
+
+    def new_copy(self):
+        """ See :meth:`pybamm.Symbol.new_copy()`. """
+        return Scalar(self.value, self.name, self.domain)

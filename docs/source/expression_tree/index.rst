@@ -7,9 +7,16 @@ Expression Tree
   parameter
   variable
   independent_variable
-  binary_operator
-  unary_operator
   scalar
   matrix
   vector
+  state_vector
+  binary_operator
+  unary_operator
   concatenations
+  broadcasts
+  functions
+  interpolant
+  evaluate
+  simplify
+  jacobian

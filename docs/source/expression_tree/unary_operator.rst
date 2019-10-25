@@ -10,6 +10,9 @@ Unary Operators
 .. autoclass:: pybamm.AbsoluteValue
   :members:
 
+.. autoclass:: pybamm.Index
+  :members:
+
 .. autoclass:: pybamm.SpatialOperator
   :members:
 
@@ -19,12 +22,49 @@ Unary Operators
 .. autoclass:: pybamm.Divergence
   :members:
 
-.. autoclass:: pybamm.Broadcast
+.. autoclass:: pybamm.Laplacian
   :members:
 
-.. autoclass:: pybamm.NumpyBroadcast
+.. autoclass:: pybamm.Gradient_Squared
+  :members:
+
+.. autoclass:: pybamm.Mass
+  :members:
+
+.. autoclass:: pybamm.Integral
+  :members:
+
+.. autoclass:: pybamm.IndefiniteIntegral
+  :members:
+
+.. autoclass:: pybamm.DefiniteIntegralVector
+  :members:
+
+.. autoclass:: pybamm.BoundaryIntegral
+  :members:
+
+.. autoclass:: pybamm.DeltaFunction
+  :members:
+
+.. autoclass:: pybamm.BoundaryOperator
+  :members:
+
+.. autoclass:: pybamm.BoundaryValue
+  :members:
+
+.. autoclass:: pybamm.BoundaryGradient
   :members:
 
 .. autofunction:: pybamm.grad
 
 .. autofunction:: pybamm.div
+
+.. autofunction:: pybamm.laplacian
+
+.. autofunction:: pybamm.grad_squared
+
+.. autofunction:: pybamm.surf
+
+.. autofunction:: pybamm.x_average
+
+.. autofunction:: pybamm.boundary_value

@@ -1,11 +1,10 @@
 #
 # Base model class
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
 import pybamm
 
 import numbers
+import warnings
 
 
 class BaseModel(object):
@@ -14,6 +13,10 @@ class BaseModel(object):
     Attributes
     ----------
 
+    name: str
+        A string giving the name of the model
+    options: dict
+        A dictionary of options to be passed to the model
     rhs: dict
         A dictionary that maps expressions (variables) to expressions that represent
         the rhs
@@ -24,54 +27,78 @@ class BaseModel(object):
         `rhs` or `algebraic`.
     initial_conditions: dict
         A dictionary that maps expressions (variables) to expressions that represent
-        the initial conditions for the state variables y
-    initial_conditions_ydot: dict
-        A dictionary that maps expressions (variables) to expressions that represent
-        the initial conditions for the time derivative of y
+        the initial conditions for the state variables y. The initial conditions for
+        algebraic variables are provided as initial guesses to a root finding algorithm
+        that calculates consistent initial conditions.
     boundary_conditions: dict
         A dictionary that maps expressions (variables) to expressions that represent
         the boundary conditions
     variables: dict
         A dictionary that maps strings to expressions that represent
         the useful variables
-
+    events: list
+        A list of events that should cause the solver to terminate (e.g. concentration
+        goes negative)
+    concatenated_rhs : :class:`pybamm.Concatenation`
+        After discretisation, contains the expressions representing the rhs equations
+        concatenated into a single expression
+    concatenated_algebraic : :class:`pybamm.Concatenation`
+        After discretisation, contains the expressions representing the algebraic
+        equations concatenated into a single expression
+    concatenated_initial_conditions : :class:`numpy.array`
+        After discretisation, contains the vector of initial conditions
+    mass_matrix : :class:`pybamm.Matrix`
+        After discretisation, contains the mass matrix for the model. This is computed
+        automatically
+    jacobian : :class:`pybamm.Concatenation`
+        Contains the Jacobian for the model. If model.use_jacobian is True, the
+        Jacobian is computed automatically during solver set up
+    jacobian_rhs : :class:`pybamm.Concatenation`
+        Contains the Jacobian for the part of the model which contains time derivatives.
+        If model.use_jacobian is True, the Jacobian is computed automatically during
+        solver set up
+    jacobian_algebraic : :class:`pybamm.Concatenation`
+        Contains the Jacobian for the algebraic part of the model. This may be used
+        by the solver when calculating consistent initial conditions. If
+        model.use_jacobian is True, the Jacobian is computed automatically during
+        solver set up
+    use_jacobian : bool
+        Whether to use the Jacobian when solving the model (default is True)
+    use_simplify : bool
+        Whether to simplify the expression tress representing the rhs and
+        algebraic equations, Jacobain (if using) and events, before solving the
+        model (default is True)
+    use_to_python : bool
+        Whether to convert the expression tress representing the rhs and
+        algebraic equations, Jacobain (if using) and events into pure python code
+        that will calculate the result of calling `evaluate(t, y)` on the given
+        expression tree (default is True)
     """
 
-    def __init__(self):
+    def __init__(self, name="Unnamed model"):
+        self.name = name
+        self.options = {}
+
         # Initialise empty model
         self._rhs = {}
         self._algebraic = {}
         self._initial_conditions = {}
-        self._initial_conditions_ydot = {}
         self._boundary_conditions = {}
         self._variables = {}
+        self._events = {}
         self._concatenated_rhs = None
+        self._concatenated_algebraic = None
         self._concatenated_initial_conditions = None
+        self._mass_matrix = None
+        self._jacobian = None
+        self._jacobian_algebraic = None
 
-        # Default parameter values, discretisation and solver
-        self.default_parameter_values = pybamm.ParameterValues(
-            "input/parameters/lithium-ion/parameters/LCO.csv"
-        )
+        # Default behaviour is to use the jacobian and simplify
+        self.use_jacobian = True
+        self.use_simplify = True
+        self.use_to_python = True
 
-        self.default_geometry = pybamm.Geometry1DMacro()
-        self.default_parameter_values.process_geometry(self.default_geometry)
-        # provide mesh properties
-        submesh_pts = {
-            "negative electrode": {"x": 40},
-            "separator": {"x": 25},
-            "positive electrode": {"x": 35},
-        }
-        submesh_types = {
-            "negative electrode": pybamm.Uniform1DSubMesh,
-            "separator": pybamm.Uniform1DSubMesh,
-            "positive electrode": pybamm.Uniform1DSubMesh,
-        }
-
-        self.mesh = pybamm.Mesh(self.default_geometry, submesh_types, submesh_pts)
-        self.default_discretisation = pybamm.FiniteVolumeDiscretisation(self.mesh)
-        self.default_solver = pybamm.ScipySolver(method="RK45")
-
-    def _set_dict(self, dict, name):
+    def _set_dictionary(self, dict, name):
         """
         Convert any scalar equations in dict to 'pybamm.Scalar'
         and check that domains are consistent
@@ -83,7 +110,9 @@ class BaseModel(object):
 
         if not all(
             [
-                variable.domain == equation.domain or equation.domain == []
+                variable.domain == equation.domain
+                or variable.domain == []
+                or equation.domain == []
                 for variable, equation in dict.items()
             ]
         ):
@@ -94,12 +123,20 @@ class BaseModel(object):
         return dict
 
     @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, value):
+        self._name = value
+
+    @property
     def rhs(self):
         return self._rhs
 
     @rhs.setter
     def rhs(self, rhs):
-        self._rhs = self._set_dict(rhs, "rhs")
+        self._rhs = self._set_dictionary(rhs, "rhs")
 
     @property
     def algebraic(self):
@@ -107,7 +144,7 @@ class BaseModel(object):
 
     @algebraic.setter
     def algebraic(self, algebraic):
-        self._algebraic = self._set_dict(algebraic, "algebraic")
+        self._algebraic = self._set_dictionary(algebraic, "algebraic")
 
     @property
     def initial_conditions(self):
@@ -115,18 +152,8 @@ class BaseModel(object):
 
     @initial_conditions.setter
     def initial_conditions(self, initial_conditions):
-        self._initial_conditions = self._set_dict(
+        self._initial_conditions = self._set_dictionary(
             initial_conditions, "initial_conditions"
-        )
-
-    @property
-    def initial_conditions_ydot(self):
-        return self._initial_conditions_ydot
-
-    @initial_conditions_ydot.setter
-    def initial_conditions_ydot(self, initial_conditions):
-        self._initial_conditions_ydot = self._set_dict(
-            initial_conditions, "initial_conditions_ydot"
         )
 
     @property
@@ -137,10 +164,20 @@ class BaseModel(object):
     def boundary_conditions(self, boundary_conditions):
         # Convert any numbers to a pybamm.Scalar
         for var, bcs in boundary_conditions.items():
-            for side, eqn in bcs.items():
-                if isinstance(eqn, numbers.Number):
-                    boundary_conditions[var][side] = pybamm.Scalar(eqn)
-
+            for side, bc in bcs.items():
+                if isinstance(bc[0], numbers.Number):
+                    # typ is the type of the bc, e.g. "Dirichlet" or "Neumann"
+                    eqn, typ = boundary_conditions[var][side]
+                    boundary_conditions[var][side] = (pybamm.Scalar(eqn), typ)
+                # Check types
+                if bc[1] not in ["Dirichlet", "Neumann"]:
+                    raise pybamm.ModelError(
+                        """
+                        boundary condition types must be Dirichlet or Neumann, not '{}'
+                        """.format(
+                            bc[1]
+                        )
+                    )
         self._boundary_conditions = boundary_conditions
 
     @property
@@ -152,6 +189,14 @@ class BaseModel(object):
         self._variables = variables
 
     @property
+    def events(self):
+        return self._events
+
+    @events.setter
+    def events(self, events):
+        self._events = events
+
+    @property
     def concatenated_rhs(self):
         return self._concatenated_rhs
 
@@ -160,12 +205,64 @@ class BaseModel(object):
         self._concatenated_rhs = concatenated_rhs
 
     @property
+    def concatenated_algebraic(self):
+        return self._concatenated_algebraic
+
+    @concatenated_algebraic.setter
+    def concatenated_algebraic(self, concatenated_algebraic):
+        self._concatenated_algebraic = concatenated_algebraic
+
+    @property
     def concatenated_initial_conditions(self):
         return self._concatenated_initial_conditions
 
     @concatenated_initial_conditions.setter
     def concatenated_initial_conditions(self, concatenated_initial_conditions):
         self._concatenated_initial_conditions = concatenated_initial_conditions
+
+    @property
+    def mass_matrix(self):
+        return self._mass_matrix
+
+    @mass_matrix.setter
+    def mass_matrix(self, mass_matrix):
+        self._mass_matrix = mass_matrix
+
+    @property
+    def jacobian(self):
+        return self._jacobian
+
+    @jacobian.setter
+    def jacobian(self, jacobian):
+        self._jacobian = jacobian
+
+    @property
+    def jacobian_rhs(self):
+        return self._jacobian_rhs
+
+    @jacobian_rhs.setter
+    def jacobian_rhs(self, jacobian_rhs):
+        self._jacobian_rhs = jacobian_rhs
+
+    @property
+    def jacobian_algebraic(self):
+        return self._jacobian_algebraic
+
+    @jacobian_algebraic.setter
+    def jacobian_algebraic(self, jacobian_algebraic):
+        self._jacobian_algebraic = jacobian_algebraic
+
+    @property
+    def set_of_parameters(self):
+        return self._set_of_parameters
+
+    @property
+    def options(self):
+        return self._options
+
+    @options.setter
+    def options(self, options):
+        self._options = options
 
     def __getitem__(self, key):
         return self.rhs[key]
@@ -176,23 +273,32 @@ class BaseModel(object):
 
         Parameters
         ----------
-        submodel : iterable of submodels (subclasses of :class:`pybamm.BaseModel`)
+        submodel : iterable of :class:`pybamm.BaseModel`
             The submodels from which to create new model
         """
         for submodel in submodels:
-            # check for duplicates in keys
-            vars = [var.id for var in submodel.rhs.keys()] + [
-                var.id for var in self.rhs.keys()
-            ]
-            assert len(vars) == len(set(vars)), pybamm.ModelError("duplicate variables")
 
-            # update dicts
-            self._rhs.update(submodel.rhs)
-            self._initial_conditions.update(submodel.initial_conditions)
-            self._boundary_conditions.update(submodel.boundary_conditions)
-            self._variables.update(submodel.variables)
+            # check and then update dicts
+            self.check_and_combine_dict(self._rhs, submodel.rhs)
+            self.check_and_combine_dict(self._algebraic, submodel.algebraic)
+            self.check_and_combine_dict(
+                self._initial_conditions, submodel.initial_conditions
+            )
+            self.check_and_combine_dict(
+                self._boundary_conditions, submodel.boundary_conditions
+            )
+            self.variables.update(submodel.variables)  # keys are strings so no check
+            self._events.update(submodel.events)
 
-    def check_well_posedness(self):
+    def check_and_combine_dict(self, dict1, dict2):
+        # check that the key ids are distinct
+        ids1 = set(x.id for x in dict1.keys())
+        ids2 = set(x.id for x in dict2.keys())
+        if len(ids1.intersection(ids2)) != 0:
+            raise pybamm.ModelError("Submodel incompatible: duplicate variables")
+        dict1.update(dict2)
+
+    def check_well_posedness(self, post_discretisation=False):
         """
         Check that the model is well-posed by executing the following tests:
         - Model is not over- or underdetermined, by comparing keys and equations in rhs
@@ -202,20 +308,44 @@ class BaseModel(object):
         variable/equation pair in self.rhs
         - There are appropriate boundary conditions in self.boundary_conditions for each
         variable/equation pair in self.rhs and self.algebraic
+
+        Parameters
+        ----------
+        post_discretisation : boolean
+            A flag indicating tests to be skipped after discretisation
         """
+        self.check_well_determined(post_discretisation)
+        self.check_algebraic_equations(post_discretisation)
+        self.check_ics_bcs()
+        self.check_default_variables_dictionaries()
+        # Can't check variables after discretising, since Variable objects get replaced
+        # by StateVector objects
+        # Checking variables is slow, so only do it in debug mode
+        if pybamm.settings.debug_mode is True and post_discretisation is False:
+            self.check_variables()
+
+    def check_well_determined(self, post_discretisation):
+        """ Check that the model is not under- or over-determined. """
         # Equations (differential and algebraic)
         # Get all the variables from differential and algebraic equations
         vars_in_rhs_keys = set()
         vars_in_algebraic_keys = set()
         vars_in_eqns = set()
         # Get all variables ids from rhs and algebraic keys and equations
+        # For equations we look through the whole expression tree.
+        # "Variables" can be Concatenations so we also have to look in the whole
+        # expression tree
         for var, eqn in self.rhs.items():
-            vars_in_rhs_keys.add(var.id)
+            vars_in_rhs_keys.update(
+                [x.id for x in var.pre_order() if isinstance(x, pybamm.Variable)]
+            )
             vars_in_eqns.update(
                 [x.id for x in eqn.pre_order() if isinstance(x, pybamm.Variable)]
             )
         for var, eqn in self.algebraic.items():
-            vars_in_algebraic_keys.add(var.id)
+            vars_in_algebraic_keys.update(
+                [x.id for x in var.pre_order() if isinstance(x, pybamm.Variable)]
+            )
             vars_in_eqns.update(
                 [x.id for x in eqn.pre_order() if isinstance(x, pybamm.Variable)]
             )
@@ -226,8 +356,10 @@ class BaseModel(object):
         # If any algebraic keys don't appear in the eqns then the model is
         # overdetermined (but rhs keys can be absent from the eqns, e.g. dcdt = -1 is
         # fine)
+        # Skip this step after discretisation, as any variables in the equations will
+        # have been discretised to slices but keys will still be variables
         extra_algebraic_keys = vars_in_algebraic_keys.difference(vars_in_eqns)
-        if extra_algebraic_keys:
+        if extra_algebraic_keys and not post_discretisation:
             raise pybamm.ModelError("model is overdetermined (extra algebraic keys)")
         # If any variables in the equations don't appear in the keys then the model is
         # underdetermined
@@ -236,6 +368,36 @@ class BaseModel(object):
         if extra_variables:
             raise pybamm.ModelError("model is underdetermined (too many variables)")
 
+    def check_algebraic_equations(self, post_discretisation):
+        """
+        Check that the algebraic equations are well-posed.
+        Before discretisation, each algebraic equation key must appear in the equation
+        After discretisation, there must be at least one StateVector in each algebraic
+        equation
+        """
+        if not post_discretisation:
+            # After the model has been defined, each algebraic equation key should
+            # appear in that algebraic equation
+            # this has been relaxed for concatenations for now
+            for var, eqn in self.algebraic.items():
+                if not any(x.id == var.id for x in eqn.pre_order()) and not isinstance(
+                    var, pybamm.Concatenation
+                ):
+                    raise pybamm.ModelError(
+                        "each variable in the algebraic eqn keys must appear in the eqn"
+                    )
+        else:
+            # variables in keys don't get discretised so they will no longer match
+            # with the state vectors in the algebraic equations. Instead, we check
+            # that each algebraic equation contains some StateVector
+            for eqn in self.algebraic.values():
+                if not any(isinstance(x, pybamm.StateVector) for x in eqn.pre_order()):
+                    raise pybamm.ModelError(
+                        "each algebraic equation must contain at least one StateVector"
+                    )
+
+    def check_ics_bcs(self):
+        """ Check that the initial and boundary conditions are well-posed. """
         # Initial conditions
         for var in self.rhs.keys():
             if var not in self.initial_conditions.keys():
@@ -245,20 +407,68 @@ class BaseModel(object):
 
         # Boundary conditions
         for var, eqn in {**self.rhs, **self.algebraic}.items():
-            if eqn.has_spatial_derivatives():
-                # Variable must be in at least one expression in the boundary condition
-                # keys (to account for both Dirichlet and Neumann boundary conditions)
+            if eqn.has_symbol_of_classes(
+                (pybamm.Gradient, pybamm.Divergence)
+            ) and not eqn.has_symbol_of_classes(pybamm.Integral):
+                # I have relaxed this check for now so that the lumped temperature
+                # equation doesn't raise errors (this has and average in it)
+
+                # Variable must be in the boundary conditions
                 if not any(
-                    [
-                        any([var.id == symbol.id for symbol in key.pre_order()])
-                        for key in self.boundary_conditions.keys()
-                    ]
+                    var.id == x.id
+                    for symbol in self.boundary_conditions.keys()
+                    for x in symbol.pre_order()
                 ):
                     raise pybamm.ModelError(
                         """
-                        no boundary condition given for variable '{}'
-                        with equation '{}'
+                        no boundary condition given for
+                        variable '{}' with equation '{}'.
                         """.format(
                             var, eqn
                         )
                     )
+
+    def check_default_variables_dictionaries(self):
+        """ Chec that the right variables are provided. """
+        missing_vars = []
+        for output, expression in self._variables.items():
+            if expression is None:
+                missing_vars.append(output)
+        if len(missing_vars) > 0:
+            warnings.warn(
+                "the standard output variable(s) '{}' have not been supplied. "
+                "These may be required for testing or comparison with other "
+                "models.".format(missing_vars),
+                pybamm.ModelWarning,
+                stacklevel=2,
+            )
+            # Remove missing entries
+            for output in missing_vars:
+                del self._variables[output]
+
+    def check_variables(self):
+        # Create list of all Variable nodes that appear in the model's list of variables
+        all_vars = {}
+        for eqn in self.variables.values():
+            # Add all variables in the equation to the list of variables
+            all_vars.update(
+                {x.id: x for x in eqn.pre_order() if isinstance(x, pybamm.Variable)}
+            )
+        var_ids_in_keys = set()
+        for var in {**self.rhs, **self.algebraic}.keys():
+            if isinstance(var, pybamm.Variable):
+                var_ids_in_keys.add(var.id)
+            # Key can be a concatenation
+            elif isinstance(var, pybamm.Concatenation):
+                var_ids_in_keys.update([child.id for child in var.children])
+        for var_id, var in all_vars.items():
+            if var_id not in var_ids_in_keys:
+                raise pybamm.ModelError(
+                    """
+                    No key set for variable '{}'. Make sure it is included in either
+                    model.rhs or model.algebraic in an unmodified form (e.g. not
+                    Broadcasted)
+                    """.format(
+                        var
+                    )
+                )

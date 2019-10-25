@@ -1,9 +1,9 @@
 #
-# Vector classes
+# Vector class
 #
-from __future__ import absolute_import, division
-from __future__ import print_function, unicode_literals
 import pybamm
+
+import numpy as np
 
 
 class Vector(pybamm.Array):
@@ -11,57 +11,28 @@ class Vector(pybamm.Array):
 
     **Extends:** :class:`Array`
 
-    Parameters
-    ----------
-
-    entries : numpy.array
-        the array associated with the node
-    name : str, optional
-        the name of the node
-    domain : iterable of str, optional
-        list of domains the parameter is valid over, defaults to empty list
-
     """
 
-    def __init__(self, entries, name=None, domain=[]):
-        # make sure that entries are a vector
-        if entries.ndim != 1:
+    def __init__(
+        self,
+        entries,
+        name=None,
+        domain=None,
+        auxiliary_domains=None,
+        entries_string=None,
+    ):
+        # make sure that entries are a vector (can be a column vector)
+        if entries.ndim == 1:
+            entries = entries[:, np.newaxis]
+        if entries.shape[1] != 1:
             raise ValueError(
-                """Entries must have 1 dimension,  not {}""".format(entries.ndim)
+                """
+                Entries must have 1 dimension or be column vector, not have shape {}
+                """.format(
+                    entries.shape
+                )
             )
         if name is None:
-            name = "Vector of length {!s}".format(entries.shape[0])
-        super().__init__(entries, name=name, domain=domain)
+            name = "Column vector of length {!s}".format(entries.shape[0])
 
-
-class StateVector(pybamm.Symbol):
-    """
-    node in the expression tree that holds a slice to read from an external vector type
-
-    Parameters
-    ----------
-
-    y_slice: slice
-        the slice of an external y to read
-    name: str, optional
-        the name of the node
-    domain : iterable of str, optional
-        list of domains the parameter is valid over, defaults to empty list
-
-    *Extends:* :class:`Array`
-    """
-
-    def __init__(self, y_slice, name=None, domain=[]):
-        if name is None:
-            name = "StateVector with slice '{!s}'".format(y_slice)
-        super().__init__(name=name, domain=domain)
-        self._y_slice = y_slice
-
-    @property
-    def y_slice(self):
-        """Slice of an external y to read"""
-        return self._y_slice
-
-    def evaluate(self, t, y):
-        """ See :meth:`pybamm.Symbol.evaluate()`. """
-        return y[self._y_slice]
+        super().__init__(entries, name, domain, auxiliary_domains, entries_string)
