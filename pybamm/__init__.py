@@ -61,6 +61,11 @@ from .logger import logger, set_logging_level
 from .settings import settings
 
 #
+# Simulation class
+#
+from .simulation import Simulation
+
+#
 # Classes for the Expression Tree
 #
 from .expression_tree.symbol import (

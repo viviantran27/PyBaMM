@@ -19,7 +19,7 @@ class Simulation(object):
        The geometry for the simulation. Defaults to model default.
     submesh_types : dict of :class:`pybamm.MeshGenerator`, optional
        The mesh types to be used for the simulation. Defaults to model default.
-    submesh_pts : dict of int, optional
+    var_pts : dict of int, optional
        The number of grid points in each subdomain. Defaults to model default.
     spatial_method : dict of :class:`pybamm.SpatialMethod`, optional
        The spatial discretisation for each subdomain. Defaults to model default.
@@ -43,7 +43,7 @@ class Simulation(object):
         parameter_values=None,
         geometry=None,
         submesh_types=None,
-        submesh_pts=None,
+        var_pts=None,
         spatial_methods=None,
         solver=None,
         name=None,
@@ -52,7 +52,7 @@ class Simulation(object):
         parameter_values = parameter_values or model.default_parameter_values
         geometry = geometry or model.default_geometry
         submesh_types = submesh_types or model.default_submesh_types
-        submesh_pts = submesh_pts or model.default_submesh_pts
+        var_pts = var_pts or model.default_var_pts
         spatial_methods = spatial_methods or model.default_spatial_methods
         solver = solver or model.default_solver
         name = name or "Simulation for {}".format(model.name)
@@ -62,7 +62,7 @@ class Simulation(object):
         self.parameter_values = parameter_values
         parameter_values.process_geometry(geometry)
         self.geometry = geometry
-        self.mesh = pybamm.Mesh(geometry, submesh_types, submesh_pts)
+        self.mesh = pybamm.Mesh(geometry, submesh_types, var_pts)
         self.discretisation = pybamm.Discretisation(self.mesh, spatial_methods)
         self.solver = solver
         self.name = name
