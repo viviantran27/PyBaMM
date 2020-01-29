@@ -43,6 +43,16 @@ class TestSymbol(unittest.TestCase):
         self.assertEqual(a.domain, ["t", "e", "s"])
         with self.assertRaises(TypeError):
             a = pybamm.Symbol("a", domain=1)
+        with self.assertRaisesRegex(
+            pybamm.DomainError,
+            "Domain cannot be empty if auxiliary domains are not empty",
+        ):
+            b = pybamm.Symbol("b", auxiliary_domains={"sec": ["test sec"]})
+        b = pybamm.Symbol("b", domain="test", auxiliary_domains={"sec": ["test sec"]})
+        with self.assertRaisesRegex(
+            pybamm.DomainError, "Domain cannot be the same as an auxiliary domain"
+        ):
+            b.domain = "test sec"
 
     def test_symbol_auxiliary_domains(self):
         a = pybamm.Symbol(
@@ -58,6 +68,19 @@ class TestSymbol(unittest.TestCase):
         self.assertEqual(a.domain, ["t", "e", "s"])
         with self.assertRaises(TypeError):
             a = pybamm.Symbol("a", domain=1)
+        b = pybamm.Symbol("b", domain="test sec")
+        with self.assertRaisesRegex(
+            pybamm.DomainError, "Domain cannot be the same as an auxiliary domain"
+        ):
+            b.auxiliary_domains = {"sec": "test sec"}
+        with self.assertRaisesRegex(
+            pybamm.DomainError, "All auxiliary domains must be different"
+        ):
+            b = pybamm.Symbol(
+                "b",
+                domain="test",
+                auxiliary_domains={"sec": ["test sec"], "tert": ["test sec"]},
+            )
 
     def test_symbol_methods(self):
         a = pybamm.Symbol("a")
@@ -74,6 +97,10 @@ class TestSymbol(unittest.TestCase):
         self.assertIsInstance(a @ b, pybamm.MatrixMultiplication)
         self.assertIsInstance(a / b, pybamm.Division)
         self.assertIsInstance(a ** b, pybamm.Power)
+        self.assertIsInstance(a < b, pybamm.Heaviside)
+        self.assertIsInstance(a <= b, pybamm.Heaviside)
+        self.assertIsInstance(a > b, pybamm.Heaviside)
+        self.assertIsInstance(a >= b, pybamm.Heaviside)
 
         # binary - symbol and number
         self.assertIsInstance(a + 2, pybamm.Addition)
@@ -98,30 +125,10 @@ class TestSymbol(unittest.TestCase):
         self.assertEqual((3 ** b).children[1].id, b.id)
 
         # error raising
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaisesRegex(
+            NotImplementedError, "'Addition' not implemented for symbols of type"
+        ):
             a + "two"
-        with self.assertRaises(NotImplementedError):
-            a - "two"
-        with self.assertRaises(NotImplementedError):
-            a * "two"
-        with self.assertRaises(NotImplementedError):
-            a @ "two"
-        with self.assertRaises(NotImplementedError):
-            a / "two"
-        with self.assertRaises(NotImplementedError):
-            a ** "two"
-        with self.assertRaises(NotImplementedError):
-            "two" + a
-        with self.assertRaises(NotImplementedError):
-            "two" - a
-        with self.assertRaises(NotImplementedError):
-            "two" * a
-        with self.assertRaises(NotImplementedError):
-            "two" @ a
-        with self.assertRaises(NotImplementedError):
-            "two" / a
-        with self.assertRaises(NotImplementedError):
-            "two" ** a
 
     def test_multiple_symbols(self):
         a = pybamm.Symbol("a")
@@ -214,7 +221,7 @@ class TestSymbol(unittest.TestCase):
     def test_symbol_repr(self):
         """
         test that __repr___ returns the string
-        `__class__(id, name, parent expression)`
+        `__class__(id, name, children, domain, auxiliary_domains)`
         """
         a = pybamm.Symbol("a")
         b = pybamm.Symbol("b")
@@ -288,6 +295,7 @@ class TestSymbol(unittest.TestCase):
 
         variables = {
             "Porosity": param.epsilon,
+            "Electrolyte tortuosity": param.epsilon ** 1.5,
             "Porosity change": deps_dt,
             "Volume-averaged velocity": v_box,
             "Negative electrode interfacial current density": one_n,
@@ -376,14 +384,14 @@ class TestSymbol(unittest.TestCase):
         self.assertEqual(concat.size_for_testing, 30)
 
         var = pybamm.Variable("var", domain="negative electrode")
-        broadcast = pybamm.Broadcast(0, "negative electrode")
+        broadcast = pybamm.PrimaryBroadcast(0, "negative electrode")
         self.assertEqual(var.shape_for_testing, broadcast.shape_for_testing)
         self.assertEqual(
             (var + broadcast).shape_for_testing, broadcast.shape_for_testing
         )
 
         var = pybamm.Variable("var", domain=["random domain", "other domain"])
-        broadcast = pybamm.Broadcast(0, ["random domain", "other domain"])
+        broadcast = pybamm.PrimaryBroadcast(0, ["random domain", "other domain"])
         self.assertEqual(var.shape_for_testing, broadcast.shape_for_testing)
         self.assertEqual(
             (var + broadcast).shape_for_testing, broadcast.shape_for_testing

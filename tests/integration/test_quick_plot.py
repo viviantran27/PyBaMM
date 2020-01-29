@@ -8,7 +8,6 @@ class TestQuickPlot(unittest.TestCase):
     Tests that QuickPlot is created correctly
     """
 
-    @unittest.skipIf(pybamm.have_scikits_odes(), "scikits.odes not installed")
     def test_plot_lithium_ion(self):
         spm = pybamm.lithium_ion.SPM()
         spme = pybamm.lithium_ion.SPMe()
@@ -25,7 +24,7 @@ class TestQuickPlot(unittest.TestCase):
         t_eval = np.linspace(0, 2, 100)
         solution_spm = spm.default_solver.solve(spm, t_eval)
         solution_spme = spme.default_solver.solve(spme, t_eval)
-        quick_plot = pybamm.QuickPlot([spm, spme], mesh, [solution_spm, solution_spme])
+        quick_plot = pybamm.QuickPlot([solution_spm, solution_spme])
         quick_plot.plot(0)
 
         # update the axis
@@ -43,10 +42,10 @@ class TestQuickPlot(unittest.TestCase):
         quick_plot.update(0.01)
 
         # Update parameters, solve, plot again
-        param.update({"Current function": pybamm.GetConstantCurrent(current=0)})
+        param.update({"Current function [A]": 0})
         param.update_model(spm, disc_spm)
         solution_spm = spm.default_solver.solve(spm, t_eval)
-        quick_plot = pybamm.QuickPlot(spm, mesh, solution_spm)
+        quick_plot = pybamm.QuickPlot(solution_spm)
         quick_plot.plot(0)
 
         # Test with different output variables
@@ -55,7 +54,7 @@ class TestQuickPlot(unittest.TestCase):
             "Electrolyte concentration",
             "Positive particle surface concentration",
         ]
-        quick_plot = pybamm.QuickPlot(spm, mesh, solution_spm, output_vars)
+        quick_plot = pybamm.QuickPlot(solution_spm, output_vars)
         self.assertEqual(len(quick_plot.axis), 3)
         quick_plot.plot(0)
 
@@ -73,7 +72,6 @@ class TestQuickPlot(unittest.TestCase):
 
         quick_plot.update(0.01)
 
-    @unittest.skipIf(pybamm.have_scikits_odes(), "scikits.odes not installed")
     def test_plot_lead_acid(self):
         loqs = pybamm.lead_acid.LOQS()
         geometry = loqs.default_geometry
@@ -86,7 +84,7 @@ class TestQuickPlot(unittest.TestCase):
         t_eval = np.linspace(0, 1, 100)
         solution_loqs = loqs.default_solver.solve(loqs, t_eval)
 
-        pybamm.QuickPlot(loqs, mesh, solution_loqs)
+        pybamm.QuickPlot(solution_loqs)
 
 
 if __name__ == "__main__":

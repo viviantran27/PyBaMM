@@ -25,12 +25,7 @@ Binary Operators
 .. autoclass:: pybamm.Inner
   :members:
 
-.. autoclass:: pybamm.Outer
+.. autoclass:: pybamm.Heaviside
   :members:
-
-.. autoclass:: pybamm.Kron
-  :members:
-
-.. autofunction:: pybamm.outer
 
 .. autofunction:: pybamm.source

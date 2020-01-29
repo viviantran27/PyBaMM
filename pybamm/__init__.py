@@ -55,8 +55,8 @@ ABSOLUTE_PATH = os.path.join(os.path.split(script_path)[0], "..")
 #
 # Utility classes and methods
 #
-from .util import Timer
-from .util import root_dir, load_function, rmse, get_infinite_nested_dict
+from .util import Timer, FuzzyDict
+from .util import root_dir, load_function, rmse, get_infinite_nested_dict, load
 from .logger import logger, set_logging_level
 from .settings import settings
 
@@ -81,9 +81,7 @@ from .expression_tree.binary_operators import (
     Division,
     Inner,
     inner,
-    Outer,
-    Kron,
-    outer,
+    Heaviside,
     source,
 )
 from .expression_tree.concatenations import (
@@ -94,41 +92,18 @@ from .expression_tree.concatenations import (
 )
 from .expression_tree.array import Array
 from .expression_tree.matrix import Matrix
-from .expression_tree.unary_operators import (
-    UnaryOperator,
-    Negate,
-    AbsoluteValue,
-    Index,
-    SpatialOperator,
-    Gradient,
-    Divergence,
-    Laplacian,
-    Gradient_Squared,
-    Mass,
-    BoundaryMass,
-    BoundaryOperator,
-    BoundaryValue,
-    BoundaryGradient,
-    Integral,
-    IndefiniteIntegral,
-    DefiniteIntegralVector,
-    BoundaryIntegral,
-    DeltaFunction,
-    grad,
-    div,
-    laplacian,
-    grad_squared,
-    surf,
-    x_average,
-    z_average,
-    yz_average,
-    boundary_value,
-    r_average,
-)
+from .expression_tree.unary_operators import *
 from .expression_tree.functions import *
 from .expression_tree.interpolant import Interpolant
+from .expression_tree.input_parameter import InputParameter
 from .expression_tree.parameter import Parameter, FunctionParameter
-from .expression_tree.broadcasts import Broadcast, PrimaryBroadcast, FullBroadcast
+from .expression_tree.broadcasts import (
+    Broadcast,
+    PrimaryBroadcast,
+    SecondaryBroadcast,
+    FullBroadcast,
+    ones_like,
+)
 from .expression_tree.scalar import Scalar
 from .expression_tree.variable import Variable
 from .expression_tree.independent_variable import (
@@ -149,6 +124,7 @@ from .expression_tree.exceptions import (
     ModelWarning,
     UndefinedOperationError,
     GeometryError,
+    InputError,
 )
 
 # Operations
@@ -188,18 +164,19 @@ from .models.submodels import (
     current_collector,
     electrolyte,
     electrode,
+    external_circuit,
     interface,
     oxygen_diffusion,
     particle,
     porosity,
     thermal,
+    tortuosity,
 )
 
 #
 # Parameters class and methods
 #
 from .parameters.parameter_values import ParameterValues
-from .parameters import standard_current_functions
 from .parameters import geometric_parameters
 from .parameters import electrical_parameters
 from .parameters import thermal_parameters
@@ -229,6 +206,7 @@ from .geometry import standard_spatial_vars
 # Mesh and Discretisation classes
 #
 from .discretisations.discretisation import Discretisation
+from .discretisations.discretisation import has_bc_of_form
 from .meshes.meshes import Mesh, SubMesh, MeshGenerator
 from .meshes.zero_dimensional_submesh import SubMesh0D
 from .meshes.one_dimensional_submeshes import (
@@ -268,22 +246,13 @@ from .solvers.scikits_ode_solver import ScikitsOdeSolver, have_scikits_odes
 from .solvers.scipy_solver import ScipySolver
 from .solvers.idaklu_solver import IDAKLUSolver, have_idaklu
 
-
-#
-# Current profiles
-#
-from .parameters.standard_current_functions.base_current import GetCurrent
-from .parameters.standard_current_functions.get_constant_current import (
-    GetConstantCurrent,
-)
-from .parameters.standard_current_functions.get_user_current import GetUserCurrent
-from .parameters.standard_current_functions.get_current_data import GetCurrentData
-
 #
 # other
 #
-from .processed_variable import post_process_variables, ProcessedVariable
+from .processed_variable import ProcessedVariable
 from .quick_plot import QuickPlot, ax_min, ax_max
+
+from .simulation import Simulation, load_sim
 
 #
 # Remove any imported modules, so we don't expose them as part of pybamm

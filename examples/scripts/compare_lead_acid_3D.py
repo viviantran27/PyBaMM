@@ -45,8 +45,7 @@ models = [
 param = models[0].default_parameter_values
 param.update(
     {
-        "Typical current [A]": 1,
-        "Bruggeman  coefficient": 0.001,
+        "Current function [A]": 1,
         "Initial State of Charge": 1,
         "Typical electrolyte concentration [mol.m-3]": 5600,
         "Negative electrode reference exchange-current density [A.m-2]": 0.08,
@@ -64,13 +63,13 @@ for model in models:
     param.process_geometry(geometry)
     var = pybamm.standard_spatial_vars
     var_pts = {
-        var.x_n: 5,
-        var.x_s: 5,
-        var.x_p: 5,
-        var.r_n: 5,
-        var.r_p: 5,
-        var.y: 5,
-        var.z: 5,
+        var.x_n: 10,
+        var.x_s: 10,
+        var.x_p: 10,
+        var.r_n: 10,
+        var.r_p: 10,
+        var.y: 10,
+        var.z: 10,
     }
     mesh = pybamm.Mesh(geometry, model.default_submesh_types, var_pts)
     disc = pybamm.Discretisation(mesh, model.default_spatial_methods)
@@ -82,11 +81,10 @@ t_eval = np.linspace(0, 3, 1000)
 for i, model in enumerate(models):
     solution = model.default_solver.solve(model, t_eval)
     solutions[i] = solution
-    pybamm.post_process_variables(model.variables, solution.t, solution.y, mesh=mesh)
 
 # plot
 output_variables = [
-    "Local current collector potential difference [V]",
+    "Local voltage [V]",
     "Negative current collector potential [V]",
     "Positive current collector potential [V]",
     "X-averaged electrolyte concentration",
@@ -94,5 +92,5 @@ output_variables = [
     "Current collector current density",
     "Terminal voltage [V]",
 ]
-plot = pybamm.QuickPlot(models, mesh, solutions, output_variables)
+plot = pybamm.QuickPlot(solutions, output_variables)
 plot.dynamic_plot()

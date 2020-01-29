@@ -3,7 +3,7 @@
 #
 import pybamm
 
-import autograd.numpy as np
+import numpy as np
 import numbers
 from scipy.sparse import issparse
 
@@ -83,8 +83,8 @@ def simplify_addition_subtraction(myclass, left, right):
         (1 + 2) - (2 + 3) -> [1, 2, 2, 3] and [None, Addition, Subtraction, Subtraction]
         """
 
-        left_child.domain = []
-        right_child.domain = []
+        left_child.clear_domains()
+        right_child.clear_domains()
         for side, child in [("left", left_child), ("right", right_child)]:
             if isinstance(child, (pybamm.Addition, pybamm.Subtraction)):
                 left, right = child.orphans
@@ -284,8 +284,8 @@ def simplify_multiplication_division(myclass, left, right):
         1 / (c / 2) ->  [1, 2]       [c]       [None, Multiplication]
         """
 
-        left_child.domain = []
-        right_child.domain = []
+        left_child.clear_domains()
+        right_child.clear_domains()
         for side, child in [("left", left_child), ("right", right_child)]:
 
             if side == "left":
@@ -574,14 +574,14 @@ class Simplification(object):
             return self._simplified_symbols[symbol.id]
         except KeyError:
             simplified_symbol = self._simplify(symbol)
+
             self._simplified_symbols[symbol.id] = simplified_symbol
 
             return simplified_symbol
 
     def _simplify(self, symbol):
         """ See :meth:`Simplification.simplify()`. """
-        symbol.domain = []
-        symbol.auxiliary_domains = {}
+        symbol.clear_domains()
 
         if isinstance(symbol, pybamm.BinaryOperator):
             left, right = symbol.children
