@@ -6,16 +6,23 @@ import pybamm
 import numpy as np
 
 pybamm.set_logging_level("INFO")
+class ExternalCircuitFunction:
+    num_switches = 0
 
-# load model
-model = pybamm.lithium_ion.DFN({"operating mode": "voltage"})
+    def __call__(self, variables):
+        I = variables["Current [A]"]
+        V = variables["Terminal voltage [V]"]
+        return V / I - pybamm.FunctionParameter("Function", pybamm.t)
 
+options = {"operating mode": ExternalCircuitFunction()}
+model = pybamm.lithium_ion.DFN(options)
+model.events = {}
 # create geometry
 geometry = model.default_geometry
 
 # load parameter values and process model and geometry
 param = model.default_parameter_values
-param.update({"Voltage function [V]": 4.1}, check_already_exists=False)
+param.update({"Function": 1}, check_already_exists=False)
 param.process_model(model)
 param.process_geometry(geometry)
 
@@ -36,5 +43,14 @@ solver.atol = 1e-6
 solution = solver.solve(model, t_eval)
 
 # plot
-plot = pybamm.QuickPlot(solution)
+plot = pybamm.QuickPlot(solution,output_variables = [
+                    "Negative particle surface concentration",
+                    "Electrolyte concentration",
+                    "Positive particle surface concentration",
+                    "Current [A]",
+                    "Negative electrode potential [V]",
+                    "Electrolyte potential [V]",
+                    "Interfacial current density",
+                    "Terminal voltage [V]",
+                ])
 plot.dynamic_plot()

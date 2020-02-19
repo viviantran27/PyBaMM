@@ -46,3 +46,16 @@ Sulzer2019 = {
     "electrolyte": "sulfuric_acid_Sulzer2019",
     "experiment": "1C_discharge_from_full",
 }
+
+#
+# Alkaline
+#
+Lu2019 = {
+    "chemistry": "alkaline",
+    "cell": "DuracellAA_Lu2019",
+    "anode": "Zn_Lu2019",
+    "separator": "Duracell_alkaline_separator_Lu2019",
+    "cathode": "MnO2_Lu2019",
+    "electrolyte": "KOH_Lu2019",
+    "experiment": "1C_discharge_from_full",
+}

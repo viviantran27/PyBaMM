@@ -24,8 +24,8 @@ def _load_version_int():
 
 __version_int__ = _load_version_int()
 __version__ = ".".join([str(x) for x in __version_int__])
-if sys.version_info[0] < 3:
-    del x  # Before Python3, list comprehension iterators leaked
+# if sys.version_info[0] < 3:
+#     del x  # Before Python3, list comprehension iterators leaked
 
 #
 # Expose PyBaMM version
@@ -153,6 +153,8 @@ from .models import standard_variables
 from .models.full_battery_models.base_battery_model import BaseBatteryModel
 from .models.full_battery_models import lead_acid
 from .models.full_battery_models import lithium_ion
+from .models.full_battery_models import alkaline
+
 
 #
 # Submodel classes
@@ -180,7 +182,7 @@ from .parameters.parameter_values import ParameterValues
 from .parameters import geometric_parameters
 from .parameters import electrical_parameters
 from .parameters import thermal_parameters
-from .parameters import standard_parameters_lithium_ion, standard_parameters_lead_acid
+from .parameters import standard_parameters_lithium_ion, standard_parameters_lead_acid, standard_parameters_alkaline
 from .parameters.print_parameters import print_parameters, print_evaluated_parameters
 from .parameters import parameter_sets
 
