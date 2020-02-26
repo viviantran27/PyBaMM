@@ -17,12 +17,13 @@ class ExternalCircuitFunction:
 options = {"operating mode": ExternalCircuitFunction()}
 model = pybamm.lithium_ion.DFN(options)
 model.events = {}
+
 # create geometry
 geometry = model.default_geometry
 
 # load parameter values and process model and geometry
 param = model.default_parameter_values
-param.update({"Function": 1}, check_already_exists=False)
+param.update({"Function": .75}, check_already_exists=False)
 param.process_model(model)
 param.process_geometry(geometry)
 
@@ -36,10 +37,10 @@ disc = pybamm.Discretisation(mesh, model.default_spatial_methods)
 disc.process_model(model)
 
 # solve model
-t_eval = np.linspace(0, 0.2, 100)
+t_eval = np.linspace(0, 0.06, 100)
 solver = model.default_solver
-solver.rtol = 1e-3
-solver.atol = 1e-6
+solver.rtol = 1e-8
+solver.atol = 1e-7
 solution = solver.solve(model, t_eval)
 
 # plot
