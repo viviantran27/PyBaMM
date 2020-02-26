@@ -12,7 +12,13 @@ import tests.shared as shared
 class TestParameterValues(unittest.TestCase):
     def test_read_parameters_csv(self):
         data = pybamm.ParameterValues({}).read_parameters_csv(
-            "input/parameters/lithium-ion/cathodes/lico2_Marquis2019/parameters.csv"
+            pybamm.get_parameters_filepath(
+                os.path.join(
+                    "input", "parameters",
+                    "lithium-ion", "cathodes",
+                    "lico2_Marquis2019", "parameters.csv"
+                )
+            )
         )
         self.assertEqual(data["Reference temperature [K]"], "298.15")
 
@@ -26,8 +32,10 @@ class TestParameterValues(unittest.TestCase):
 
         # from file
         param = pybamm.ParameterValues(
-            values="input/parameters/lithium-ion/cathodes/lico2_Marquis2019/"
-            + "parameters.csv"
+            values=pybamm.get_parameters_filepath(
+                "input/parameters/lithium-ion/cathodes/lico2_Marquis2019/"
+                + "parameters.csv",
+            )
         )
         self.assertEqual(param["Reference temperature [K]"], 298.15)
 
@@ -101,7 +109,7 @@ class TestParameterValues(unittest.TestCase):
         linear = np.hstack([x, 2 * x])
         values = {"C-rate": ("linear", linear), "Cell capacity [A.h]": 10}
         param = pybamm.ParameterValues(values)
-        self.assertEqual(param["Current function [A]"][0], "linear_to_Crate")
+        self.assertEqual(param["Current function [A]"][0], "linear_to_current")
         np.testing.assert_array_equal(
             param["Current function [A]"][1], np.hstack([x, 20 * x])
         )
@@ -110,9 +118,21 @@ class TestParameterValues(unittest.TestCase):
         linear = np.hstack([x, 2 * x])
         values = {"Current function [A]": ("linear", linear), "Cell capacity [A.h]": 10}
         param = pybamm.ParameterValues(values)
-        self.assertEqual(param["C-rate"][0], "linear_to_current")
+        self.assertEqual(param["C-rate"][0], "linear_to_Crate")
         np.testing.assert_array_almost_equal(
             param["C-rate"][1], np.hstack([x, 0.2 * x])
+        )
+
+        # With input parameters
+        # if only C-rate and capacity provided, update current
+        values = {"C-rate": "[input]", "Cell capacity [A.h]": 10}
+        param = pybamm.ParameterValues(values)
+        self.assertEqual(param["Current function [A]"](2).evaluate(u={"C-rate": 1}), 10)
+        # if only current and capacity provided, update C-rate
+        values = {"Current function [A]": "[input]", "Cell capacity [A.h]": 10}
+        param = pybamm.ParameterValues(values)
+        self.assertEqual(
+            param["C-rate"](5).evaluate(u={"Current function [A]": 5}), 0.5
         )
 
     def test_process_symbol(self):
@@ -279,42 +299,47 @@ class TestParameterValues(unittest.TestCase):
                 "const": 254,
             }
         )
-        a = pybamm.Parameter("a")
+        a = pybamm.InputParameter("a")
 
         # process function
         func = pybamm.FunctionParameter("func", a)
         processed_func = parameter_values.process_symbol(func)
-        self.assertEqual(processed_func.evaluate(), 369)
+        self.assertEqual(processed_func.evaluate(u={"a": 3}), 369)
 
         # process constant function
         const = pybamm.FunctionParameter("const", a)
         processed_const = parameter_values.process_symbol(const)
-        self.assertIsInstance(processed_const, pybamm.Multiplication)
-        self.assertIsInstance(processed_const.left, pybamm.Scalar)
-        self.assertIsInstance(processed_const.right, pybamm.Scalar)
+        self.assertIsInstance(processed_const, pybamm.Scalar)
         self.assertEqual(processed_const.evaluate(), 254)
 
         # process differentiated function parameter
         diff_func = func.diff(a)
         processed_diff_func = parameter_values.process_symbol(diff_func)
-        self.assertEqual(processed_diff_func.evaluate(), 123)
+        self.assertEqual(processed_diff_func.evaluate(u={"a": 3}), 123)
+
+        # function itself as input (different to the variable being an input)
+        parameter_values = pybamm.ParameterValues({"func": "[input]"})
+        a = pybamm.Scalar(3)
+        func = pybamm.FunctionParameter("func", a)
+        processed_func = parameter_values.process_symbol(func)
+        self.assertEqual(processed_func.evaluate(u={"func": 13}), 13)
 
     def test_process_inline_function_parameters(self):
         def D(c):
             return c ** 2
 
-        parameter_values = pybamm.ParameterValues({"a": 3, "Diffusivity": D})
+        parameter_values = pybamm.ParameterValues({"Diffusivity": D})
 
-        a = pybamm.Parameter("a")
+        a = pybamm.InputParameter("a")
         func = pybamm.FunctionParameter("Diffusivity", a)
 
         processed_func = parameter_values.process_symbol(func)
-        self.assertEqual(processed_func.evaluate(), 9)
+        self.assertEqual(processed_func.evaluate(u={"a": 3}), 9)
 
         # process differentiated function parameter
         diff_func = func.diff(a)
         processed_diff_func = parameter_values.process_symbol(diff_func)
-        self.assertEqual(processed_diff_func.evaluate(), 6)
+        self.assertEqual(processed_diff_func.evaluate(u={"a": 3}), 6)
 
     def test_multi_var_function_with_parameters(self):
         def D(a, b):
@@ -362,31 +387,28 @@ class TestParameterValues(unittest.TestCase):
         self.assertEqual(processed_diff_func.evaluate(), 2)
 
     def test_interpolant_against_function(self):
-        parameter_values = pybamm.ParameterValues({"a": 0.6})
+        parameter_values = pybamm.ParameterValues({})
         parameter_values.update(
             {
                 "function": "[function]lico2_ocp_Dualfoil1998",
                 "interpolation": "[data]lico2_data_example",
             },
             path=os.path.join(
-                pybamm.root_dir(),
-                "input",
-                "parameters",
-                "lithium-ion",
-                "cathodes",
-                "lico2_Marquis2019",
+                "input", "parameters", "lithium-ion", "cathodes", "lico2_Marquis2019",
             ),
             check_already_exists=False,
         )
 
-        a = pybamm.Parameter("a")
+        a = pybamm.InputParameter("a")
         func = pybamm.FunctionParameter("function", a)
         interp = pybamm.FunctionParameter("interpolation", a)
 
         processed_func = parameter_values.process_symbol(func)
         processed_interp = parameter_values.process_symbol(interp)
         np.testing.assert_array_almost_equal(
-            processed_func.evaluate(), processed_interp.evaluate(), decimal=4
+            processed_func.evaluate(u={"a": 0.6}),
+            processed_interp.evaluate(u={"a": 0.6}),
+            decimal=4,
         )
 
         # process differentiated function parameter
@@ -395,7 +417,9 @@ class TestParameterValues(unittest.TestCase):
         processed_diff_func = parameter_values.process_symbol(diff_func)
         processed_diff_interp = parameter_values.process_symbol(diff_interp)
         np.testing.assert_array_almost_equal(
-            processed_diff_func.evaluate(), processed_diff_interp.evaluate(), decimal=2
+            processed_diff_func.evaluate(u={"a": 0.6}),
+            processed_diff_interp.evaluate(u={"a": 0.6}),
+            decimal=2,
         )
 
     def test_process_complex_expression(self):
@@ -499,6 +523,22 @@ class TestParameterValues(unittest.TestCase):
         model.boundary_conditions = {var1: {"left": (x, "Dirichlet")}}
         with self.assertRaises(KeyError):
             parameter_values.process_model(model)
+
+    def test_update_model(self):
+        param = pybamm.ParameterValues({})
+        with self.assertRaises(NotImplementedError):
+            param.update_model(None, None)
+
+    def test_inplace(self):
+        model = pybamm.lithium_ion.SPM()
+        param = model.default_parameter_values
+        new_model = param.process_model(model, inplace=False)
+
+        for val in list(model.rhs.values()):
+            self.assertTrue(val.has_symbol_of_classes(pybamm.Parameter))
+
+        for val in list(new_model.rhs.values()):
+            self.assertFalse(val.has_symbol_of_classes(pybamm.Parameter))
 
     def test_process_empty_model(self):
         model = pybamm.BaseModel()

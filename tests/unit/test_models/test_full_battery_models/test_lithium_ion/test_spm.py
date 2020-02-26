@@ -177,6 +177,16 @@ class TestSPM(unittest.TestCase):
         model = pybamm.lithium_ion.SPM(options)
         model.check_well_posedness()
 
+    def test_surface_form_differential(self):
+        options = {"surface form": "differential"}
+        model = pybamm.lithium_ion.SPM(options)
+        model.check_well_posedness()
+
+    def test_surface_form_algebraic(self):
+        options = {"surface form": "algebraic"}
+        model = pybamm.lithium_ion.SPM(options)
+        model.check_well_posedness()
+
 
 class TestSPMExternalCircuits(unittest.TestCase):
     def test_well_posed_voltage(self):
@@ -190,15 +200,12 @@ class TestSPMExternalCircuits(unittest.TestCase):
         model.check_well_posedness()
 
     def test_well_posed_function(self):
-        class ExternalCircuitFunction:
-            num_switches = 0
+        def external_circuit_function(variables):
+            I = variables["Current [A]"]
+            V = variables["Terminal voltage [V]"]
+            return V + I - pybamm.FunctionParameter("Function", pybamm.t)
 
-            def __call__(self, variables):
-                I = variables["Current [A]"]
-                V = variables["Terminal voltage [V]"]
-                return V + I - pybamm.FunctionParameter("Function", pybamm.t)
-
-        options = {"operating mode": ExternalCircuitFunction()}
+        options = {"operating mode": external_circuit_function}
         model = pybamm.lithium_ion.SPM(options)
         model.check_well_posedness()
 
