@@ -55,3 +55,17 @@ Sulzer2019 = {
     "experiment": "1C_discharge_from_full",
     "citation": "sulzer2019physical",
 }
+
+# 
+# Alkaline
+# 
+Lu2019 = {
+    "chemistry": "lead-acid",
+    "cell": "BBOXX_Sulzer2019",
+    "anode": "lead_Sulzer2019",
+    "separator": "agm_Sulzer2019",
+    "cathode": "lead_dioxide_Sulzer2019",
+    "electrolyte": "sulfuric_acid_Sulzer2019",
+    "experiment": "1C_discharge_from_full",
+    "citation": "sulzer2019physical",
+}
