@@ -65,7 +65,7 @@ c_ox_typ = c_e_typ  # pybamm.Parameter("Typical oxygen concentration [mol.m-3]")
 # Electrode properties
 sigma_n_dim = pybamm.Parameter("Negative electrode conductivity [S.m-1]")
 sigma_p_dim = pybamm.Parameter("Positive electrode conductivity [S.m-1]")
-# In lead-acid the current collector and electrodes are the same (same conductivity)
+# In lead-acid the current collector and electrodes are the same (same conductivity) (NEED TO EDIT)
 sigma_cn_dimensional = sigma_n_dim
 sigma_cp_dimensional = sigma_p_dim
 
@@ -103,7 +103,7 @@ C_dl_n_dimensional = pybamm.Parameter(
 C_dl_p_dimensional = pybamm.Parameter(
     "Positive electrode double-layer capacity [F.m-2]"
 )
-# Oxygen
+# Oxygen (Need to edit?)
 j0_n_Ox_ref_dimensional = pybamm.Parameter(
     "Negative electrode reference exchange-current density (oxygen) [A.m-2]"
 )
@@ -115,6 +115,7 @@ s_w_Ox_dim = pybamm.Parameter("Signed stoichiometry of water (oxygen reaction)")
 s_ox_Ox_dim = pybamm.Parameter("Signed stoichiometry of oxygen (oxygen reaction)")
 ne_Ox = pybamm.Parameter("Electrons in oxygen reaction")
 U_Ox_dim = pybamm.Parameter("Oxygen reference OCP vs SHE [V]")
+
 # Hydrogen
 j0_n_Hy_ref_dimensional = pybamm.Parameter(
     "Negative electrode reference exchange-current density (hydrogen) [A.m-2]"
@@ -424,7 +425,7 @@ curlyU_p_init = Q_e_max * (1.2 - q_init) / (Q_p_max * l_p)
 c_n_init = c_e_init
 c_p_init = c_e_init
 
-# Thermal effects not implemented for lead-acid, but parameters needed for consistency
+# Thermal effects not implemented for alkaline, but parameters needed for consistency
 T_init = pybamm.Scalar(0)
 Theta = pybamm.Scalar(0)  # ratio of typical temperature change to ambient temperature
 

@@ -6,27 +6,16 @@ import pybamm
 import numpy as np
 
 pybamm.set_logging_level("INFO")
-class ExternalCircuitFunction:
-    num_switches = 0
 
-    def __call__(self, variables):
-        I = variables["Current [A]"]
-        V = variables["Terminal voltage [V]"]
-        return V / I - pybamm.FunctionParameter("Function", pybamm.t)
 
-options = {"operating mode": ExternalCircuitFunction()}
-model = pybamm.lithium_ion.DFN(options)
-model.events = {}
+# load model
+model = pybamm.lithium_ion.BasicDFN()
 
 # create geometry
 geometry = model.default_geometry
 
 # load parameter values and process model and geometry
-param = model.default_parameter_values #in examples>input>parameter>chemistry>component>parameter.csv #create folder with parameter files and edit that 
-# param = pybamm.ParameterValues(chemistry=pybamm.parameter_sets.new_chem) #changes parameter_sets.py to set new chemistry dictionary
-#import ipdb 
-#ipdb.set_trace()
-param.update({"C-rate": 8, "Separator porosity": 0.5}) #update parameters here (>>from pprint import pprint; >> pprint(param)) >>exit >>del param[" "]
+param = model.default_parameter_values
 param.process_model(model)
 param.process_geometry(geometry) 
 
@@ -40,10 +29,10 @@ disc = pybamm.Discretisation(mesh, model.default_spatial_methods)
 disc.process_model(model)
 
 # solve model
-t_eval = np.linspace(0, 0.06, 100)
-solver = model.default_solver
-solver.rtol = 1e-8
-solver.atol = 1e-7
+t_eval = np.linspace(0, 3600, 100)
+solver = pybamm.CasadiSolver()
+solver.rtol = 1e-3
+solver.atol = 1e-6
 solution = solver.solve(model, t_eval)
 
 # # export

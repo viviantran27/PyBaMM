@@ -25,7 +25,7 @@ def _load_version_int():
 __version_int__ = _load_version_int()
 __version__ = ".".join([str(x) for x in __version_int__])
 # if sys.version_info[0] < 3:
-#     del x  # Before Python3, list comprehension iterators leaked
+# del x # Before Python3, list comprehension iterators leaked
 
 #
 # Expose PyBaMM version
@@ -57,8 +57,10 @@ ABSOLUTE_PATH = os.path.join(os.path.split(script_path)[0], "..")
 #
 from .util import Timer, FuzzyDict
 from .util import root_dir, load_function, rmse, get_infinite_nested_dict, load
+from .util import get_parameters_filepath
 from .logger import logger, set_logging_level
 from .settings import settings
+from .citations import Citations, citations, print_citations
 
 #
 # Classes for the Expression Tree
@@ -105,7 +107,7 @@ from .expression_tree.broadcasts import (
     ones_like,
 )
 from .expression_tree.scalar import Scalar
-from .expression_tree.variable import Variable
+from .expression_tree.variable import Variable, ExternalVariable
 from .expression_tree.independent_variable import (
     IndependentVariable,
     Time,
@@ -120,6 +122,7 @@ from .expression_tree.exceptions import (
     OptionError,
     ModelError,
     SolverError,
+    SolverWarning,
     ShapeError,
     ModelWarning,
     UndefinedOperationError,
@@ -148,13 +151,14 @@ from .expression_tree.operations.convert_to_casadi import CasadiConverter
 #
 from .models.base_model import BaseModel
 from .models import standard_variables
+from .models.event import Event
+from .models.event import EventType
 
 # Battery models
 from .models.full_battery_models.base_battery_model import BaseBatteryModel
 from .models.full_battery_models import lead_acid
 from .models.full_battery_models import lithium_ion
 from .models.full_battery_models import alkaline
-
 
 #
 # Submodel classes
@@ -176,17 +180,6 @@ from .models.submodels import (
 )
 
 #
-# Parameters class and methods
-#
-from .parameters.parameter_values import ParameterValues
-from .parameters import geometric_parameters
-from .parameters import electrical_parameters
-from .parameters import thermal_parameters
-from .parameters import standard_parameters_lithium_ion, standard_parameters_lead_acid, standard_parameters_alkaline
-from .parameters.print_parameters import print_parameters, print_evaluated_parameters
-from .parameters import parameter_sets
-
-#
 # Geometry
 #
 from .geometry.geometry import (
@@ -203,6 +196,18 @@ from .geometry.geometry import (
 
 from .expression_tree.independent_variable import KNOWN_SPATIAL_VARS, KNOWN_COORD_SYS
 from .geometry import standard_spatial_vars
+
+#
+# Parameters class and methods
+#
+from .parameters.parameter_values import ParameterValues
+from .parameters import geometric_parameters
+from .parameters import electrical_parameters
+from .parameters import thermal_parameters
+from .parameters import standard_parameters_lithium_ion, standard_parameters_lead_acid, standard_parameters_alkaline
+from .parameters.print_parameters import print_parameters, print_evaluated_parameters
+from .parameters import parameter_sets
+
 
 #
 # Mesh and Discretisation classes
@@ -237,16 +242,21 @@ from .spatial_methods.scikit_finite_element import ScikitFiniteElement
 #
 # Solver classes
 #
-from .solvers.solution import Solution
+from .solvers.solution import Solution, _BaseSolution
 from .solvers.base_solver import BaseSolver
-from .solvers.ode_solver import OdeSolver
-from .solvers.dae_solver import DaeSolver
 from .solvers.algebraic_solver import AlgebraicSolver
 from .solvers.casadi_solver import CasadiSolver
+from .solvers.casadi_algebraic_solver import CasadiAlgebraicSolver
 from .solvers.scikits_dae_solver import ScikitsDaeSolver
 from .solvers.scikits_ode_solver import ScikitsOdeSolver, have_scikits_odes
 from .solvers.scipy_solver import ScipySolver
 from .solvers.idaklu_solver import IDAKLUSolver, have_idaklu
+
+#
+# Experiments
+#
+from .experiments.experiment import Experiment
+from . import experiments
 
 #
 # other

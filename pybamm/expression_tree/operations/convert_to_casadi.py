@@ -11,6 +11,8 @@ class CasadiConverter(object):
     def __init__(self, casadi_symbols=None):
         self._casadi_symbols = casadi_symbols or {}
 
+        pybamm.citations.register("Andersson2019")
+
     def convert(self, symbol, t=None, y=None, u=None):
         """
         This function recurses down the tree, converting the PyBaMM expression tree to
@@ -45,7 +47,14 @@ class CasadiConverter(object):
     def _convert(self, symbol, t=None, y=None, u=None):
         """ See :meth:`CasadiConverter.convert()`. """
         if isinstance(
-            symbol, (pybamm.Scalar, pybamm.Array, pybamm.Time, pybamm.InputParameter)
+            symbol,
+            (
+                pybamm.Scalar,
+                pybamm.Array,
+                pybamm.Time,
+                pybamm.InputParameter,
+                pybamm.ExternalVariable,
+            ),
         ):
             return casadi.MX(symbol.evaluate(t, y, u))
 
