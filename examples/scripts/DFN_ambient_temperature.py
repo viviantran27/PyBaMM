@@ -1,5 +1,5 @@
 #
-# Example showing how to load and solve the DFN
+# Example showing how to solve the DFN with a varying ambient temperature
 #
 
 import pybamm
@@ -9,7 +9,9 @@ pybamm.set_logging_level("DEBUG")
 
 
 # load model
-options = {"thermal": "x-lumped"}
+options = {
+    "thermal": "lumped"
+}  # Should default to false "anode decomposition": False, "cathode decomposition": False}
 model = pybamm.lithium_ion.DFN(options)
 
 # create geometry

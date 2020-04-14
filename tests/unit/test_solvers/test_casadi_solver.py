@@ -186,8 +186,7 @@ class TestCasadiSolver(unittest.TestCase):
         step_sol_2 = solver.step(step_sol, model, dt, npts=5, inputs={"a": -1})
         np.testing.assert_array_equal(step_sol_2.t, np.linspace(0, 2 * dt, 9))
         np.testing.assert_array_equal(
-            step_sol_2["a"].entries,
-            np.array([0.1, 0.1, 0.1, 0.1, 0.1, -1, -1, -1, -1]),
+            step_sol_2["a"].entries, np.array([0.1, 0.1, 0.1, 0.1, 0.1, -1, -1, -1, -1])
         )
         np.testing.assert_allclose(
             step_sol_2.y[0],
@@ -256,6 +255,42 @@ class TestCasadiSolver(unittest.TestCase):
         np.testing.assert_array_equal(solution.t, t_eval[: len(solution.t)])
         np.testing.assert_allclose(solution.y[0], np.exp(-0.1 * solution.t), rtol=1e-06)
 
+    def test_model_solver_dae_inputs_in_initial_conditions(self):
+        # Create model
+        model = pybamm.BaseModel()
+        var1 = pybamm.Variable("var1")
+        var2 = pybamm.Variable("var2")
+        model.rhs = {var1: pybamm.InputParameter("rate") * var1}
+        model.algebraic = {var2: var1 - var2}
+        model.initial_conditions = {
+            var1: pybamm.InputParameter("ic 1"),
+            var2: pybamm.InputParameter("ic 2"),
+        }
+
+        # Solve
+        solver = pybamm.CasadiSolver(rtol=1e-8, atol=1e-8)
+        t_eval = np.linspace(0, 5, 100)
+        solution = solver.solve(
+            model, t_eval, inputs={"rate": -1, "ic 1": 0.1, "ic 2": 2}
+        )
+        np.testing.assert_array_almost_equal(
+            solution.y[0], 0.1 * np.exp(-solution.t), decimal=5
+        )
+        np.testing.assert_array_almost_equal(
+            solution.y[-1], 0.1 * np.exp(-solution.t), decimal=5
+        )
+
+        # Solve again with different initial conditions
+        solution = solver.solve(
+            model, t_eval, inputs={"rate": -0.1, "ic 1": 1, "ic 2": 3}
+        )
+        np.testing.assert_array_almost_equal(
+            solution.y[0], 1 * np.exp(-0.1 * solution.t), decimal=5
+        )
+        np.testing.assert_array_almost_equal(
+            solution.y[-1], 1 * np.exp(-0.1 * solution.t), decimal=5
+        )
+
     def test_model_solver_with_external(self):
         # Create model
         model = pybamm.BaseModel()
@@ -308,6 +343,22 @@ class TestCasadiSolver(unittest.TestCase):
         np.testing.assert_array_equal(solution.t, t_eval)
         np.testing.assert_allclose(solution.y[0], np.exp(0.1 * solution.t))
         np.testing.assert_allclose(solution.y[-1], 2 * np.exp(0.1 * solution.t))
+
+    def test_dae_solver_algebraic_model(self):
+        model = pybamm.BaseModel()
+        var = pybamm.Variable("var")
+        model.algebraic = {var: var + 1}
+        model.initial_conditions = {var: 0}
+
+        disc = pybamm.Discretisation()
+        disc.process_model(model)
+
+        solver = pybamm.CasadiSolver()
+        t_eval = np.linspace(0, 1)
+        with self.assertRaisesRegex(
+            pybamm.SolverError, "Cannot use CasadiSolver to solve algebraic model"
+        ):
+            solver.solve(model, t_eval)
 
 
 if __name__ == "__main__":

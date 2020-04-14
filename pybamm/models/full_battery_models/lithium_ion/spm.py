@@ -23,8 +23,8 @@ class SPM(BaseModel):
     References
     ----------
     .. [1] SG Marquis, V Sulzer, R Timms, CP Please and SJ Chapman. “An asymptotic
-           derivation of a single particle model with electrolyte”. In: arXiv preprint
-           arXiv:1905.12553 (2019).
+           derivation of a single particle model with electrolyte”. Journal of The
+           Electrochemical Society, 166(15):A3693–A3706, 2019
 
     **Extends:** :class:`pybamm.lithium_ion.BaseModel`
     """
@@ -44,6 +44,8 @@ class SPM(BaseModel):
         self.set_positive_electrode_submodel()
         self.set_thermal_submodel()
         self.set_current_collector_submodel()
+        self.set_anode_decomposition_submodel()
+        self.set_cathode_decomposition_submodel()
 
         if build:
             self.build_model()
@@ -56,7 +58,12 @@ class SPM(BaseModel):
 
     def set_convection_submodel(self):
 
-        self.submodels["convection"] = pybamm.convection.NoConvection(self.param)
+        self.submodels[
+            "through-cell convection"
+        ] = pybamm.convection.through_cell.NoConvection(self.param)
+        self.submodels[
+            "transverse convection"
+        ] = pybamm.convection.transverse.NoConvection(self.param)
 
     def set_interfacial_submodel(self):
 
@@ -79,17 +86,17 @@ class SPM(BaseModel):
     def set_particle_submodel(self):
 
         if self.options["particle"] == "Fickian diffusion":
-            self.submodels[
-                "negative particle"
-            ] = pybamm.particle.fickian.SingleParticle(self.param, "Negative")
-            self.submodels[
-                "positive particle"
-            ] = pybamm.particle.fickian.SingleParticle(self.param, "Positive")
-        elif self.options["particle"] == "fast diffusion":
-            self.submodels["negative particle"] = pybamm.particle.fast.SingleParticle(
+            self.submodels["negative particle"] = pybamm.particle.FickianSingleParticle(
                 self.param, "Negative"
             )
-            self.submodels["positive particle"] = pybamm.particle.fast.SingleParticle(
+            self.submodels["positive particle"] = pybamm.particle.FickianSingleParticle(
+                self.param, "Positive"
+            )
+        elif self.options["particle"] == "fast diffusion":
+            self.submodels["negative particle"] = pybamm.particle.FastSingleParticle(
+                self.param, "Negative"
+            )
+            self.submodels["positive particle"] = pybamm.particle.FastSingleParticle(
                 self.param, "Positive"
             )
 
@@ -107,13 +114,12 @@ class SPM(BaseModel):
 
     def set_electrolyte_submodel(self):
 
-        electrolyte = pybamm.electrolyte.stefan_maxwell
-        surf_form = electrolyte.conductivity.surface_potential_form
+        surf_form = pybamm.electrolyte_conductivity.surface_potential_form
 
         if self.options["surface form"] is False:
             self.submodels[
                 "leading-order electrolyte conductivity"
-            ] = electrolyte.conductivity.LeadingOrder(self.param)
+            ] = pybamm.electrolyte_conductivity.LeadingOrder(self.param)
 
         elif self.options["surface form"] == "differential":
             for domain in ["Negative", "Separator", "Positive"]:
@@ -130,7 +136,21 @@ class SPM(BaseModel):
                 ] = surf_form.LeadingOrderAlgebraic(self.param, domain, self.reactions)
         self.submodels[
             "electrolyte diffusion"
-        ] = electrolyte.diffusion.ConstantConcentration(self.param)
+        ] = pybamm.electrolyte_diffusion.ConstantConcentration(self.param)
+
+    def set_anode_decomposition_submodel(self):
+
+        if self.options["anode decomposition"] is True:
+            self.submodels["anode decomposition"] = pybamm.anode_decomposition.AnodeDecomposition(self.param)
+        else:
+            self.submodels["anode decomposition"] = pybamm.anode_decomposition.NoAnodeDecomposition(self.param)
+
+    def set_cathode_decomposition_submodel(self):
+
+        if self.options["cathode decomposition"] is True:
+            self.submodels["cathode decomposition"] = pybamm.cathode_decomposition.CathodeDecomposition(self.param)
+        else:
+            self.submodels["cathode decomposition"] = pybamm.cathode_decomposition.NoCathodeDecomposition(self.param)
 
     @property
     def default_geometry(self):
