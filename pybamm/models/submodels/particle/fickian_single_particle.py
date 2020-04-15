@@ -96,7 +96,7 @@ class FickianSingleParticle(BaseParticle):
         if self.domain == "Negative":
             rbc = (
                 -self.param.C_n
-                * (j_xav + r_an)
+                * (j_xav - r_an)
                 / self.param.a_n
                 / self.param.D_n(c_s_surf_xav, T_k_xav)
             )
@@ -104,7 +104,7 @@ class FickianSingleParticle(BaseParticle):
         elif self.domain == "Positive":
             rbc = (
                 -self.param.C_p
-                * (j_xav + r_ca)
+                * (j_xav - r_ca)
                 / self.param.a_p
                 / self.param.gamma_p
                 / self.param.D_p(c_s_surf_xav, T_k_xav)

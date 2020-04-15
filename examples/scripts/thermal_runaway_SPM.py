@@ -11,7 +11,7 @@ pybamm.set_logging_level("INFO")
 options = {
     "thermal": "x-lumped",
     "anode decomposition": True,
-    # "cathode decomposition": True,
+    "cathode decomposition": True,
 }
 models = [
     pybamm.lithium_ion.SPM(options, name="with decomposition"),
@@ -32,7 +32,7 @@ for model in models:
     param.update(
         {
             "Ambient temperature [K]": 200 + 273,  # ambient_temperature,
-            # "Frequency factor for anode decomposition [s-1]": 5e9,
+            "Frequency factor for anode decomposition [s-1]": 2.5e13,
         },
         check_already_exists=False,
     )
@@ -47,7 +47,7 @@ for model in models:
     disc.process_model(model)
 
     # solve model for 1 hour
-    t_eval = np.linspace(0, 3600, 100)
+    t_eval = np.linspace(0, 1800, 100)
     solution = model.default_solver.solve(model, t_eval)
     solutions.append(solution)
 
@@ -70,6 +70,7 @@ plot = pybamm.QuickPlot(
         "Relative SEI thickness",
         "Degree of conversion of cathode decomposition",
         "Anode decomposition heating",
+        "Cathode decomposition heating",
     ],
     time_unit="seconds",
     spatial_unit="um",

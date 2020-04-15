@@ -38,7 +38,7 @@ Negative reaction rate activation energy [J.mol-1],35000,Chen 2020,
 Negative solid diffusion activation energy [J.mol-1],42770,default,
 ,,,
 # Anode decomposition,,,
-Frequency factor for anode decomposition [s-1],2.5E-13, Cai 2019,
+Frequency factor for anode decomposition [s-1],2.5E13, Cai 2019,
 Activation energy for anode decomposition [J],2.24E-19, Cai 2019,
 Enthalpy of anode decomposition [J.kg-1],1714000, Cai 2019,
 

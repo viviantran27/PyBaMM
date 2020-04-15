@@ -10,7 +10,7 @@ pybamm.set_logging_level("DEBUG")
 
 # load model
 options = {
-    "thermal": "lumped"
+    "thermal": "x-lumped", "anode decomposition": False, "cathode decomposition": False
 }  # Should default to false "anode decomposition": False, "cathode decomposition": False}
 model = pybamm.lithium_ion.DFN(options)
 
