@@ -53,6 +53,7 @@ class BaseHigherOrderModel(BaseModel):
         self.set_tortuosity_submodels()
         self.set_thermal_submodel()
         self.set_current_collector_submodel()
+        self.set_side_reaction_submodel()
 
         if build:
             self.build_model()
@@ -177,6 +178,13 @@ class BaseHigherOrderModel(BaseModel):
         interfacial current densities
         """
         self.submodels["full porosity"] = pybamm.porosity.Full(self.param)
+
+    def set_side_reaction_submodel(self):
+        """
+        Prevent thermal modeling error by setting no decomposition
+        """
+        self.submodels["anode decomposition"] = pybamm.decomposition.NoAnodeDecomposition(self.param)
+        self.submodels["cathode decomposition"] = pybamm.decomposition.NoCathodeDecomposition(self.param)
 
 
 class FOQS(BaseHigherOrderModel):

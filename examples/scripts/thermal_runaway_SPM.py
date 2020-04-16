@@ -10,17 +10,12 @@ pybamm.set_logging_level("INFO")
 # load model
 options = {
     "thermal": "x-lumped",
-    "anode decomposition": True,
-    "cathode decomposition": True,
+    "side reactions": "decomposition",
 }
 models = [
     pybamm.lithium_ion.SPM(options, name="with decomposition"),
     pybamm.lithium_ion.SPM({"thermal": "x-lumped"}, name="without decomposition"),
 ]
-# add ambient temperature
-def ambient_temperature(t):
-    return 350 + t * 100 / 3600
-
 
 solutions = []
 for model in models:
@@ -30,10 +25,7 @@ for model in models:
     # load parameter values and process model and geometry
     param = pybamm.ParameterValues(chemistry=pybamm.parameter_sets.Cai2019)
     param.update(
-        {
-            "Ambient temperature [K]": 200 + 273,  # ambient_temperature,
-            "Frequency factor for anode decomposition [s-1]": 2.5e13,
-        },
+        {"Ambient temperature [K]": 200 + 273},
         check_already_exists=False,
     )
     param.process_model(model)
