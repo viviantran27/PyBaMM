@@ -1,2 +1,2 @@
-from .base_anode_decomposition import AnodeDecomposition
+from .anode_decomposition import AnodeDecomposition
 from .no_anode_decomposition import NoAnodeDecomposition

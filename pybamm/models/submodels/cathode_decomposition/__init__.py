@@ -1,2 +1,2 @@
-from .base_cathode_decomposition import CathodeDecomposition
+from .cathode_decomposition import CathodeDecomposition
 from .no_cathode_decomposition import NoCathodeDecomposition

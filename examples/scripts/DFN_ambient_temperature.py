@@ -9,9 +9,7 @@ pybamm.set_logging_level("DEBUG")
 
 
 # load model
-options = {
-    "thermal": "x-lumped", "anode decomposition": False, "cathode decomposition": False
-}  # Should default to false "anode decomposition": False, "cathode decomposition": False}
+options = {"thermal": "x-lumped"}  
 model = pybamm.lithium_ion.DFN(options)
 
 # create geometry
@@ -21,7 +19,7 @@ geometry = model.default_geometry
 
 
 def ambient_temperature(t):
-    return 300 + t * 100 / 3600
+    return 300 + t * 10 / 3600
 
 
 param = model.default_parameter_values
