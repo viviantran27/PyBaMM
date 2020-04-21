@@ -1,7 +1,8 @@
 #
-# Example showing how to load and solve the SPMe
+# Example of SPM with decomposition reactions at high temperatures
 #
-
+# NOTE: For solver integration error, reduce the t_eval endtime
+# .
 import pybamm
 import numpy as np
 
@@ -39,7 +40,7 @@ for model in models:
     disc.process_model(model)
 
     # solve model for 1 hour
-    t_eval = np.linspace(0, 1800, 100)
+    t_eval = np.linspace(0, 120, 100)
     solution = model.default_solver.solve(model, t_eval)
     solutions.append(solution)
 
@@ -47,9 +48,11 @@ for model in models:
 plot = pybamm.QuickPlot(
     solutions,
     [
-        "Negative particle surface concentration [mol.m-3]",
+        "X-averaged negative particle concentration [mol.m-3]",
+        "X-averaged positive particle concentration [mol.m-3]",
+        # "Negative particle surface concentration [mol.m-3]",
         "Electrolyte concentration [mol.m-3]",
-        "Positive particle surface concentration [mol.m-3]",
+        # "Positive particle surface concentration [mol.m-3]",
         "Current [A]",
         "Negative electrode potential [V]",
         "Electrolyte potential [V]",
@@ -61,8 +64,9 @@ plot = pybamm.QuickPlot(
         "Ambient temperature [K]",
         "Relative SEI thickness",
         "Degree of conversion of cathode decomposition",
-        "Anode decomposition heating",
-        "Cathode decomposition heating",
+        "Anode decomposition heating [W.m-3]",
+        "Cathode decomposition heating [W.m-3]",
+        # "X-averaged total heating [W.m-3]",
     ],
     time_unit="seconds",
     spatial_unit="um",

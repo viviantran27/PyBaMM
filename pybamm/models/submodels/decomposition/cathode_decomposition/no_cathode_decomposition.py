@@ -27,5 +27,7 @@ class NoCathodeDecomposition(pybamm.BaseSubModel):
             "Cathode decomposition reaction rate [s-1]": pybamm.Scalar(0),
             "Cathode decomposition reaction rate": pybamm.Scalar(0),
             "Cathode decomposition heating": pybamm.Scalar(0),
+            "Cathode decomposition heating [W.m-3]": pybamm.Scalar(0),
+
         }
         return variables
