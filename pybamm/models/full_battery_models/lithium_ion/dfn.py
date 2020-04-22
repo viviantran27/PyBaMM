@@ -128,6 +128,7 @@ class DFN(BaseModel):
     def set_decomposition_submodel(self):
         self.submodels["anode decomposition"] = pybamm.decomposition.NoAnodeDecomposition(self.param)
         self.submodels["cathode decomposition"] = pybamm.decomposition.NoCathodeDecomposition(self.param)
+        self.submodels["SEI decomposition"] = pybamm.decomposition.NoSeiDecomposition(self.param)
 
 
     @property

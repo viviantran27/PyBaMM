@@ -158,8 +158,8 @@ class BaseThermal(pybamm.BaseSubModel):
         # m_sei = param.rho_sei * (param.L_sei * param.L_y * param.L_z)
         Q_an = variables["Anode decomposition heating"]
         Q_ca = variables["Cathode decomposition heating"]
-        # Q_sei = -m_sei * param.h_sei * pybamm.Scalar(0)
-        Q_exo = Q_an + Q_ca  # + Q_sei
+        Q_sei = variables["SEI decomposition heating"]
+        Q_exo = Q_an + Q_ca + Q_sei
 
         # Total heating
         Q = Q_ohm + Q_rxn + Q_rev + Q_exo

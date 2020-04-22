@@ -121,6 +121,7 @@ class Full(BaseModel):
         
         self.submodels["anode decomposition"] = pybamm.decomposition.NoAnodeDecomposition(self.param)
         self.submodels["cathode decomposition"] = pybamm.decomposition.NoCathodeDecomposition(self.param)
+        self.submodels["SEI decomposition"] = pybamm.decomposition.NoSeiDecomposition(self.param)
 
         if "oxygen" in self.options["side reactions"]:
             self.submodels["oxygen diffusion"] = pybamm.oxygen_diffusion.Full(

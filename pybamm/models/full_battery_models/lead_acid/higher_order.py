@@ -185,7 +185,7 @@ class BaseHigherOrderModel(BaseModel):
         """
         self.submodels["anode decomposition"] = pybamm.decomposition.NoAnodeDecomposition(self.param)
         self.submodels["cathode decomposition"] = pybamm.decomposition.NoCathodeDecomposition(self.param)
-
+        self.submodels["SEI decomposition"] = pybamm.decomposition.NoSeiDecomposition(self.param)
 
 class FOQS(BaseHigherOrderModel):
     """First-order quasi-static model for lead-acid, from [1]_.

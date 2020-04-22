@@ -202,6 +202,7 @@ class LOQS(BaseModel):
     def set_side_reaction_submodels(self):
         self.submodels["anode decomposition"] = pybamm.decomposition.NoAnodeDecomposition(self.param)
         self.submodels["cathode decomposition"] = pybamm.decomposition.NoCathodeDecomposition(self.param)
+        self.submodels["SEI decomposition"] = pybamm.decomposition.NoSeiDecomposition(self.param)
         if "oxygen" in self.options["side reactions"]:
             self.submodels[
                 "leading-order oxygen diffusion"

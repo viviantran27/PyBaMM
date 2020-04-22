@@ -22,9 +22,9 @@ class SeiDecomposition(pybamm.BaseSubModel):
         super().__init__(param)
 
     def get_fundamental_variables(self):
-        z = pybamm.Variable("Relative SEI thickness", domain="current collector")
+        x_sei = pybamm.Variable("Fraction of Li in SEI", domain="current collector")
 
-        variables = {"Relative SEI thickness": z}
+        variables = {"Fraction of Li in SEI": x_sei}
         return variables
 
     def get_coupled_variables(self, variables):
@@ -32,35 +32,31 @@ class SeiDecomposition(pybamm.BaseSubModel):
         k_b = pybamm.Scalar(constants.k)
         T_av = variables["X-averaged negative electrode temperature"]
         T_av_dimensional = param.Delta_T * T_av + param.T_ref
-        c_s_n_surf = variables["X-averaged negative particle surface concentration"]
-        z = variables["Relative SEI thickness"]
-        x_an = c_s_n_surf
+        x_sei = variables["Fraction of Li in SEI"]
 
-        r_an_dimensional = (
-            -param.A_an
-            * x_an
-            * pybamm.exp(-param.E_an / (k_b * T_av_dimensional))
-            * pybamm.exp(-z / param.z_0)
+        r_sei_dimensional = (
+            -param.A_sei
+            * x_sei
+            * pybamm.exp(-param.E_sei / (k_b * T_av_dimensional))
         )  # units 1/s
 
         Q_scale = param.i_typ * param.potential_scale / param.L_x
-        Q_exo_an = -param.rho_n * param.h_an * r_an_dimensional / Q_scale
+        Q_exo_sei = -param.rho_n * param.h_sei * r_sei_dimensional / Q_scale
 
         variables = {
-            "Anode decomposition reaction rate [s-1]": r_an_dimensional,
-            "Anode decomposition reaction rate": r_an_dimensional * param.timescale,
-            "Anode decomposition heating": Q_exo_an,
-            "Anode decomposition heating [W.m-3]": Q_exo_an * Q_scale,
+            "SEI decomposition reaction rate [s-1]": r_sei_dimensional,
+            "SEI decomposition reaction rate": r_sei_dimensional * param.timescale,
+            "SEI decomposition heating": Q_exo_sei,
+            "SEI decomposition heating [W.m-3]": Q_exo_sei * Q_scale,
         }
 
         return variables
 
     def set_rhs(self, variables):
-        decomp_rate = variables["Anode decomposition reaction rate"]
-        z = variables["Relative SEI thickness"]
-
-        self.rhs = {z: -decomp_rate}
+        decomp_rate = variables["SEI decomposition reaction rate"]
+        x_sei = variables["Fraction of Li in SEI"]
+        self.rhs = {x_sei: decomp_rate}
 
     def set_initial_conditions(self, variables):
-        z = variables["Relative SEI thickness"]
-        self.initial_conditions = {z: self.param.z_0}
+        x_sei = variables["Fraction of Li in SEI"]
+        self.initial_conditions = {x_sei: self.param.x_sei_0}

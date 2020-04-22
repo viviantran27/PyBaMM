@@ -24,6 +24,7 @@ class NoSeiDecomposition(pybamm.BaseSubModel):
     def get_fundamental_variables(self):
 
         variables = {
+            "Fraction of Li in SEI": pybamm.Scalar(0),
             "SEI decomposition reaction rate [s-1]": pybamm.Scalar(0),
             "SEI decomposition reaction rate": pybamm.Scalar(0),
             "SEI decomposition heating": pybamm.Scalar(0),
