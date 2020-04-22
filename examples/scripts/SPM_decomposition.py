@@ -14,7 +14,7 @@ class ExternalCircuitFunction:
     def __call__(self, variables):
         I = variables["Current [A]"]
         V = variables["Terminal voltage [V]"]
-        return V + I - pybamm.FunctionParameter("Function", {"Time [s]": pybamm.t})
+        return V / I - pybamm.FunctionParameter("Function", {"Time [s]": pybamm.t})
 
 options = {
     "thermal": "x-lumped",
@@ -22,12 +22,14 @@ options = {
     "operating mode": ExternalCircuitFunction()
 }
 models = [
-    # pybamm.lithium_ion.SPM(options, name="with decomposition"),
+    pybamm.lithium_ion.SPM(options, name="with decomposition"),
     pybamm.lithium_ion.SPM({"thermal": "x-lumped","operating mode": ExternalCircuitFunction()}, name="without decomposition"),
 ]
 
 solutions = []
 for model in models:
+    # turn off all events
+    model.events = []
     # create geometry
     geometry = model.default_geometry
 
@@ -35,9 +37,10 @@ for model in models:
     param = pybamm.ParameterValues(chemistry=pybamm.parameter_sets.Cai2019)
     param.update(
         {
-        "Ambient temperature [K]": 25 + 273,
-        "Initial temperature [K]": 25 + 273,
-        "Function": 0.5},
+        "Ambient temperature [K]": 25 + 273, #180 + 273,
+        "Initial temperature [K]": 25 + 273, #180 + 273,
+        # "Function": 0.008},
+        "Function": 0.01},
         check_already_exists=False,
     )
     param.process_model(model)
@@ -51,7 +54,7 @@ for model in models:
     disc.process_model(model)
 
     # solve model for 1 hour
-    t_eval = np.linspace(0, 2, 100)
+    t_eval = np.linspace(0, 14, 100)
     solution = model.default_solver.solve(model, t_eval)
     solutions.append(solution)
 

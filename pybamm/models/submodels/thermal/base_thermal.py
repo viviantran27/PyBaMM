@@ -155,7 +155,6 @@ class BaseThermal(pybamm.BaseSubModel):
         )
 
         # Side reaction heating
-        # m_sei = param.rho_sei * (param.L_sei * param.L_y * param.L_z)
         Q_an = variables["Anode decomposition heating"]
         Q_ca = variables["Cathode decomposition heating"]
         Q_sei = variables["SEI decomposition heating"]
@@ -168,12 +167,14 @@ class BaseThermal(pybamm.BaseSubModel):
         Q_ohm_av = self._x_average(Q_ohm, Q_ohm_s_cn, Q_ohm_s_cp)
         Q_rxn_av = self._x_average(Q_rxn, 0, 0)
         Q_rev_av = self._x_average(Q_rev, 0, 0)
+        Q_exo_av = self._x_average(Q_exo, 0, 0)
         Q_av = self._x_average(Q, Q_ohm_s_cn, Q_ohm_s_cp)
 
         # Compute volume-averaged heat source terms
         Q_ohm_vol_av = self._yz_average(Q_ohm_av)
         Q_rxn_vol_av = self._yz_average(Q_rxn_av)
         Q_rev_vol_av = self._yz_average(Q_rev_av)
+        Q_exo_vol_av = self._yz_average(Q_exo_av)
         Q_vol_av = self._yz_average(Q_av)
 
         # Dimensional scaling for heat source terms
@@ -201,6 +202,10 @@ class BaseThermal(pybamm.BaseSubModel):
                 "X-averaged reversible heating [W.m-3]": Q_rev_av * Q_scale,
                 "Volume-averaged reversible heating": Q_rev_vol_av,
                 "Volume-averaged reversible heating [W.m-3]": Q_rev_vol_av * Q_scale,
+                "X-averaged decomposition heating": Q_exo_av,
+                "X-averaged decomposition heating [W.m-3]": Q_exo_av * Q_scale,
+                "Volume-averaged decomposition heating": Q_exo_vol_av,
+                "Volume-averaged decomposition heating [W.m-3]": Q_exo_vol_av * Q_scale,
                 "Total heating": Q,
                 "Total heating [W.m-3]": Q * Q_scale,
                 "X-averaged total heating": Q_av,
