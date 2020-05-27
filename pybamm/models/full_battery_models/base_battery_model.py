@@ -182,12 +182,9 @@ class BaseBatteryModel(pybamm.BaseModel):
             "particle": "Fickian diffusion",
             "thermal": "isothermal",
             "external submodels": [],
-<<<<<<< HEAD
             "anode decomposition": False,
             "cathode decomposition": False,
-=======
             "sei": None,
->>>>>>> develop
         }
         # Change the default for SEI film resistance based on which sei option is
         # provided

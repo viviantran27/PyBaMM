@@ -44,7 +44,7 @@ options3 = {
 models = [
     pybamm.lithium_ion.SPM(options1, name="with decomposition"),
     pybamm.lithium_ion.SPM(options2, name="without decomposition"),
-    # pybamm.lithium_ion.SPM(options3, name="with decomposition thermal continued"),
+    pybamm.lithium_ion.SPM(options3, name="with decomposition thermal continued"),
 ]
 
 solutions = []
