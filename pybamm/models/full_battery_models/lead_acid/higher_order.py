@@ -36,7 +36,6 @@ class BaseHigherOrderModel(BaseModel):
 
         self.set_external_circuit_submodel()
         self.set_leading_order_model()
-        self.set_reactions()
         # Electrolyte submodel to get first-order concentrations
         self.set_electrolyte_diffusion_submodel()
         self.set_other_species_diffusion_submodels()
@@ -53,7 +52,11 @@ class BaseHigherOrderModel(BaseModel):
         self.set_tortuosity_submodels()
         self.set_thermal_submodel()
         self.set_current_collector_submodel()
+<<<<<<< HEAD
         self.set_side_reaction_submodel()
+=======
+        self.set_sei_submodel()
+>>>>>>> develop
 
         if build:
             self.build_model()
@@ -98,6 +101,24 @@ class BaseHigherOrderModel(BaseModel):
         ] = leading_order_model.rhs[
             leading_order_model.variables["X-averaged electrolyte concentration"]
         ]
+
+        # Reset sums
+        self.variables.update(
+            {
+                "Sum of electrolyte reaction source terms": 0,
+                "Sum of negative electrode electrolyte reaction source terms": 0,
+                "Sum of positive electrode electrolyte reaction source terms": 0,
+                "Sum of x-averaged negative electrode "
+                "electrolyte reaction source terms": 0,
+                "Sum of x-averaged positive electrode "
+                "electrolyte reaction source terms": 0,
+                "Sum of interfacial current densities": 0,
+                "Sum of negative electrode interfacial current densities": 0,
+                "Sum of positive electrode interfacial current densities": 0,
+                "Sum of x-averaged negative electrode interfacial current densities": 0,
+                "Sum of x-averaged positive electrode interfacial current densities": 0,
+            }
+        )
 
     def set_average_interfacial_submodel(self):
         self.submodels[
@@ -212,12 +233,12 @@ class FOQS(BaseHigherOrderModel):
     def set_electrolyte_diffusion_submodel(self):
         self.submodels[
             "electrolyte diffusion"
-        ] = pybamm.electrolyte_diffusion.FirstOrder(self.param, self.reactions)
+        ] = pybamm.electrolyte_diffusion.FirstOrder(self.param)
 
     def set_other_species_diffusion_submodels(self):
         if "oxygen" in self.options["side reactions"]:
             self.submodels["oxygen diffusion"] = pybamm.oxygen_diffusion.FirstOrder(
-                self.param, self.reactions
+                self.param
             )
 
     def set_full_porosity_submodel(self):
@@ -242,12 +263,12 @@ class Composite(BaseHigherOrderModel):
     def set_electrolyte_diffusion_submodel(self):
         self.submodels[
             "electrolyte diffusion"
-        ] = pybamm.electrolyte_diffusion.Composite(self.param, self.reactions)
+        ] = pybamm.electrolyte_diffusion.Composite(self.param)
 
     def set_other_species_diffusion_submodels(self):
         if "oxygen" in self.options["side reactions"]:
             self.submodels["oxygen diffusion"] = pybamm.oxygen_diffusion.Composite(
-                self.param, self.reactions
+                self.param
             )
 
     def set_full_porosity_submodel(self):
@@ -286,14 +307,12 @@ class CompositeExtended(Composite):
     def set_electrolyte_diffusion_submodel(self):
         self.submodels[
             "electrolyte diffusion"
-        ] = pybamm.electrolyte_diffusion.Composite(
-            self.param, self.reactions, extended="distributed"
-        )
+        ] = pybamm.electrolyte_diffusion.Composite(self.param, extended="distributed")
 
     def set_other_species_diffusion_submodels(self):
         if "oxygen" in self.options["side reactions"]:
             self.submodels["oxygen diffusion"] = pybamm.oxygen_diffusion.Composite(
-                self.param, self.reactions, extended="distributed"
+                self.param, extended="distributed"
             )
 
 
@@ -310,12 +329,10 @@ class CompositeAverageCorrection(Composite):
     def set_electrolyte_diffusion_submodel(self):
         self.submodels[
             "electrolyte diffusion"
-        ] = pybamm.electrolyte_diffusion.Composite(
-            self.param, self.reactions, extended="average"
-        )
+        ] = pybamm.electrolyte_diffusion.Composite(self.param, extended="average")
 
     def set_other_species_diffusion_submodels(self):
         if "oxygen" in self.options["side reactions"]:
             self.submodels["oxygen diffusion"] = pybamm.oxygen_diffusion.Composite(
-                self.param, self.reactions, extended="average"
+                self.param, extended="average"
             )

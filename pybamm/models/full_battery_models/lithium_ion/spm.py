@@ -32,19 +32,23 @@ class SPM(BaseModel):
     def __init__(self, options=None, name="Single Particle Model", build=True):
         super().__init__(options, name)
 
-        self.set_reactions()
         self.set_external_circuit_submodel()
         self.set_porosity_submodel()
         self.set_tortuosity_submodels()
         self.set_convection_submodel()
         self.set_interfacial_submodel()
+        self.set_other_reaction_submodels_to_zero()
         self.set_particle_submodel()
         self.set_negative_electrode_submodel()
         self.set_electrolyte_submodel()
         self.set_positive_electrode_submodel()
         self.set_thermal_submodel()
         self.set_current_collector_submodel()
+<<<<<<< HEAD
         self.set_decomposition_submodel()
+=======
+        self.set_sei_submodel()
+>>>>>>> develop
 
         if build:
             self.build_model()
@@ -68,18 +72,28 @@ class SPM(BaseModel):
 
         if self.options["surface form"] is False:
             self.submodels["negative interface"] = pybamm.interface.InverseButlerVolmer(
-                self.param, "Negative", "lithium-ion main"
+                self.param, "Negative", "lithium-ion main", self.options
             )
             self.submodels["positive interface"] = pybamm.interface.InverseButlerVolmer(
+                self.param, "Positive", "lithium-ion main", self.options
+            )
+            self.submodels[
+                "negative interface current"
+            ] = pybamm.interface.CurrentForInverseButlerVolmer(
+                self.param, "Negative", "lithium-ion main"
+            )
+            self.submodels[
+                "positive interface current"
+            ] = pybamm.interface.CurrentForInverseButlerVolmer(
                 self.param, "Positive", "lithium-ion main"
             )
         else:
             self.submodels["negative interface"] = pybamm.interface.ButlerVolmer(
-                self.param, "Negative", "lithium-ion main"
+                self.param, "Negative", "lithium-ion main", self.options
             )
 
             self.submodels["positive interface"] = pybamm.interface.ButlerVolmer(
-                self.param, "Positive", "lithium-ion main"
+                self.param, "Positive", "lithium-ion main", self.options
             )
 
     def set_particle_submodel(self):
@@ -124,15 +138,13 @@ class SPM(BaseModel):
             for domain in ["Negative", "Separator", "Positive"]:
                 self.submodels[
                     "leading-order " + domain.lower() + " electrolyte conductivity"
-                ] = surf_form.LeadingOrderDifferential(
-                    self.param, domain, self.reactions
-                )
+                ] = surf_form.LeadingOrderDifferential(self.param, domain)
 
         elif self.options["surface form"] == "algebraic":
             for domain in ["Negative", "Separator", "Positive"]:
                 self.submodels[
                     "leading-order " + domain.lower() + " electrolyte conductivity"
-                ] = surf_form.LeadingOrderAlgebraic(self.param, domain, self.reactions)
+                ] = surf_form.LeadingOrderAlgebraic(self.param, domain)
         self.submodels[
             "electrolyte diffusion"
         ] = pybamm.electrolyte_diffusion.ConstantConcentration(self.param)

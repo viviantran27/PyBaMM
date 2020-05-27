@@ -117,6 +117,12 @@ class Discretisation(object):
             `model.variables = {}`)
 
         """
+        if model.is_discretised is True:
+            raise pybamm.ModelError(
+                "Cannot re-discretise a model. "
+                "Set 'inplace=False' when first discretising a model to then be able "
+                "to discretise it more times (e.g. for convergence studies)."
+            )
 
         pybamm.logger.info("Start discretising {}".format(model.name))
 
@@ -830,7 +836,13 @@ class Discretisation(object):
                 return child_spatial_method.boundary_mass_matrix(child, self.bcs)
 
             elif isinstance(symbol, pybamm.IndefiniteIntegral):
-                return child_spatial_method.indefinite_integral(child, disc_child)
+                return child_spatial_method.indefinite_integral(
+                    child, disc_child, "forward"
+                )
+            elif isinstance(symbol, pybamm.BackwardIndefiniteIntegral):
+                return child_spatial_method.indefinite_integral(
+                    child, disc_child, "backward"
+                )
 
             elif isinstance(symbol, pybamm.Integral):
                 out = child_spatial_method.integral(child, disc_child)
