@@ -32,6 +32,7 @@ class CathodeDecomposition(pybamm.BaseSubModel):
         T_av = variables["X-averaged positive electrode temperature"]
         T_av_dimensional = param.Delta_T * T_av + param.T_ref
         alpha = variables["Degree of conversion of cathode decomposition"]
+        rho_p_dim = pybamm.Parameter("Positive electrode density [kg.m-3]")
 
         r_ca_dimensional = (
             alpha
@@ -41,7 +42,7 @@ class CathodeDecomposition(pybamm.BaseSubModel):
         ) # units 1/s
 
         Q_scale = param.i_typ * param.potential_scale / param.L_x
-        Q_exo_ca = param.rho_p * param.h_ca * r_ca_dimensional / Q_scale
+        Q_exo_ca = rho_p_dim * param.h_ca * r_ca_dimensional / Q_scale
 
         variables = {
             "Cathode decomposition reaction rate [s-1]": r_ca_dimensional,

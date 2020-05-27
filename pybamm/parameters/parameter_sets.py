@@ -68,7 +68,7 @@ Mohtat2020 = {
 # same as Chen2020 but includes additional Cai2019 thermal runaway parameters
 Cai2019 = {
     "chemistry": "lithium-ion",
-    "cell": "LGM50_Cai2019",
+    "cell": "LGM50_Chen2020",
     "anode": "graphite_Cai2019",
     "separator": "separator_Chen2020",
     "cathode": "nmc_Cai2019",

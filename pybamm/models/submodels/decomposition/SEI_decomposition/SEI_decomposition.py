@@ -33,6 +33,7 @@ class SeiDecomposition(pybamm.BaseSubModel):
         T_av = variables["X-averaged negative electrode temperature"]
         T_av_dimensional = param.Delta_T * T_av + param.T_ref
         x_sei = variables["Fraction of Li in SEI"]
+        rho_n_dim = pybamm.Parameter("Negative electrode density [kg.m-3]")
 
         r_sei_dimensional = (
             -param.A_sei
@@ -41,7 +42,7 @@ class SeiDecomposition(pybamm.BaseSubModel):
         )  # units 1/s
 
         Q_scale = param.i_typ * param.potential_scale / param.L_x
-        Q_exo_sei = -param.rho_n * param.h_sei * r_sei_dimensional / Q_scale
+        Q_exo_sei = -rho_n_dim * param.h_sei * r_sei_dimensional / Q_scale
 
         variables = {
             "SEI decomposition reaction rate [s-1]": r_sei_dimensional,
