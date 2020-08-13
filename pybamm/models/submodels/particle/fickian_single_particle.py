@@ -99,7 +99,7 @@ class FickianSingleParticle(BaseParticle):
                 * (j_xav + r_an)
                 / self.param.a_n
                 / self.param.D_n(c_s_surf_xav, T_k_xav)
-            ) * (c_s_surf_xav > 0.01)
+            )
 
         elif self.domain == "Positive":
             rbc = (
@@ -108,7 +108,7 @@ class FickianSingleParticle(BaseParticle):
                 / self.param.a_p
                 / self.param.gamma_p
                 / self.param.D_p(c_s_surf_xav, T_k_xav)
-            ) * (c_s_surf_xav > 0.01)
+            )
 
         self.boundary_conditions = {
             c_s_xav: {"left": (pybamm.Scalar(0), "Neumann"), "right": (rbc, "Neumann")}

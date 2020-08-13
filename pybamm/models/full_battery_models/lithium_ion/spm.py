@@ -44,11 +44,8 @@ class SPM(BaseModel):
         self.set_positive_electrode_submodel()
         self.set_thermal_submodel()
         self.set_current_collector_submodel()
-<<<<<<< HEAD
         self.set_decomposition_submodel()
-=======
         self.set_sei_submodel()
->>>>>>> develop
 
         if build:
             self.build_model()

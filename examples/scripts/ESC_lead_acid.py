@@ -1,5 +1,5 @@
 #
-# Incorporates thermal the model with the lead-acid model 
+# Compares the full and lumped thermal models for a single layer Li-ion cell
 #
 
 import pybamm
@@ -8,14 +8,31 @@ import numpy as np
 # load model
 pybamm.set_logging_level("INFO")
 
-options = {"thermal": "x-full"}
+class ExternalCircuitResistanceFunction:
+
+    def __call__(self, variables):
+        I = variables["Current [A]"]
+        V = variables["Terminal voltage [V]"]
+        return V / I - pybamm.FunctionParameter("Resistance [ohm]", {"Time [s]": pybamm.t})
+
+options = {
+    "thermal": "x-full",
+    "operating mode": ExternalCircuitResistanceFunction(), 
+}
 full_thermal_model = pybamm.lead_acid.Full(options)
 
 models = [full_thermal_model]
 
 # load parameter values and process models and geometry
 param = models[0].default_parameter_values
-param.update({"Heat transfer coefficient [W.m-2.K-1]": 1})
+param.update({
+    # "Ambient temperature [K]": 390, 
+    # "Initial temperature [K]": 390,
+    "Edge heat transfer coefficient [W.m-2.K-1]": 10,
+    "Resistance [ohm]": 0.1,
+    },
+    check_already_exists=False
+)
 
 for model in models:
     param.process_model(model)
@@ -45,7 +62,8 @@ for i, model in enumerate(models):
 output_variables = [
     "Terminal voltage [V]",
     "X-averaged cell temperature [K]",
-    "Cell temperature [K]",
+    "Electrolyte concentration [Molar]",
+    "Current [A]",
 ]
 labels = ["Full thermal model"]
 plot = pybamm.QuickPlot(solutions, output_variables, labels)

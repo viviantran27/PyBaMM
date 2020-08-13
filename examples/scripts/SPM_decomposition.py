@@ -24,6 +24,7 @@ def pulse_test(pulse_time, rest_time, pulse_current):
         return pulse_signal * pulse_current
     return current
 
+# operating_mode = ExternalCircuitResistanceFunction() 
 operating_mode = ExternalCircuitResistanceFunction() 
 
 options = {
@@ -50,13 +51,14 @@ for model in models:
         {
         "Ambient temperature [K]": 390, 
         "Initial temperature [K]": 390, 
-        "Resistance [ohm]": 1,
+        "Resistance [ohm]": 10,
+        "Edge heat transfer coefficient [W.m-2.K-1]": 30,
         # "Current function [A]": pulse_test(1*60, 5*60, 10),
         # "Positive electrode diffusivity [m2.s-1]": 3,
         # "Negative electrode diffusivity [m2.s-1]": 3,
-        "Heat transfer coefficient [W.m-2.K-1]": 0.1,
+        # "Heat transfer coefficient [W.m-2.K-1]": 0.1,
         # "Positive particle radius [m]":15E-6,
-        "Frequency factor for cathode decomposition [s-1]": 7E15,
+        # "Frequency factor for cathode decomposition [s-1]": 7E15,
         # "Lower voltage cut-off [V]": 2.4,
         },
         check_already_exists=False,
@@ -73,7 +75,7 @@ for model in models:
     disc.process_model(model)
 
     # solve model 
-    t_eval = np.linspace(0,1580, 3000)
+    t_eval = np.linspace(0,460, 3000)
     solution = pybamm.ScikitsDaeSolver().solve(model, t_eval)
     solutions.append(solution)
 

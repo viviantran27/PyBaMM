@@ -19,12 +19,13 @@ geometry = model.default_geometry
 
 
 def ambient_temperature(t):
-    return 300 + t * 10 / 3600
+    return 300 - t * 10 / 3600
 
 
 param = model.default_parameter_values
 param.update(
-    {"Ambient temperature [K]": ambient_temperature}, check_already_exists=False
+    {"Ambient temperature [K]": 300,
+     "Initial temperature [K]": 360}, check_already_exists=False
 )
 param.process_model(model)
 param.process_geometry(geometry)
@@ -39,7 +40,7 @@ disc = pybamm.Discretisation(mesh, model.default_spatial_methods)
 disc.process_model(model)
 
 # solve model
-t_eval = np.linspace(0, 3600 / 2, 100)
+t_eval = np.linspace(0, 3600*1.1, 100)
 solver = pybamm.CasadiSolver(mode="fast")
 solver.rtol = 1e-3
 solver.atol = 1e-6

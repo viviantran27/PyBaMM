@@ -93,8 +93,8 @@ class TestParameterValues(unittest.TestCase):
             ValueError, "The 'C-rate' parameter has been deprecated"
         ):
             pybamm.ParameterValues({"C-rate": 0})
-        with self.assertRaisesRegex(ValueError, "surface area density"):
-            pybamm.ParameterValues({"Negative surface area density": 1})
+        with self.assertRaisesRegex(ValueError, "surface area to volume ratio"):
+            pybamm.ParameterValues({"Negative surface area to volume ratio": 1})
         with self.assertRaisesRegex(ValueError, "reaction rate"):
             pybamm.ParameterValues({"Negative reaction rate": 1})
 

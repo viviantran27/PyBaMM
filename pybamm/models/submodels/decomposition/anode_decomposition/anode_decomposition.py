@@ -33,7 +33,6 @@ class AnodeDecomposition(pybamm.BaseSubModel):
         T_av = variables["X-averaged negative electrode temperature"]
         T_av_dimensional = param.Delta_T * T_av + param.T_ref
         c_s_n_surf = variables["X-averaged negative particle surface concentration"]
-        # c_s_n_surf = variables["Negative electrode average extent of lithiation"]
         z = variables["Relative SEI thickness"]
         x_an = c_s_n_surf
         rho_n_dim = pybamm.Parameter("Negative electrode density [kg.m-3]")

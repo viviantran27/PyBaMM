@@ -18,7 +18,7 @@ class NoCathodeDecomposition(pybamm.BaseSubModel):
     """
 
     def __init__(self, param, reactions=None):
-        super().__init__(param, reactions=reactions)
+        super().__init__(param)
 
     def get_fundamental_variables(self):
         

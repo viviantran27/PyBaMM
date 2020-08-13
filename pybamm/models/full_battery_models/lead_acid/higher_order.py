@@ -52,11 +52,8 @@ class BaseHigherOrderModel(BaseModel):
         self.set_tortuosity_submodels()
         self.set_thermal_submodel()
         self.set_current_collector_submodel()
-<<<<<<< HEAD
         self.set_side_reaction_submodel()
-=======
         self.set_sei_submodel()
->>>>>>> develop
 
         if build:
             self.build_model()
