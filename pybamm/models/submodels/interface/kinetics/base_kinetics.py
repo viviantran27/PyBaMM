@@ -103,7 +103,7 @@ class BaseKinetics(BaseInterface):
         # Update j, except in the "distributed SEI resistance" model, where j will be
         # found by solving an algebraic equation
         # (In the "distributed SEI resistance" model, we have already defined j)
-        j = self._get_kinetics(j0, ne, eta_r, T)
+        j = self._get_kinetics(j0, ne, eta_r, T, variables)
         variables.update(self._get_standard_interfacial_current_variables(j))
 
         variables.update(

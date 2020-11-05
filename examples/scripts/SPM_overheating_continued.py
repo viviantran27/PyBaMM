@@ -12,26 +12,15 @@ pybamm.set_logging_level("INFO")
 class ExternalCircuitResistanceFunction():
     def __call__(self, variables):
         I = variables["Current [A]"]
-        V = variables["Terminal voltage [V]"]
-        # if pybamm.t>0.0005: 
-        #     return V / I - pybamm.FunctionParameter("Resistance [ohm]", {"Time [s]": pybamm.t})
-        # else:        
+        V = variables["Terminal voltage [V]"]        
         return V / I - pybamm.FunctionParameter("Resistance [ohm]", {"Time [s]": pybamm.t}) 
-
-def pulse_test(pulse_time, rest_time, pulse_current):
-    def current(t):
-        floor = pybamm.Function(np.floor, t/(pulse_time + rest_time))
-        mod_t = t-(pulse_time + rest_time)*floor
-        pulse_signal = mod_t < pulse_time
-        return pulse_signal * pulse_current
-    return current
 
 operating_mode = ExternalCircuitResistanceFunction() 
 
 options1 = {
     "thermal": "x-lumped",
     "side reactions": "decomposition",
-    "operating mode": operating_mode, 
+    # "operating mode": operating_mode, 
 }
 options2 = {
     "thermal": "x-lumped",
@@ -41,6 +30,18 @@ options3 = {
     "thermal": "x-lumped",
     "side reactions": "decomposition",
     "operating mode": operating_mode, 
+    "external submodels": ["negative particle", "positive particle"],
+}
+options4 = {
+    "thermal": "x-lumped",
+    "side reactions": "decomposition",
+    # "operating mode": operating_mode, 
+    "external submodels": ["negative particle"],
+}
+options5 = {
+    "thermal": "x-lumped",
+    "side reactions": "decomposition",
+    # "operating mode": operating_mode, 
     "external submodels": ["negative particle", "positive particle"],
 }
 models = [

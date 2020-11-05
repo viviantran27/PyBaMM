@@ -16,6 +16,8 @@ sim = pybamm.Simulation(
     model, parameter_values=param, solver=pybamm.CasadiSolver(mode="fast")
 )
 sim.solve()
+
+
 sim.plot(
     [
         "Negative particle surface concentration [mol.m-3]",

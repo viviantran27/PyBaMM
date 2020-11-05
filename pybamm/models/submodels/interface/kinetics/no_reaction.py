@@ -25,5 +25,5 @@ class NoReaction(BaseKinetics):
     def __init__(self, param, domain, reaction):
         super().__init__(param, domain, reaction)
 
-    def _get_kinetics(self, j0, ne, eta_r, T):
+    def _get_kinetics(self, j0, ne, eta_r, T, variables):
         return pybamm.Scalar(0)

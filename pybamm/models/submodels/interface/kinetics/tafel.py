@@ -30,7 +30,7 @@ class ForwardTafel(BaseKinetics):
     def __init__(self, param, domain, reaction, options=None):
         super().__init__(param, domain, reaction, options)
 
-    def _get_kinetics(self, j0, ne, eta_r, T):
+    def _get_kinetics(self, j0, ne, eta_r, T, variables):
         return j0 * pybamm.exp((ne / (2 * (1 + self.param.Theta * T))) * eta_r)
 
     def _get_dj_dc(self, variables):

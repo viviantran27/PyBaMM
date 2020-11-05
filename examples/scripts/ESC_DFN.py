@@ -1,5 +1,5 @@
 #
-# Example of SPM with decomposition reactions at high temperatures with continued TR
+# Example of DFN without decomposition reactions at high temperatures with continued TR
 #
 # NOTE: For solver integration error, reduce the t_eval endtime
 # .
@@ -13,10 +13,7 @@ class ExternalCircuitResistanceFunction():
     def __call__(self, variables):
         I = variables["Current [A]"]
         V = variables["Terminal voltage [V]"]
-        # if pybamm.t>0.0005: 
-        #     return V / I - pybamm.FunctionParameter("Resistance [ohm]", {"Time [s]": pybamm.t})
-        # else:        
-        return V / I - pybamm.FunctionParameter("Resistance [ohm]", {"Time [s]": pybamm.t}) 
+        return V / I - pybamm.FunctionParameter("Resistance [ohm]", {"Time [s]": pybamm.t}) #* self.param.timescale?
 
 def pulse_test(pulse_time, rest_time, pulse_current):
     def current(t):
@@ -30,7 +27,7 @@ operating_mode = ExternalCircuitResistanceFunction()
 
 options1 = {
     "thermal": "x-lumped",
-    "side reactions": "decomposition",
+    # "side reactions": "decomposition",
     "operating mode": operating_mode, 
 }
 options2 = {
@@ -44,8 +41,8 @@ options3 = {
     "external submodels": ["negative particle", "positive particle"],
 }
 models = [
-    pybamm.lithium_ion.SPM(options1, name="with decomposition"),
-    pybamm.lithium_ion.SPM(options3, name="with decomposition thermal continued"),
+    pybamm.lithium_ion.DFN(options1, name="without decomposition"),
+    # pybamm.lithium_ion.DFN(options3, name="with decomposition thermal continued"),
     # pybamm.lithium_ion.SPM(options2, name="without decomposition"),
 ]
 
@@ -82,20 +79,18 @@ for model in models:
     param = pybamm.ParameterValues(chemistry=pybamm.parameter_sets.Cai2019)
     param.update(
         {
-        # "Cell capacity [A.h]": 10,  #match Kriston et al.
-        # "Typical current [A]": 10, #match Kriston et al.
-        "Ambient temperature [K]": 390, 
-        "Initial temperature [K]": 390, 
-        "Resistance [ohm]": 0.01,
-        "Edge heat transfer coefficient [W.m-2.K-1]": 30,
-        "Separator thickness [m]":0.0015*4,
-        },
+        "Cell capacity [A.h]": 10,  #match Kriston et al.
+        "Typical current [A]": 10, #match Kriston et al.
+        # "Ambient temperature [K]": 390, 
+        # "Initial temperature [K]": 390, 
+        "Resistance [ohm]": 0.1,
+        "Edge heat transfer coefficient [W.m-2.K-1]": 30},
         check_already_exists=False,
     )
-    if model.name == "with decomposition thermal continued": 
-        param.update({
-            "Resistance [ohm]": 1, # to stop the current
-        })
+    # if model.name == "with decomposition thermal continued": 
+    #     param.update({
+    #         "Resistance [ohm]": 1, # to stop the current
+    #     })
     param.process_model(model)
     param.process_geometry(geometry)
 
@@ -107,7 +102,7 @@ for model in models:
     disc.process_model(model)
             
     # solve model 
-    t_end = 60 # for T_amb = 390
+    t_end = 14 # for T_amb = 390
     t_eval = np.linspace(0,t_end, 3000)
     if model.name == "with decomposition thermal continued":
         t_eval = np.linspace(t_end,t_end*10, 3000)
@@ -158,7 +153,8 @@ plot = pybamm.QuickPlot(
         "X-averaged Ohmic heating [W.m-3]",
         "X-averaged irreversible electrochemical heating [W.m-3]",
         "X-averaged total heating [W.m-3]",
-        "Negative electrode average extent of lithiation",        
+        "Negative electrode average extent of lithiation",    
+        "Exchange current density [A.m-2]",    
     ],
     time_unit="seconds",
     spatial_unit="um",

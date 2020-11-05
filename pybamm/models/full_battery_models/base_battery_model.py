@@ -185,6 +185,7 @@ class BaseBatteryModel(pybamm.BaseModel):
             "anode decomposition": False,
             "cathode decomposition": False,
             "sei": None,
+            "kinetics":[],
         }
         # Change the default for SEI film resistance based on which sei option is
         # provided
@@ -271,7 +272,7 @@ class BaseBatteryModel(pybamm.BaseModel):
                     options["dimensionality"]
                 )
             )
-        if options["thermal"] not in ["isothermal", "lumped", "x-lumped", "x-full"]:
+        if options["thermal"] not in ["isothermal", "lumped", "two-state lumped","x-lumped", "x-full"]:
             raise pybamm.OptionError(
                 "Unknown thermal model '{}'".format(options["thermal"])
             )
@@ -550,6 +551,10 @@ class BaseBatteryModel(pybamm.BaseModel):
 
         elif self.options["thermal"] == "lumped":
             thermal_submodel = pybamm.thermal.Lumped(
+                self.param, self.options["dimensionality"]
+            )
+        elif self.options["thermal"] == "two-state lumped":
+            thermal_submodel = pybamm.thermal.TwoStateLumped(
                 self.param, self.options["dimensionality"]
             )
 

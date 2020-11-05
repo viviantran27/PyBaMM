@@ -61,7 +61,7 @@ class AnodeDecomposition(pybamm.BaseSubModel):
         decomp_rate = variables["Anode decomposition reaction rate"]
         z = variables["Relative SEI thickness"]
 
-        self.rhs = {z: -decomp_rate}
+        self.rhs = {z: -decomp_rate*(z>0)}
 
     def set_initial_conditions(self, variables):
         z = variables["Relative SEI thickness"]

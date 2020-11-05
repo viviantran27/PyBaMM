@@ -1,17 +1,19 @@
 #
-# Bulter volmer class
+# Modified bulter volmerclass
 #
 
 import pybamm
+from scipy import constants
 from .base_kinetics import BaseKinetics
 
 
-class ButlerVolmer(BaseKinetics):
+class ModifiedButlerVolmer(BaseKinetics):
     """
     Base submodel which implements the forward Butler-Volmer equation:
 
     .. math::
-        j = 2 * j_0(c) * \\sinh( (ne / (2 * (1 + \\Theta T)) * \\eta_r(c))
+        j = 2 * j_0(c) * \\sinh( (ne / (2 * (1 + \\Theta T)) * \\eta_r(c))/
+            (1 - j_0/j_lim exp(-0.5 * F* eta_r(c) / R * T))
 
     Parameters
     ----------
@@ -32,8 +34,17 @@ class ButlerVolmer(BaseKinetics):
         super().__init__(param, domain, reaction, options)
 
     def _get_kinetics(self, j0, ne, eta_r, T, variables):
+        F = pybamm.Scalar(self.param.F)
         prefactor = ne / (2 * (1 + self.param.Theta * T))
-        return 2 * j0 * pybamm.sinh(prefactor * eta_r)
+        c_e_0 = variables["X-averaged electrolyte concentration [mol.m-3]"]
+        c_e_p = variables["Postive electrolyte concentration [mol.m-3]"]
+        c_e_surf_p = pybamm.surf(c_e_p)
+        delta_c_e = c_e_0 - c_e_surf_p
+        T_av = variables["X-averaged cell temperature [K]"]
+        D_e = self.param.D_e_dimensional(c_e_surf_p,T_av)
+        delta_e = pybamm.sqrt(constants.pi * D_e * pybamm.t)
+        c_e_lim = j0 * delta_e / F / D_e 
+        return 2 * j0 * pybamm.sinh(prefactor * eta_r) / (1 + c_e_lim / delta_c_e * pybamm.exp(prefactor* eta_r)) 
 
     def _get_dj_dc(self, variables):
         "See :meth:`pybamm.interface.kinetics.BaseKinetics._get_dj_dc`"
