@@ -22,9 +22,19 @@ PyBaMM is available on GNU/Linux, MacOS and Windows.
 Using pip
 ----------
 
+GNU/Linux and Windows
+~~~~~~~~~~~~~~~~~~~~~~
+
 .. code:: bash
 
    pip install pybamm
+
+macOS
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. code:: bash
+
+   brew install sundials && pip install pybamm
 
 Using conda
 -------------
@@ -47,7 +57,7 @@ Installation
    install/GNU-linux
    install/windows
    install/windows-wsl
-   For developers: compiling the KLU solver <install/install-klu>
+   install/install-from-source
 
 API documentation
 ====================

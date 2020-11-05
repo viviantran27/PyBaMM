@@ -89,7 +89,8 @@ class TestBaseSolver(unittest.TestCase):
         p = pybamm.InputParameter("p")
         model.rhs = {a: a * p}
         with self.assertRaisesRegex(
-            pybamm.SolverError, "Only CasadiAlgebraicSolver can have symbolic inputs"
+            pybamm.SolverError,
+            "Only CasadiSolver and CasadiAlgebraicSolver can have symbolic inputs",
         ):
             solver.solve(model, np.array([1, 2, 3]))
 
@@ -117,6 +118,7 @@ class TestBaseSolver(unittest.TestCase):
                     "alg", [t, y, p], [self.algebraic_eval(t, y, p)]
                 )
                 self.convert_to_format = "casadi"
+                self.bounds = (np.array([-np.inf]), np.array([np.inf]))
 
             def rhs_eval(self, t, y, inputs):
                 return np.array([])
@@ -151,6 +153,7 @@ class TestBaseSolver(unittest.TestCase):
                     "alg", [t, y, p], [self.algebraic_eval(t, y, p)]
                 )
                 self.convert_to_format = "casadi"
+                self.bounds = (-np.inf * np.ones(4), np.inf * np.ones(4))
 
             def rhs_eval(self, t, y, inputs):
                 return y[0:1]
@@ -197,6 +200,7 @@ class TestBaseSolver(unittest.TestCase):
                     "alg", [t, y, p], [self.algebraic_eval(t, y, p)]
                 )
                 self.convert_to_format = "casadi"
+                self.bounds = (np.array([-np.inf]), np.array([np.inf]))
 
             def rhs_eval(self, t, y, inputs):
                 return np.array([])
@@ -263,6 +267,20 @@ class TestBaseSolver(unittest.TestCase):
         solver.set_up(model, {})
         self.assertEqual(model.convert_to_format, "casadi")
         pybamm.set_logging_level("WARNING")
+
+    def test_timescale_input_fail(self):
+        # Make sure timescale can't depend on inputs
+        model = pybamm.BaseModel()
+        v = pybamm.Variable("v")
+        model.rhs = {v: -1}
+        model.initial_conditions = {v: 1}
+        a = pybamm.InputParameter("a")
+        model.timescale = a
+        solver = pybamm.CasadiSolver()
+        solver.set_up(model, inputs={"a": 10})
+        sol = solver.step(old_solution=None, model=model, dt=1.0, inputs={"a": 10})
+        with self.assertRaisesRegex(pybamm.SolverError, "The model timescale"):
+            sol = solver.step(old_solution=sol, model=model, dt=1.0, inputs={"a": 20})
 
 
 if __name__ == "__main__":

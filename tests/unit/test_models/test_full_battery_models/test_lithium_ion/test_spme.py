@@ -11,20 +11,6 @@ class TestSPMe(unittest.TestCase):
         model = pybamm.lithium_ion.SPMe(options)
         model.check_well_posedness()
 
-    def test_default_geometry(self):
-        options = {"thermal": "isothermal"}
-        model = pybamm.lithium_ion.SPMe(options)
-        self.assertIsInstance(model.default_geometry, pybamm.Geometry)
-        self.assertTrue("negative particle" in model.default_geometry)
-
-        options = {"current collector": "potential pair", "dimensionality": 1}
-        model = pybamm.lithium_ion.SPMe(options)
-        self.assertIn("current collector", model.default_geometry)
-
-        options = {"current collector": "potential pair", "dimensionality": 2}
-        model = pybamm.lithium_ion.SPMe(options)
-        self.assertIn("current collector", model.default_geometry)
-
     def test_well_posed_2plus1D(self):
         options = {"current collector": "potential pair", "dimensionality": 1}
         model = pybamm.lithium_ion.SPMe(options)
@@ -102,20 +88,45 @@ class TestSPMe(unittest.TestCase):
         model = pybamm.lithium_ion.SPMe(options)
         model.check_well_posedness()
 
-    def test_particle_fast_diffusion(self):
-        options = {"particle": "fast diffusion"}
+    def test_particle_uniform(self):
+        options = {"particle": "uniform profile"}
+        model = pybamm.lithium_ion.SPMe(options)
+        model.check_well_posedness()
+
+    def test_particle_quadratic(self):
+        options = {"particle": "quadratic profile"}
+        model = pybamm.lithium_ion.SPMe(options)
+        model.check_well_posedness()
+
+    def test_particle_quartic(self):
+        options = {"particle": "quartic profile"}
+        model = pybamm.lithium_ion.SPMe(options)
+        model.check_well_posedness()
+
+    def test_particle_shape_user(self):
+        options = {"particle shape": "user"}
         model = pybamm.lithium_ion.SPMe(options)
         model.check_well_posedness()
 
     def test_surface_form_differential(self):
         options = {"surface form": "differential"}
-        model = pybamm.lithium_ion.SPMe(options)
-        model.check_well_posedness()
+        with self.assertRaises(NotImplementedError):
+            pybamm.lithium_ion.SPMe(options)
 
     def test_surface_form_algebraic(self):
         options = {"surface form": "algebraic"}
+        with self.assertRaises(NotImplementedError):
+            pybamm.lithium_ion.SPMe(options)
+
+    def test_integrated_conductivity(self):
+        options = {"electrolyte conductivity": "integrated"}
         model = pybamm.lithium_ion.SPMe(options)
         model.check_well_posedness()
+
+    def test_electrolyte_options(self):
+        options = {"electrolyte conductivity": "full"}
+        with self.assertRaisesRegex(pybamm.OptionError, "electrolyte conductivity"):
+            pybamm.lithium_ion.SPMe(options)
 
 
 class TestSPMeWithSEI(unittest.TestCase):
@@ -136,6 +147,11 @@ class TestSPMeWithSEI(unittest.TestCase):
 
     def test_well_posed_interstitial_diffusion_limited(self):
         options = {"sei": "interstitial-diffusion limited"}
+        model = pybamm.lithium_ion.SPMe(options)
+        model.check_well_posedness()
+
+    def test_well_posed_ec_reaction_limited(self):
+        options = {"sei": "ec reaction limited", "sei porosity change": True}
         model = pybamm.lithium_ion.SPMe(options)
         model.check_well_posedness()
 

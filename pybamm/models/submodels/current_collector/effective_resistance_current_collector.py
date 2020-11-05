@@ -38,7 +38,13 @@ class EffectiveResistance(pybamm.BaseModel):
     ):
         super().__init__(name)
         self.options = options
-        self.param = pybamm.standard_parameters_lithium_ion
+        self.param = pybamm.LithiumIonParameters()
+
+        # Set default length scales
+        self.length_scales = {
+            "current collector y": self.param.L_y,
+            "current collector z": self.param.L_z,
+        }
 
         self.variables = self.get_fundamental_variables()
         self.set_algebraic(self.variables)
@@ -91,6 +97,17 @@ class EffectiveResistance(pybamm.BaseModel):
             "Effective positive current collector resistance": R_cc_p,
             "Effective positive current collector resistance [Ohm]": R_cc_p * R_scale,
         }
+
+        # Add spatial variables
+        var = pybamm.standard_spatial_vars
+        L_y = param.L_y
+        L_z = param.L_z
+        if self.options["dimensionality"] == 1:
+            variables.update({"z": var.z, "z [m]": var.z * L_z})
+        elif self.options["dimensionality"] == 2:
+            variables.update(
+                {"y": var.y, "y [m]": var.y * L_y, "z": var.z, "z [m]": var.z * L_z}
+            )
 
         return variables
 
@@ -199,10 +216,35 @@ class EffectiveResistance(pybamm.BaseModel):
 
     @property
     def default_geometry(self):
+        geometry = {}
+        param = self.param
+        var = pybamm.standard_spatial_vars
         if self.options["dimensionality"] == 1:
-            return pybamm.Geometry("1D current collector")
+            geometry["current collector"] = {
+                var.z: {"min": 0, "max": 1},
+                "tabs": {
+                    "negative": {"z_centre": param.centre_z_tab_n},
+                    "positive": {"z_centre": param.centre_z_tab_p},
+                },
+            }
         elif self.options["dimensionality"] == 2:
-            return pybamm.Geometry("2D current collector")
+            geometry["current collector"] = {
+                var.y: {"min": 0, "max": param.l_y},
+                var.z: {"min": 0, "max": param.l_z},
+                "tabs": {
+                    "negative": {
+                        "y_centre": param.centre_y_tab_n,
+                        "z_centre": param.centre_z_tab_n,
+                        "width": param.l_tab_n,
+                    },
+                    "positive": {
+                        "y_centre": param.centre_y_tab_p,
+                        "z_centre": param.centre_z_tab_p,
+                        "width": param.l_tab_p,
+                    },
+                },
+            }
+        return pybamm.Geometry(geometry)
 
     @property
     def default_var_pts(self):
@@ -272,7 +314,13 @@ class AlternativeEffectiveResistance2D(pybamm.BaseModel):
     def __init__(self):
         super().__init__()
         self.name = "Effective resistance in current collector model (2D)"
-        self.param = pybamm.standard_parameters_lithium_ion
+        self.param = pybamm.LithiumIonParameters()
+
+        # Set default length scales
+        self.length_scales = {
+            "current collector y": self.param.L_y,
+            "current collector z": self.param.L_z,
+        }
 
         # Get necessary parameters
         param = self.param
@@ -342,6 +390,14 @@ class AlternativeEffectiveResistance2D(pybamm.BaseModel):
             "Effective positive current collector resistance": R_cc_p,
             "Effective positive current collector resistance [Ohm]": R_cc_p * R_scale,
         }
+
+        # Add spatial variables
+        var = pybamm.standard_spatial_vars
+        L_y = param.L_y
+        L_z = param.L_z
+        self.variables.update(
+            {"y": var.y, "y [m]": var.y * L_y, "z": var.z, "z [m]": var.z * L_z}
+        )
 
         pybamm.citations.register("timms2020")
 
@@ -416,7 +472,27 @@ class AlternativeEffectiveResistance2D(pybamm.BaseModel):
 
     @property
     def default_geometry(self):
-        return pybamm.Geometry("2D current collector")
+        param = self.param
+        var = pybamm.standard_spatial_vars
+        geometry = {
+            "current collector": {
+                var.y: {"min": 0, "max": param.l_y},
+                var.z: {"min": 0, "max": param.l_z},
+                "tabs": {
+                    "negative": {
+                        "y_centre": param.centre_y_tab_n,
+                        "z_centre": param.centre_z_tab_n,
+                        "width": param.l_tab_n,
+                    },
+                    "positive": {
+                        "y_centre": param.centre_y_tab_p,
+                        "z_centre": param.centre_z_tab_p,
+                        "width": param.l_tab_p,
+                    },
+                },
+            }
+        }
+        return pybamm.Geometry(geometry)
 
     @property
     def default_var_pts(self):

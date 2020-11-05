@@ -1,28 +1,37 @@
 #
 # Tests for the Base Parameter Values class
 #
-import pybamm
+
 import os
-import numpy as np
-
+import tempfile
 import unittest
-import tests.shared as shared
 
+import numpy as np
 import pandas as pd
+
+import pybamm
+import tests.shared as shared
 
 
 class TestParameterValues(unittest.TestCase):
+    def test_find_parameter(self):
+        f = tempfile.NamedTemporaryFile()
+        pybamm.PARAMETER_PATH.append(tempfile.gettempdir())
+
+        tempfile_name = os.path.basename(f.name)
+        self.assertEqual(pybamm.ParameterValues.find_parameter(tempfile_name), f.name)
+
     def test_read_parameters_csv(self):
         data = pybamm.ParameterValues({}).read_parameters_csv(
-            pybamm.get_parameters_filepath(
-                os.path.join(
-                    "input",
-                    "parameters",
-                    "lithium-ion",
-                    "cathodes",
-                    "lico2_Marquis2019",
-                    "parameters.csv",
-                )
+            os.path.join(
+                pybamm.root_dir(),
+                "pybamm",
+                "input",
+                "parameters",
+                "lithium-ion",
+                "cathodes",
+                "lico2_Marquis2019",
+                "parameters.csv",
             )
         )
         self.assertEqual(data["Positive electrode porosity"], "0.3")
@@ -37,10 +46,7 @@ class TestParameterValues(unittest.TestCase):
 
         # from file
         param = pybamm.ParameterValues(
-            values=pybamm.get_parameters_filepath(
-                "input/parameters/lithium-ion/cathodes/lico2_Marquis2019/"
-                + "parameters.csv"
-            )
+            "lithium-ion/cathodes/lico2_Marquis2019/" + "parameters.csv"
         )
         self.assertEqual(param["Positive electrode porosity"], 0.3)
 
@@ -334,6 +340,28 @@ class TestParameterValues(unittest.TestCase):
         processed_func = parameter_values.process_symbol(func)
         self.assertEqual(processed_func.evaluate(inputs={"vec": 13}), 13)
 
+        # make sure function keeps the domain of the original function
+
+        def my_func(x):
+            return 2 * x
+
+        x = pybamm.standard_spatial_vars.x_n
+        func = pybamm.FunctionParameter("func", {"x": x})
+
+        parameter_values = pybamm.ParameterValues({"func": my_func})
+        func1 = parameter_values.process_symbol(func)
+
+        parameter_values = pybamm.ParameterValues({"func": pybamm.InputParameter("a")})
+        func2 = parameter_values.process_symbol(func)
+
+        parameter_values = pybamm.ParameterValues(
+            {"func": pybamm.InputParameter("a", "negative electrode")}
+        )
+        func3 = parameter_values.process_symbol(func)
+
+        self.assertEqual(func1.domains, func2.domains)
+        self.assertEqual(func1.domains, func3.domains)
+
     def test_process_inline_function_parameters(self):
         def D(c):
             return c ** 2
@@ -505,6 +533,9 @@ class TestParameterValues(unittest.TestCase):
             "grad_var1": pybamm.grad(var1),
             "d_var1": d * var1,
         }
+        model.timescale = b
+        model.length_scales = {"test": c}
+
         parameter_values = pybamm.ParameterValues({"a": 1, "b": 2, "c": 3, "d": 42})
         parameter_values.process_model(model)
         # rhs
@@ -541,6 +572,9 @@ class TestParameterValues(unittest.TestCase):
         self.assertTrue(
             isinstance(model.variables["d_var1"].children[1], pybamm.Variable)
         )
+        # timescale and length scales
+        self.assertEqual(model.timescale.evaluate(), 2)
+        self.assertEqual(model.length_scales["test"].evaluate(), 3)
 
         # bad boundary conditions
         model = pybamm.BaseModel()
