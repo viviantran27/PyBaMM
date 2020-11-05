@@ -134,6 +134,8 @@ from .models.submodels import (
     porosity,
     thermal,
     tortuosity,
+    anode_decomposition,
+    cathode_decomposition,
 )
 from .models.submodels.interface import sei
 
