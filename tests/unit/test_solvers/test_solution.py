@@ -20,7 +20,7 @@ class TestSolution(unittest.TestCase):
         self.assertEqual(sol.y_event, None)
         self.assertEqual(sol.termination, "final time")
         self.assertEqual(sol.inputs, {})
-        self.assertEqual(sol.model, None)
+        self.assertIsInstance(sol.model, pybamm.BaseModel)
 
         with self.assertRaisesRegex(AttributeError, "sub solutions"):
             print(sol.sub_solutions)
@@ -31,6 +31,7 @@ class TestSolution(unittest.TestCase):
         y1 = np.tile(t1, (20, 1))
         sol1 = pybamm.Solution(t1, y1)
         sol1.solve_time = 1.5
+        sol1.integration_time = 0.3
         sol1.model = pybamm.BaseModel()
         sol1.inputs = {"a": 1}
 
@@ -39,11 +40,13 @@ class TestSolution(unittest.TestCase):
         y2 = np.tile(t2, (20, 1))
         sol2 = pybamm.Solution(t2, y2)
         sol2.solve_time = 1
+        sol2.integration_time = 0.5
         sol2.inputs = {"a": 2}
         sol1.append(sol2, create_sub_solutions=True)
 
         # Test
         self.assertEqual(sol1.solve_time, 2.5)
+        self.assertEqual(sol1.integration_time, 0.8)
         np.testing.assert_array_equal(sol1.t, np.concatenate([t1, t2[1:]]))
         np.testing.assert_array_equal(sol1.y, np.concatenate([y1, y2[:, 1:]], axis=1))
         np.testing.assert_array_equal(
@@ -96,14 +99,34 @@ class TestSolution(unittest.TestCase):
         np.testing.assert_array_equal(twoc_sol.entries, twoc_sol(solution.t))
         np.testing.assert_array_equal(twoc_sol.entries, 2 * c_sol.entries)
 
+    def test_plot(self):
+        model = pybamm.BaseModel()
+        c = pybamm.Variable("c")
+        model.rhs = {c: -c}
+        model.initial_conditions = {c: 1}
+        model.variables["c"] = c
+        model.variables["2c"] = 2 * c
+
+        disc = pybamm.Discretisation()
+        disc.process_model(model)
+        solution = pybamm.ScipySolver().solve(model, np.linspace(0, 1))
+
+        solution.plot(["c", "2c"], testing=True)
+
     def test_save(self):
         model = pybamm.BaseModel()
+        model.length_scales = {"negative electrode": pybamm.Scalar(1)}
         # create both 1D and 2D variables
         c = pybamm.Variable("c")
         d = pybamm.Variable("d", domain="negative electrode")
         model.rhs = {c: -c, d: 1}
         model.initial_conditions = {c: 1, d: 2}
-        model.variables = {"c": c, "d": d, "2c": 2 * c}
+        model.variables = {
+            "c": c,
+            "d": d,
+            "2c": 2 * c,
+            "c + d": c + d,
+        }
 
         disc = get_discretisation_for_testing()
         disc.process_model(model)
@@ -125,6 +148,17 @@ class TestSolution(unittest.TestCase):
         np.testing.assert_array_equal(solution.data["c"], data_load["c"].flatten())
         np.testing.assert_array_equal(solution.data["d"], data_load["d"])
 
+        # to matlab with bad variables name fails
+        solution.update(["c + d"])
+        with self.assertRaisesRegex(ValueError, "Invalid character"):
+            solution.save_data("test.mat", to_format="matlab")
+        # Works if providing alternative name
+        solution.save_data(
+            "test.mat", to_format="matlab", short_names={"c + d": "c_plus_d"}
+        )
+        data_load = loadmat("test.mat")
+        np.testing.assert_array_equal(solution.data["c + d"], data_load["c_plus_d"])
+
         # to csv
         with self.assertRaisesRegex(
             ValueError, "only 0D variables can be saved to csv"
@@ -137,6 +171,10 @@ class TestSolution(unittest.TestCase):
         np.testing.assert_array_almost_equal(df["c"], solution.data["c"])
         np.testing.assert_array_almost_equal(df["2c"], solution.data["2c"])
 
+        # raise error if format is unknown
+        with self.assertRaisesRegex(ValueError, "format 'wrong_format' not recognised"):
+            solution.save_data("test.csv", to_format="wrong_format")
+
         # test save whole solution
         solution.save("test.pickle")
         solution_load = pybamm.load("test.pickle")
@@ -148,7 +186,7 @@ class TestSolution(unittest.TestCase):
         model = pybamm.lithium_ion.SPM()
         geometry = model.default_geometry
         param = model.default_parameter_values
-        param.update({"Electrode height [m]": "[input]"})
+        param.update({"Negative electrode conductivity [S.m-1]": "[input]"})
         param.process_model(model)
         param.process_geometry(geometry)
         var = pybamm.standard_spatial_vars
@@ -163,7 +201,7 @@ class TestSolution(unittest.TestCase):
             spatial_methods=spatial_methods,
             solver=solver,
         )
-        inputs = {"Electrode height [m]": 0.1}
+        inputs = {"Negative electrode conductivity [S.m-1]": 0.1}
         sim.solve(t_eval=np.linspace(0, 10, 10), inputs=inputs)
         time = sim.solution["Time [h]"](sim.solution.t)
         self.assertEqual(len(time), 10)

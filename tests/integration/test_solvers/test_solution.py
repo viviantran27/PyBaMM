@@ -54,8 +54,8 @@ class TestSolution(unittest.TestCase):
         self.assertLess(step_sol_time, sol_time)
         # Check both give the same answer
         np.testing.assert_array_almost_equal(
-            solution["Terminal voltage"](solution.t[:-1]),
-            step_solution["Terminal voltage"](solution.t[:-1]),
+            solution["Terminal voltage"](solution.t[:-1] * model.timescale_eval),
+            step_solution["Terminal voltage"](solution.t[:-1] * model.timescale_eval),
             decimal=4,
         )
 
@@ -84,8 +84,11 @@ class TestSolution(unittest.TestCase):
         # solve model
         solver = model.default_solver
 
+        var = pybamm.standard_spatial_vars
+        Nr = model.default_var_pts[var.r_n]
+
         T_av = 0
-        c_s_n_av = np.ones((10, 1)) * 0.6
+        c_s_n_av = np.ones((Nr, 1)) * 0.6
         external_variables = {
             "Volume-averaged cell temperature": T_av,
             "X-averaged negative particle concentration": c_s_n_av,
@@ -104,18 +107,18 @@ class TestSolution(unittest.TestCase):
         )
         np.testing.assert_array_equal(
             sol_step.inputs["X-averaged negative particle concentration"],
-            np.ones((mesh["negative particle"][0].npts, len(sol_step.t))) * 0.6,
+            np.ones((mesh["negative particle"].npts, len(sol_step.t))) * 0.6,
         )
 
         # Solve
         t_eval = np.linspace(0, 3600)
         sol = solver.solve(model, t_eval, external_variables=external_variables)
         np.testing.assert_array_equal(
-            sol.inputs["Volume-averaged cell temperature"], np.zeros((1, len(sol.t))),
+            sol.inputs["Volume-averaged cell temperature"], np.zeros((1, len(sol.t)))
         )
         np.testing.assert_array_equal(
             sol.inputs["X-averaged negative particle concentration"],
-            np.ones((mesh["negative particle"][0].npts, len(sol.t))) * 0.6,
+            np.ones((mesh["negative particle"].npts, len(sol.t))) * 0.6,
         )
 
 

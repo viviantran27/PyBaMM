@@ -1,13 +1,13 @@
-GNU-Linux & MacOS
-======================
+===================
+ GNU-Linux & MacOS
+===================
 
 .. contents::
 
 Prerequisites
----------------
+=============
 
-To use and/or contribute to PyBaMM, you must have Python 3.6 or 3.7
-installed (note that 3.8 is not yet supported).
+To use and/or contribute to PyBaMM, you must have Python 3.6, 3.7, or 3.8 installed.
 
 To install Python 3 on Debian-based distribution (Debian, Ubuntu, Linux
 mint), open a terminal and run
@@ -37,18 +37,21 @@ then follow instructions in link on adding brew to path, and run
    brew install python3
 
 Install PyBaMM
------------------
+==============
+
+.. _user-install-label:
 
 User install
-~~~~~~~~~~~~
+------------
 
 We recommend to install PyBaMM within a virtual environment, in order
-not to alter any distribution python files. To create a virtual
-environment ``env`` within your current directory type:
+not to alter any distribution python files. 
+First, make sure you are using python 3.6, 3.7, or 3.8. 
+To create a virtual environment ``env`` within your current directory type:
 
 .. code:: bash
 
-   python3 -m venv env
+   virtualenv env
 
 You can then “activate” the environment using:
 
@@ -64,10 +67,20 @@ the environment and go back to your original system, just type:
 
    deactivate
 
-PyBaMM can be installed via pip:
+PyBaMM can be installed via pip. On macOS, it is necessary to install the `SUNDIALS <https://computing.llnl.gov/projects/sundials/>`__
+library beforehand.
 
+GNU/Linux and Windows
+~~~~~~~~~~~~~~~~~~~~~
 .. code:: bash
 
+   pip install pybamm
+
+macOS
+~~~~~
+.. code:: bash
+
+   brew install sundials
    pip install pybamm
 
 PyBaMM’s dependencies (such as ``numpy``, ``scipy``, etc) will be
@@ -79,38 +92,35 @@ For an introduction to virtual environments, see
 .. _scikits.odes-label:
 
 Optional - scikits.odes solver
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+------------------------------
 
 Users can install `scikits.odes <https://github.com/bmcage/odes>`__ in
 order to use the wrapped SUNDIALS ODE and DAE
 `solvers <https://pybamm.readthedocs.io/en/latest/source/solvers/scikits_solvers.html>`__.
+Currently, only GNU/Linux and macOS are supported.
 
-**A pre-requisite** is the installation of a BLAS library (such as
-`openblas <https://www.openblas.net/>`__). On Ubuntu/debian
+GNU/Linux
+~~~~~~~~~
 
-::
+.. code:: bash
 
-   sudo apt install libopenblas-dev
+	  apt install libopenblas-dev
+	  pybamm_install_odes --install-sundials
 
-and on Mac OS
+The ``pybamm_install_odes`` command is installed with PyBaMM. It automatically downloads and installs the SUNDIALS library on your
+system (under ``~/.local``), before installing ``sckits.odes`` (by running ``pip install scikits.odes``).
 
-::
+macOS
+~~~~~
 
-   brew install openblas
+.. code:: bash
 
-After installing PyBaMM, the following command can be used to
-automatically install ``scikits.odes`` and its dependencies
-
-::
-
-   $ pybamm_install_odes --install-sundials
-
-The ``--install-sundials`` option is used to activate automatic
-downloads and installation of the sundials library, which is required by
-``scikits.odes``.
+	  pip install scikits.odes
+   
+Assuming that the SUNDIALS were installed as described :ref:`above<user-install-label>`.
 
 Developer install
-~~~~~~~~~~~~~~~~~~
+-----------------
 
 If you wish to contribute to PyBaMM, you should get the latest version
 from the GitHub repository. To do so, you must have Git and graphviz
@@ -138,16 +148,9 @@ repository
 
 Then, to install PyBaMM as a `developer <CONTRIBUTING.md>`__, type
 
-.. code:: bash
+ .. code:: bash
 
    pip install -e .[dev,docs]
-
-**KLU sparse solver** If you wish so simulate large systems such as the
-2+1D models, we recommend employing a sparse solver. PyBaMM currently
-offers a direct interface to the sparse KLU solver within Sundials, but
-it is unlikely to be installed as you may not have all the dependencies
-available. If you wish to install the KLU from the PyBaMM sources, see
-:doc:`the instructions for compiling the KLU sparse solver <install-klu>`.
 
 To check whether PyBaMM has installed properly, you can run the tests:
 
@@ -159,7 +162,7 @@ Before you start contributing to PyBaMM, please read the `contributing
 guidelines <CONTRIBUTING.md>`__.
 
 Uninstall PyBaMM
---------------------
+================
 
 PyBaMM can be uninstalled by running
 
@@ -170,7 +173,7 @@ PyBaMM can be uninstalled by running
 in your virtual environment.
 
 Troubleshooting
--------------------
+===============
 
 **Problem:** I’ve made edits to source files in PyBaMM, but these are
 not being used when I run my Python script.
