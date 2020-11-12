@@ -217,6 +217,20 @@ class LithiumIonParameters:
         self.k_sei_dim = pybamm.Parameter("SEI kinetic rate constant [m.s-1]")
         self.U_sei_dim = pybamm.Parameter("SEI open-circuit potential [V]")
 
+        # Thermal runaway species decomposition parameters
+        self.A_an = pybamm.Parameter("Frequency factor for anode decomposition [s-1]")
+        self.A_ca = pybamm.Parameter("Frequency factor for cathode decomposition [s-1]")
+        self.A_sei = pybamm.Parameter("Frequency factor for SEI decomposition [s-1]")
+        self.E_an = pybamm.Parameter("Activation energy for anode decomposition [J]")
+        self.E_ca = pybamm.Parameter("Activation energy for cathode decomposition [J]")
+        self.E_sei = pybamm.Parameter("Activation energy for SEI decomposition [J]")
+        self.h_an = pybamm.Parameter("Enthalpy of anode decomposition [J.kg-1]")
+        self.h_ca = pybamm.Parameter("Enthalpy of cathode decomposition [J.kg-1]")
+        self.h_sei = pybamm.Parameter("Enthalpy of SEI decomposition [J.kg-1]")
+        self.alpha_0 = pybamm.Parameter("Initial degree of conversion of cathode decomposition")
+        self.x_sei_0 = pybamm.Parameter("Initial fraction of Li in SEI")
+        self.z_0 = pybamm.Parameter("Initial SEI thickness")
+
         # Initial conditions
         # Note: the initial concentration in the electrodes can be set as a function
         # of through-cell position, so is defined later as a function
