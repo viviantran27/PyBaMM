@@ -108,7 +108,7 @@ for model in models:
         "Lower voltage cut-off [V]": 0,
         # "Ambient temperature [K]": 390, 
         # "Initial temperature [K]": 390, 
-        "Resistance [ohm]": 0.5, #0.011, #Rint=~1.5mOhm
+        "Resistance [ohm]": 2, #0.011, #Rint=~1.5mOhm
         "Edge heat transfer coefficient [W.m-2.K-1]":1000,
         # "Separator thermal conductivity [W.m-1.K-1]":0.16*0.01,
         # "Negative electrode thermal conductivity [W.m-1.K-1]": 1.7*0.01,

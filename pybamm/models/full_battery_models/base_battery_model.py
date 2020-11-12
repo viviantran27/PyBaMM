@@ -201,22 +201,14 @@ class BaseBatteryModel(pybamm.BaseModel):
             "electrolyte conductivity": "default",
             "thermal": "isothermal",
             "cell geometry": None,
-            "external submodels": [],
-<<<<<<< HEAD
-            "anode decomposition": False,
+            "external submodels": [],            "anode decomposition": False,
             "cathode decomposition": False,
             "sei": None,
             "kinetics":[],
-=======
             "sei": None,
-<<<<<<< HEAD
             "anode decomposition": False,
             "cathode decomposition": False,
-=======
             "sei porosity change": False,
-            "working electrode": None,
->>>>>>> upstream/develop
->>>>>>> develop
         }
         # Change the default for cell geometry based on which thermal option is provided
         extra_options = extra_options or {}

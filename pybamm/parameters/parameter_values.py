@@ -167,13 +167,10 @@ class ParameterValues:
             file_path = self.find_parameter(
                 os.path.join(component_path, "parameters.csv")
             )
-<<<<<<< HEAD
             if component_group == "cell":
                 n = 1
-=======
             component_params = self.read_parameters_csv(file_path)
 
->>>>>>> develop
             # Update parameters, making sure to check any conflicts
             self.update(
                 component_params,
