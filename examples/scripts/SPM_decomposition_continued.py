@@ -120,14 +120,14 @@ for model in models:
             "X-averaged negative particle concentration":c_s_n_xav,
             }
         # sim.step(dt, external_variables = external_variables)
-        solution = pybamm.ScikitsDaeSolver().solve(model, t_eval, external_variables = external_variables)
-        # solution = model.default_solver.solve(model, t_eval, external_variables = external_variables)
+        # solution = pybamm.ScikitsDaeSolver().solve(model, t_eval, external_variables = external_variables)
+        solution = model.default_solver.solve(model, t_eval, external_variables = external_variables)
 
 
 
     else:
-        solution = pybamm.ScikitsDaeSolver().solve(model, t_eval)
-        # solution = model.default_solver.solve(model, t_eval)
+        # solution = pybamm.ScikitsDaeSolver().solve(model, t_eval)
+        solution = model.default_solver.solve(model, t_eval)
 
     solutions.append(solution)
 
