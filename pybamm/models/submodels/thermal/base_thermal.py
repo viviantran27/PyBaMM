@@ -143,8 +143,8 @@ class BaseThermal(pybamm.BaseSubModel):
         Q_decomposition_p = Q_decomposition_ca
 
         # Irreversible electrochemical heating
-        Q_rxn_n = j_n * eta_r_n + Q_decomposition_n
-        Q_rxn_p = j_p * eta_r_p + Q_decomposition_p
+        Q_rxn_n = a_n * j_n * eta_r_n + Q_decomposition_n
+        Q_rxn_p = a_p * j_p * eta_r_p + Q_decomposition_p
         Q_rxn = pybamm.Concatenation(
             *[
                 Q_rxn_n,
