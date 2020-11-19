@@ -47,6 +47,7 @@ class SPMe(BaseModel):
         self.set_positive_electrode_submodel()
         self.set_thermal_submodel()
         self.set_current_collector_submodel()
+        self.set_decomposition_submodel()
         self.set_sei_submodel()
 
         if build:
@@ -172,3 +173,7 @@ class SPMe(BaseModel):
         self.submodels["electrolyte diffusion"] = pybamm.electrolyte_diffusion.Full(
             self.param
         )
+    def set_decomposition_submodel(self):
+        self.submodels["anode decomposition"] = pybamm.decomposition.NoAnodeDecomposition(self.param)
+        self.submodels["cathode decomposition"] = pybamm.decomposition.NoCathodeDecomposition(self.param)
+        self.submodels["SEI decomposition"] = pybamm.decomposition.NoSeiDecomposition(self.param)
