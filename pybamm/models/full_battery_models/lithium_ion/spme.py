@@ -47,7 +47,6 @@ class SPMe(BaseModel):
         self.set_positive_electrode_submodel()
         self.set_thermal_submodel()
         self.set_current_collector_submodel()
-        self.set_decomposition_submodel()
         self.set_sei_submodel()
 
         if build:
@@ -80,22 +79,13 @@ class SPMe(BaseModel):
         )
 
     def set_interfacial_submodel(self):
-        if self.options["kinetics"] == "modified BV":
-            self.submodels["negative interface"] = pybamm.interface.ButlerVolmer(
-                self.param, "Negative", "lithium-ion main", self.options
-            )
 
-            self.submodels["positive interface"] = pybamm.interface.ModifiedButlerVolmer(
-                self.param, "Positive", "lithium-ion main", self.options
-            )
-        else:
-                
-            self.submodels["negative interface"] = pybamm.interface.InverseButlerVolmer(
-                self.param, "Negative", "lithium-ion main", self.options
-            )
-            self.submodels["positive interface"] = pybamm.interface.InverseButlerVolmer(
-                self.param, "Positive", "lithium-ion main", self.options
-            )
+        self.submodels["negative interface"] = pybamm.interface.InverseButlerVolmer(
+            self.param, "Negative", "lithium-ion main", self.options
+        )
+        self.submodels["positive interface"] = pybamm.interface.InverseButlerVolmer(
+            self.param, "Positive", "lithium-ion main", self.options
+        )
         self.submodels[
             "negative interface current"
         ] = pybamm.interface.CurrentForInverseButlerVolmer(
@@ -182,23 +172,3 @@ class SPMe(BaseModel):
         self.submodels["electrolyte diffusion"] = pybamm.electrolyte_diffusion.Full(
             self.param
         )
-
-    def set_decomposition_submodel(self):
-        if "decomposition" in self.options["side reactions"]:
-            self.submodels["anode decomposition"] = pybamm.decomposition.AnodeDecomposition(self.param)
-            self.submodels["cathode decomposition"] = pybamm.decomposition.CathodeDecomposition(self.param)
-            self.submodels["SEI decomposition"] = pybamm.decomposition.SeiDecomposition(self.param)
-        else:
-            self.submodels["anode decomposition"] = pybamm.decomposition.NoAnodeDecomposition(self.param)
-            self.submodels["cathode decomposition"] = pybamm.decomposition.NoCathodeDecomposition(self.param)
-            self.submodels["SEI decomposition"] = pybamm.decomposition.NoSeiDecomposition(self.param)
-
-    @property
-    def default_geometry(self):
-        dimensionality = self.options["dimensionality"]
-        if dimensionality == 0:
-            return pybamm.Geometry("1D macro", "1D micro")
-        elif dimensionality == 1:
-            return pybamm.Geometry("1+1D macro", "(1+0)+1D micro")
-        elif dimensionality == 2:
-            return pybamm.Geometry("2+1D macro", "(2+0)+1D micro")

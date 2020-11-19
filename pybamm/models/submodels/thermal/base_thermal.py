@@ -91,6 +91,9 @@ class BaseThermal(pybamm.BaseSubModel):
         T = variables["Cell temperature"]
         T_n, _, T_p = T.orphans
 
+        a_n = variables["Negative electrode surface area per unit volume"]
+        a_p = variables["Positive electrode surface area per unit volume"]
+
         j_n = variables["Negative electrode interfacial current density"]
         j_p = variables["Positive electrode interfacial current density"]
 
@@ -151,8 +154,8 @@ class BaseThermal(pybamm.BaseSubModel):
         )
 
         # Reversible electrochemical heating
-        Q_rev_n = j_n * (param.Theta ** (-1) + T_n) * dUdT_n
-        Q_rev_p = j_p * (param.Theta ** (-1) + T_p) * dUdT_p
+        Q_rev_n = a_n * j_n * (param.Theta ** (-1) + T_n) * dUdT_n
+        Q_rev_p = a_p * j_p * (param.Theta ** (-1) + T_p) * dUdT_p
         Q_rev = pybamm.Concatenation(
             *[
                 Q_rev_n,
