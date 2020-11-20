@@ -159,7 +159,7 @@ plot = pybamm.QuickPlot(
         "X-averaged Ohmic heating [W.m-3]",
         "X-averaged irreversible electrochemical heating [W.m-3]",
         "X-averaged total heating [W.m-3]",
-        "Negative electrode average extent of lithiation",        
+        "X-averaged negative electrode extent of lithiation",        
     ],
     time_unit="seconds",
     spatial_unit="um",

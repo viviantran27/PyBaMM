@@ -171,8 +171,8 @@ for model in models:
         solution = pybamm.ScikitsDaeSolver().solve(model, t_eval, external_variables = external_variables)
 
     else:
-        solution = pybamm.ScikitsDaeSolver().solve(model, t_eval)
-        # solution = model.default_solver.solve(model, t_eval)
+        # solution = pybamm.ScikitsDaeSolver().solve(model, t_eval)
+        solution = model.default_solver.solve(model, t_eval)
 
     solutions.append(solution)
 
@@ -231,7 +231,7 @@ plot = pybamm.QuickPlot(
         # "X-averaged Ohmic heating [W.m-3]",
         "X-averaged irreversible electrochemical heating [W.m-3]",
         # "X-averaged total heating [W.m-3]",
-        "Negative electrode average extent of lithiation",     
+        "X-averaged negative electrode extent of lithiation",     
         # "Exchange current density [A.m-2]",           
     ],
     time_unit="seconds",
