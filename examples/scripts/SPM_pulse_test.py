@@ -75,7 +75,7 @@ plot = pybamm.QuickPlot(
         "Positive electrode potential [V]",
         "Terminal voltage [V]",
         "X-averaged cell temperature [K]",
-        "Negative electrode average extent of lithiation",
+        "X-averaged negative electrode extent of lithiation",
         
     ],
     time_unit="seconds",
