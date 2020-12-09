@@ -28,12 +28,12 @@ operating_mode = ExternalCircuitResistanceFunction()
 
 options1 = {
     "thermal": "two-state lumped",
-    "side reactions": "decomposition",
+    # "side reactions": "decomposition",
     "operating mode": operating_mode,
     "kinetics": "modified BV" 
 }
 options2 = {
-    "thermal": "two-state lumped",
+    "thermal": "lumped",
     "operating mode": operating_mode,
     "kinetics": "modified BV" 
 }
@@ -108,8 +108,11 @@ for model in models:
         "Lower voltage cut-off [V]": 0,
         # "Ambient temperature [K]": 390, 
         # "Initial temperature [K]": 390, 
-        "Resistance [ohm]": 0.2, #0.011, #Rint=~1.5mOhm
-        "Edge heat transfer coefficient [W.m-2.K-1]":1000,
+        "Resistance [ohm]": 0.03, #0.011, #Rint=~1.5mOhm
+        "Edge heat transfer coefficient [W.m-2.K-1]":2000,
+        "Negative tab heat transfer coefficient [W.m-2.K-1]":2000,
+        "Positive tab heat transfer coefficient [W.m-2.K-1]":2000,
+        "Total tab heat transfer coefficient [W.m-2.K-1]":2000,
         # "Separator thermal conductivity [W.m-1.K-1]":0.16*0.01,
         # "Negative electrode thermal conductivity [W.m-1.K-1]": 1.7*0.01,
         },
@@ -141,8 +144,6 @@ for model in models:
         var.x_p: 20*scale,
         var.r_n: 10*scale,
         var.r_p: 10*scale,
-        var.y: 10*scale,
-        var.z: 10*scale,
     }
     mesh = pybamm.Mesh(geometry, model.default_submesh_types, var_pts)
 
@@ -173,6 +174,8 @@ for model in models:
     else:
         # solution = pybamm.ScikitsDaeSolver().solve(model, t_eval)
         solution = model.default_solver.solve(model, t_eval)
+        # fast = pybamm.CasadiSolver(mode="fast", extra_options_setup={"max_num_steps": 1000})
+        # solution = sim.solve() 
 
     solutions.append(solution)
 

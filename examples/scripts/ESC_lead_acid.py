@@ -29,7 +29,7 @@ param.update({
     # "Ambient temperature [K]": 390, 
     # "Initial temperature [K]": 390,
     "Edge heat transfer coefficient [W.m-2.K-1]": 10,
-    "Resistance [ohm]": 0.1,
+    "Resistance [ohm]": 0.5,
     },
     check_already_exists=False
 )
@@ -52,7 +52,7 @@ for model in models:
 
 # solve model
 solutions = [None] * len(models)
-t_eval = np.linspace(0, 3600, 100)
+t_eval = np.linspace(0, 3600*5, 100)
 for i, model in enumerate(models):
     solver = pybamm.CasadiSolver(atol=1e-8, rtol=1e-8)
     solution = solver.solve(model, t_eval)

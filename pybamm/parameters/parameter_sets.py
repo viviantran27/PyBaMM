@@ -132,16 +132,17 @@ Ramadass2004 = {
     "citation": "marquis2019asymptotic",
 }
 
-# same as Chen2020 but includes additional Cai2019 thermal runaway parameters
+# same as Mohtat2020 but includes additional Cai2019 thermal runaway parameters
 Cai2019 = {
     "chemistry": "lithium-ion",
-    "cell": "LGM50_Chen2020",
+    "cell": "UMBL_Mohtat2020",
     "anode": "graphite_Cai2019",
-    "separator": "separator_Chen2020",
+    "separator": "separator_Mohtat2020",
     "cathode": "nmc_Cai2019",
-    "electrolyte": "lipf6_Nyman2008",
-    "experiment": "1C_discharge_from_full_Chen2020",
-    "citation": ["Chen2020", "cai2019modeling"],
+    "electrolyte": "LiPF6_Mohtat2020",
+    "experiment": "1C_discharge_from_full_Mohtat2020",
+    "sei": "example",
+    "citation": "mohtat2020differential",
 }
 Prada2013 = {
     "chemistry": "lithium-ion",

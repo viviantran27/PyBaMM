@@ -1,17 +1,15 @@
 from pybamm import exp, constants, Parameter
 
 
-def graphite_LGM50_electrolyte_exchange_current_density_Chen2020(c_e, c_s_surf, T):
+def graphite_electrolyte_exchange_current_density_PeymanMPM(c_e, c_s_surf, T):
     """
     Exchange-current density for Butler-Volmer reactions between graphite and LiPF6 in
     EC:DMC.
+    Check the unit of Reaction rate constant k0 is from Peyman MPM.
 
     References
     ----------
-    .. [1] Chang-Hui Chen, Ferran Brosa Planella, Kieran O’Regan, Dominika Gastol, W.
-    Dhammika Widanage, and Emma Kendrick. "Development of Experimental Techniques for
-    Parameterization of Multi-scale Lithium-ion Battery Models." Journal of the
-    Electrochemical Society 167 (2020): 080534.
+    .. [2] http://www.cchem.berkeley.edu/jsngrp/fortran.html
 
     Parameters
     ----------
@@ -27,9 +25,9 @@ def graphite_LGM50_electrolyte_exchange_current_density_Chen2020(c_e, c_s_surf, 
     :class:`pybamm.Symbol`
         Exchange-current density [A.m-2]
     """
-
-    m_ref = 6.48e-7  # (A/m2)(mol/m3)**1.5 - includes ref concentrations
-    E_r = 35000
+    m_ref = 1.061 * 10 ** (-6)  # unit has been converted
+    # units are (A/m2)(mol/m3)**1.5 - includes ref concentrations
+    E_r = 37480
     arrhenius = exp(E_r / constants.R * (1 / 298.15 - 1 / T))
 
     c_n_max = Parameter("Maximum concentration in negative electrode [mol.m-3]")
