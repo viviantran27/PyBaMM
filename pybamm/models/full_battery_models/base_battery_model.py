@@ -56,7 +56,7 @@ class BaseBatteryModel(pybamm.BaseModel):
                 necessarily consistent with the particle shape.
             * "thermal" : str, optional
                 Sets the thermal model to use. Can be "isothermal" (default), "lumped",
-                "x-lumped", or "x-full".
+                "x-lumped", "two-state lumped", or "x-full".
             * "external submodels" : list
                 A list of the submodels that you would like to supply an external
                 variable for instead of solving in PyBaMM. The entries of the lists

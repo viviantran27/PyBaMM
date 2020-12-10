@@ -41,9 +41,12 @@ class TwoStateLumped(BaseThermal):
         variables = self._get_standard_fundamental_variables(
             T_cn, T_n, T_s, T_p, T_cp, T_x_av, T_vol_av
         )
+
+        dT_surf = (T_vol_av-T_surface)*param.Delta_T
         variables.update({
             "Surface cell temperature": T_surface,
-            "Surface cell temperature [K]": T_surface_dim})
+            "Surface cell temperature [K]": T_surface_dim, 
+            "Core-surface temperature difference [K]": dT_surf})
         return variables
 
     def get_coupled_variables(self, variables):
@@ -55,6 +58,7 @@ class TwoStateLumped(BaseThermal):
         Q_vol_av = variables["Volume-averaged total heating"]
         T_amb = variables["Ambient temperature"]
         T_surface = variables["Surface cell temperature"] 
+
         # Account for surface area to volume ratio in cooling coefficient
         # Note: assumes pouch cell geometry. The factor 1/delta^2 comes from
         # the choice of non-dimensionalisation.
@@ -97,15 +101,16 @@ class TwoStateLumped(BaseThermal):
             + edge_cooling_coefficient
         )
 
-        lambda_k = pybamm.x_average(self.param.lambda_k * yz_cell_surface_area / cell_volume / self.param.delta)
+        lambda_k = pybamm.x_average(self.param.lambda_k) #pybamm.x_average(self.param.lambda_k * yz_cell_surface_area / cell_volume / self.param.delta)
         
         self.rhs = {
             T_vol_av: (
-                self.param.B * Q_vol_av +  lambda_k * (T_surface - T_vol_av)
+                self.param.B * Q_vol_av +  lambda_k * (T_surface - T_vol_av)/ self.param.delta ** 2
             )
             / (self.param.C_th * self.param.rho),
             T_surface: (
-                total_cooling_coefficient * (T_surface - T_amb) + lambda_k * (T_vol_av - T_surface)
+                total_cooling_coefficient * (T_amb-T_surface) + 
+                lambda_k * (T_vol_av - T_surface)/ self.param.delta ** 2
             )
             / (self.param.C_th * self.param.rho)
         }
