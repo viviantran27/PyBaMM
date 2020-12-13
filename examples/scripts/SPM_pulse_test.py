@@ -40,8 +40,8 @@ for model in models:
         {
         # "Cell capacity [A.h]": 10, #match Kriston et al.
         # "Typical current [A]": 10, #match Kriston et al.
-        "Edge heat transfer coefficient [W.m-2.K-1]": 30,
-        "Current function [A]": pulse_test(1*60, 5*60, 5*2),
+        # "Edge heat transfer coefficient [W.m-2.K-1]": 30,
+        "Current function [A]": pulse_test(2*60, 5*60, 5*2),
         },
         check_already_exists=False,
     )
@@ -83,7 +83,7 @@ plot = pybamm.QuickPlot(
 )
 plot.dynamic_plot()
 solution.save_data(
-    "output.csv",
+    "pulse.csv",
     [
         "Time [h]",
         "Current [A]",

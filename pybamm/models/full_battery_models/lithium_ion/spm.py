@@ -167,8 +167,8 @@ class SPM(BaseModel):
 
     def set_decomposition_submodel(self):
         if "decomposition" in self.options["side reactions"]:
-            self.submodels["anode decomposition"] = pybamm.decomposition.AnodeDecomposition(self.param)
-            self.submodels["cathode decomposition"] = pybamm.decomposition.CathodeDecomposition(self.param)
+            self.submodels["anode decomposition"] = pybamm.decomposition.NoAnodeDecomposition(self.param)
+            self.submodels["cathode decomposition"] = pybamm.decomposition.NoCathodeDecomposition(self.param)
             self.submodels["SEI decomposition"] = pybamm.decomposition.SeiDecomposition(self.param)
         else:
             self.submodels["anode decomposition"] = pybamm.decomposition.NoAnodeDecomposition(self.param)

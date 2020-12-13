@@ -24,7 +24,8 @@ def NMC_ocp_PeymanMPM(sto):
         - 2.0843 * sto ** 3
         + 3.5146 * sto ** 4
         - 2.2166 * sto ** 5
-        - 0.5623 * 10 ** (-4) * pybamm.exp(109.451 * sto - 100.006)
+        - 0.5623 * 10 ** (-4) * pybamm.exp(109.451 * sto - 100.006) 
+        * 0.5 * (-pybamm.tanh((sto-1)*200)+1) * 0.5 * (pybamm.tanh((sto+0.5)*200)+1) #prevent from blowing up 
     )
 
     return u_eq

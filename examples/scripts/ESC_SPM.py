@@ -28,7 +28,7 @@ operating_mode = ExternalCircuitResistanceFunction()
 
 options1 = {
     "thermal": "two-state lumped",
-    # "side reactions": "decomposition",
+    "side reactions": "decomposition",
     "operating mode": operating_mode,
     "kinetics": "modified BV" 
 }
@@ -45,15 +45,15 @@ geometry = model.default_geometry
 param = pybamm.ParameterValues(chemistry=pybamm.parameter_sets.Cai2019)
 param.update(
     {
-    "Cell capacity [A.h]": 10, #match Kriston et al.
-    "Typical current [A]": 10, #match Kriston et al.
+    "Cell capacity [A.h]": 10, 
+    "Typical current [A]": 10, 
     "Lower voltage cut-off [V]": 0,
-
-    "Resistance [ohm]": 0.03, #0.011, #Rint=~1.5mOhm
-    # "Edge heat transfer coefficient [W.m-2.K-1]":10,
-    # "Negative tab heat transfer coefficient [W.m-2.K-1]":10,
-    # "Positive tab heat transfer coefficient [W.m-2.K-1]":10,
-    # "Total tab heat transfer coefficient [W.m-2.K-1]":10,
+    "Resistance [ohm]": 0.030, #0.011, 
+    
+    "Edge heat transfer coefficient [W.m-2.K-1]":60,
+    "Negative tab heat transfer coefficient [W.m-2.K-1]":60,
+    "Positive tab heat transfer coefficient [W.m-2.K-1]":60,
+    "Total tab heat transfer coefficient [W.m-2.K-1]":60,
     # "Cell cooling surface area [m2]": 0.41,
 
     # "Frequency factor for SEI decomposition [s-1]":2.25E15, #2.25E15 default
@@ -86,9 +86,10 @@ disc = pybamm.Discretisation(mesh, model.default_spatial_methods)
 disc.process_model(model)
         
 # solve model 
-t_end = [3600*1]
+t_end = [3600]
 t_eval = np.linspace(0,t_end[0], 5000)
-solution = model.default_solver.solve(model, t_eval)
+solver = pybamm.CasadiSolver(mode="safe", dt_max= 1, extra_options_setup={"max_num_steps": 1000})
+solution = solver.solve(model, t_eval)
 
 
 
@@ -139,10 +140,10 @@ plot = pybamm.QuickPlot(
         "Surface cell temperature [K]",
         # "Ambient temperature [K]",
         # "Relative SEI thickness",
-        # "Fraction of Li in SEI",
+        "Fraction of Li in SEI",
         # "Degree of conversion of cathode decomposition",
-        "Anode decomposition heating [W.m-3]",
-        "Cathode decomposition heating [W.m-3]",
+        # "Anode decomposition heating [W.m-3]",
+        # "Cathode decomposition heating [W.m-3]",
         "SEI decomposition heating [W.m-3]",
         # "X-averaged Ohmic heating [W.m-3]",
         "X-averaged irreversible electrochemical heating [W.m-3]",
@@ -155,4 +156,17 @@ plot = pybamm.QuickPlot(
     spatial_unit="um",
 )
 plot.dynamic_plot()
+
+#save data to csv
+solution.save_data(
+    "ESC_30mOhm.csv",
+    [
+        "Time [h]",
+        "Current [A]",
+        "Terminal voltage [V]",
+        "Discharge capacity [A.h]",
+        "X-averaged cell temperature [K]",
+    ],
+    to_format="csv",
+)
 
