@@ -3,8 +3,10 @@
 #
 # NOTE: For solver integration error, reduce the t_eval endtime.
 
-import pybamm
+import pybamm 
 import numpy as np
+from shutil import copy
+
 
 pybamm.set_logging_level("INFO")
 
@@ -13,7 +15,7 @@ class ExternalCircuitResistanceFunction():
     def __call__(self, variables):
         I = variables["Current [A]"]
         V = variables["Terminal voltage [V]"]
-        return V / I - pybamm.FunctionParameter("Resistance [ohm]", {"Time [s]": pybamm.t})
+        return V - I*pybamm.FunctionParameter("Resistance [ohm]", {"Time [s]": pybamm.t})
 
 
 def pulse_test(pulse_time, rest_time, pulse_current):
@@ -27,7 +29,7 @@ def pulse_test(pulse_time, rest_time, pulse_current):
 operating_mode = ExternalCircuitResistanceFunction() 
 
 options1 = {
-    "thermal": "two-state lumped",
+    "thermal": "x-lumped",
     "side reactions": "decomposition",
     "operating mode": operating_mode,
     "kinetics": "modified BV" 
@@ -43,25 +45,29 @@ geometry = model.default_geometry
 
 # load parameter values and process model and geometry
 param = pybamm.ParameterValues(chemistry=pybamm.parameter_sets.Cai2019)
+soc_0 = 1
 param.update(
     {
-    "Cell capacity [A.h]": 10, 
-    "Typical current [A]": 10, 
     "Lower voltage cut-off [V]": 0,
-    "Resistance [ohm]": 0.030, #0.011, 
+    "Resistance [ohm]": 0.017, #0.011, 
     
-    "Edge heat transfer coefficient [W.m-2.K-1]":60,
-    "Negative tab heat transfer coefficient [W.m-2.K-1]":60,
-    "Positive tab heat transfer coefficient [W.m-2.K-1]":60,
-    "Total tab heat transfer coefficient [W.m-2.K-1]":60,
-    # "Cell cooling surface area [m2]": 0.41,
+    "Cell capacity [A.h]": 4.6, 
+    "Typical current [A]": 4.6,
+    "Ambient temperature [K]":296.7,
+    "Initial temperature [K]": 296.7,
+    "Initial concentration in negative electrode [mol.m-3]":(soc_0*(0.87-0.0017)+0.0017)*28746, #x0 (0.0017) * Csmax_n(28746)
+    "Initial concentration in positive electrode [mol.m-3]":(0.8907-soc_0*(0.8907-0.03))*35380, #y0 (0.8907) * Csmax_p(35380)
 
-    # "Frequency factor for SEI decomposition [s-1]":2.25E15, #2.25E15 default
-    # "Frequency factor for cathode decomposition [s-1]":2.55E14, #2.55E14 default
-    # "Frequency factor for anode decomposition [s-1]":2.5E13, #2.5E13 default
-    "Activation energy for SEI decomposition [J]":2.03E-19,
-    "Activation energy for anode decomposition [J]":2.03E-19,
-    "Activation energy for cathode decomposition [J]": 2.1E-19,
+    "Negative current collector surface heat transfer coefficient [W.m-2.K-1]": 10,  
+    "Positive current collector surface heat transfer coefficient [W.m-2.K-1]": 10,  
+    "Negative tab heat transfer coefficient [W.m-2.K-1]":20,  
+    "Positive tab heat transfer coefficient [W.m-2.K-1]":20,  
+    "Edge heat transfer coefficient [W.m-2.K-1]":20,
+    "Total heat transfer coefficient [W.m-2.K-1]":20,
+    "Negative electrode thickness [m]":62E-06*4.2/5, 
+    "Positive electrode thickness [m]":67E-06*4.2/5,
+    # "Negative electrode diffusion coefficient [m2.s-1]":5.0E-16,
+    "Positive particle radius [m]": 3.5E-06*10,
     },
     check_already_exists=False,
 )
@@ -86,40 +92,29 @@ disc = pybamm.Discretisation(mesh, model.default_spatial_methods)
 disc.process_model(model)
         
 # solve model 
-t_end = [3600]
+t_end = [100]
 t_eval = np.linspace(0,t_end[0], 5000)
-solver = pybamm.CasadiSolver(mode="safe", dt_max= 1, extra_options_setup={"max_num_steps": 1000})
+solver = pybamm.CasadiSolver(mode="safe", dt_max= 0.0001, extra_options_setup={"max_num_steps": 1000})
 solution = solver.solve(model, t_eval)
 
 
+#save data to csv and copy to a different folder for matlab processing 
+filename = "ESC_17mOhm_100SOC.csv"
+solution.save_data(
+    filename,
+    [
+        "Time [h]",
+        "Current [A]",
+        "Terminal voltage [V]",
+        "Discharge capacity [A.h]",
+        "X-averaged cell temperature [K]",
+    ],
+    to_format="csv",
+)
+src = "C:/Users/Vivian/Documents/PyBaMM/" + filename 
+dst = "C:/Users/Vivian/Box/Research/ESC modeling/ESC/Sim/" + filename
+copy(src, dst)
 
-# save data
-# solutions[0].save_data(
-#     "ESC_SPM.csv",
-#     [
-#         "Time [h]",
-#         "Current [A]",
-#         "Terminal voltage [V]",
-#         "Discharge capacity [A.h]",
-#         "X-averaged cell temperature [K]",
-#     ],
-#     to_format="csv",
-# )
-# solutions[1].save_data(
-#     "ESC_SPM1.csv",
-#     [
-#         "Time [h]",
-#         "Current [A]",
-#         "Terminal voltage [V]",
-#         "Discharge capacity [A.h]",
-#         "X-averaged cell temperature [K]",
-#     ],
-#     to_format="csv",
-# )
-
-# print("Done saving data to csv.")
-
-# plot
 plot = pybamm.QuickPlot(
     solution,
     [   "Current [A]",
@@ -137,7 +132,7 @@ plot = pybamm.QuickPlot(
         # "Anode decomposition reaction rate",
         # "Cathode decomposition reaction rate",
         "X-averaged cell temperature [K]",
-        "Surface cell temperature [K]",
+        # "Surface cell temperature [K]",
         # "Ambient temperature [K]",
         # "Relative SEI thickness",
         "Fraction of Li in SEI",
@@ -150,23 +145,12 @@ plot = pybamm.QuickPlot(
         # "X-averaged total heating [W.m-3]",
         "X-averaged negative electrode extent of lithiation",     
         # "Exchange current density [A.m-2]",           
-        "Core-surface temperature difference [K]"
+        # "Core-surface temperature difference [K]"
     ],
     time_unit="seconds",
     spatial_unit="um",
 )
 plot.dynamic_plot()
 
-#save data to csv
-solution.save_data(
-    "ESC_30mOhm.csv",
-    [
-        "Time [h]",
-        "Current [A]",
-        "Terminal voltage [V]",
-        "Discharge capacity [A.h]",
-        "X-averaged cell temperature [K]",
-    ],
-    to_format="csv",
-)
+
 

@@ -150,12 +150,12 @@ class DFN(BaseModel):
         self.submodels["SEI decomposition"] = pybamm.decomposition.NoSeiDecomposition(self.param)
 
 
-    @property
-    def default_geometry(self):
-        dimensionality = self.options["dimensionality"]
-        if dimensionality == 0:
-            return pybamm.Geometry("1D macro", "1+1D micro")
-        elif dimensionality == 1:
-            return pybamm.Geometry("1+1D macro", "(1+1)+1D micro")
-        elif dimensionality == 2:
-            return pybamm.Geometry("2+1D macro", "(2+1)+1D micro")
+    # @property
+    # def default_geometry(self):
+    #     dimensionality = self.options["dimensionality"]
+    #     if dimensionality == 0:
+    #         return pybamm.Geometry("1D macro", "1+1D micro")
+    #     elif dimensionality == 1:
+    #         return pybamm.Geometry("1+1D macro", "(1+1)+1D micro")
+    #     elif dimensionality == 2:
+    #         return pybamm.Geometry("2+1D macro", "(2+1)+1D micro")

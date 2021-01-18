@@ -21,12 +21,12 @@ def pulse_test(pulse_time, rest_time, pulse_current):
 operating_mode = "current"
 
 options = {
-    "thermal": "x-lumped",
+    "thermal": "two-state lumped",
     "side reactions": "decomposition",
     "operating mode": operating_mode, 
 }
 models = [
-    pybamm.lithium_ion.SPM({"thermal": "x-lumped","operating mode": operating_mode}, name="without decomposition"),
+    pybamm.lithium_ion.SPM({"thermal": "lumped", "operating mode": operating_mode}, name="without decomposition"),
 ]
 
 solutions = []
@@ -38,10 +38,21 @@ for model in models:
     param = pybamm.ParameterValues(chemistry=pybamm.parameter_sets.Cai2019)
     param.update(
         {
-        # "Cell capacity [A.h]": 10, #match Kriston et al.
-        # "Typical current [A]": 10, #match Kriston et al.
-        # "Edge heat transfer coefficient [W.m-2.K-1]": 30,
-        "Current function [A]": pulse_test(2*60, 5*60, 5*2),
+        # "Cell capacity [A.h]": 0.5, 
+        # "Typical current [A]": 0.5,
+        "Current function [A]": pulse_test(2*60, 5*60, 9),
+        "Edge heat transfer coefficient [W.m-2.K-1]": 3000,
+        "Negative electrode thickness [m]":62E-06*4.2/5, # cell 43 
+        "Positive electrode thickness [m]":67E-06*4.2/5,
+        # "Separator thickness [m]":12E-06,
+        # "Positive electrode conductivity [S.m-1]":100,
+        # "Negative electrode conductivity [S.m-1]":100,
+        # "Positive particle radius [m]": 3.5E-06*2,
+        # "Negative particle radius [m]":2.5E-06*2,
+        # "Initial concentration in negative electrode [mol.m-3]": 0.87*28746, #x0 (soc_0*(0.87-0.0017)+0.0017)*28746 (0.0017) * Csmax_n(28746)
+        # "Initial concentration in positive electrode [mol.m-3]": 0.025*35380, #y0 (0.8907-soc_0*(0.8907-0.03))*35380 (0.8907) * Csmax_p(35380) 
+        "Ambient temperature [K]": 23+273.15,
+        "Initial temperature [K]": 23+273.15,
         },
         check_already_exists=False,
     )
@@ -57,10 +68,23 @@ for model in models:
     disc.process_model(model)
 
     # solve model 
-    t_eval = np.linspace(0,3600*2, 36000)
+    t_eval = np.linspace(0,5532, 3600)
     solution = model.default_solver.solve(model, t_eval)
 
     solutions.append(solution)
+
+# save data to csv
+solution.save_data(
+    "pulse.csv",
+    [
+        "Time [h]",
+        "Current [A]",
+        "Terminal voltage [V]",
+        "Discharge capacity [A.h]",
+        "X-averaged cell temperature [K]",
+    ],
+    to_format="csv",
+)
 
 # plot
 plot = pybamm.QuickPlot(
@@ -82,14 +106,4 @@ plot = pybamm.QuickPlot(
     spatial_unit="um",
 )
 plot.dynamic_plot()
-solution.save_data(
-    "pulse.csv",
-    [
-        "Time [h]",
-        "Current [A]",
-        "Terminal voltage [V]",
-        "Discharge capacity [A.h]",
-        "X-averaged cell temperature [K]",
-    ],
-    to_format="csv",
-)
+
