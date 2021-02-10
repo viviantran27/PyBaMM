@@ -49,7 +49,7 @@ soc_0 = 1
 param.update(
     {
     "Lower voltage cut-off [V]": 0,
-    "Resistance [ohm]": 0.017, #0.011, 
+    "Resistance [ohm]": 0.016, # matches 100% SOC ESC data
     
     "Cell capacity [A.h]": 4.6, 
     "Typical current [A]": 4.6,
@@ -67,7 +67,7 @@ param.update(
     "Negative electrode thickness [m]":62E-06*4.2/5, 
     "Positive electrode thickness [m]":67E-06*4.2/5,
     # "Negative electrode diffusion coefficient [m2.s-1]":5.0E-16,
-    "Positive particle radius [m]": 3.5E-06*10,
+    "Positive particle radius [m]": 3.5E-06*6,
     },
     check_already_exists=False,
 )
@@ -94,12 +94,12 @@ disc.process_model(model)
 # solve model 
 t_end = [100]
 t_eval = np.linspace(0,t_end[0], 5000)
-solver = pybamm.CasadiSolver(mode="safe", dt_max= 0.0001, extra_options_setup={"max_num_steps": 1000})
+solver = pybamm.CasadiSolver(mode="safe", dt_max= 0.001, extra_options_setup={"max_num_steps": 1000})
 solution = solver.solve(model, t_eval)
 
 
-#save data to csv and copy to a different folder for matlab processing 
-filename = "ESC_17mOhm_100SOC.csv"
+# save data to csv and copy to a different folder for matlab processing 
+filename = "ESC_16mOhm_100SOC.csv"
 solution.save_data(
     filename,
     [
@@ -115,6 +115,7 @@ src = "C:/Users/Vivian/Documents/PyBaMM/" + filename
 dst = "C:/Users/Vivian/Box/Research/ESC modeling/ESC/Sim/" + filename
 copy(src, dst)
 
+# plot simulation results
 plot = pybamm.QuickPlot(
     solution,
     [   "Current [A]",

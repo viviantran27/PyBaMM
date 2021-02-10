@@ -87,6 +87,10 @@ class BaseThermal(pybamm.BaseSubModel):
     def _get_standard_coupled_variables(self, variables):
 
         param = self.param
+        Q_scale = param.i_typ * param.potential_scale / param.L_x # moved to accommodate tabbing I^2R
+        I = variables["Current [A]"]
+        R_tab = pybamm.Parameter("Tabbing resistance [ohm]")
+        Q_tabbing = I**2*R_tab/ param.V_cell/2/Q_scale # originally W.m-3
 
         T = variables["Cell temperature"]
         T_n, _, T_p = T.orphans
@@ -133,7 +137,7 @@ class BaseThermal(pybamm.BaseSubModel):
             Q_ohm_e = -pybamm.inner(i_e, pybamm.grad(phi_e))
 
         # Total Ohmic heating
-        Q_ohm = Q_ohm_s + Q_ohm_e
+        Q_ohm = Q_ohm_s + Q_ohm_e + Q_tabbing
 
         # Side reaction heating
         Q_decomposition_an = variables["Anode decomposition heating"]
@@ -180,7 +184,6 @@ class BaseThermal(pybamm.BaseSubModel):
         Q_vol_av = self._yz_average(Q_av)
 
         # Dimensional scaling for heat source terms
-        Q_scale = param.i_typ * param.potential_scale / param.L_x
 
         variables.update(
             {
@@ -210,6 +213,8 @@ class BaseThermal(pybamm.BaseSubModel):
                 "X-averaged total heating [W.m-3]": Q_av * Q_scale,
                 "Volume-averaged total heating": Q_vol_av,
                 "Volume-averaged total heating [W.m-3]": Q_vol_av * Q_scale,
+
+                "Tab heating [W.m-3]": Q_tabbing*Q_scale
             }
         )
         return variables

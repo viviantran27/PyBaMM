@@ -6,6 +6,8 @@
 # .
 import pybamm
 import numpy as np
+from shutil import copy
+
 
 pybamm.set_logging_level("INFO")
 
@@ -21,12 +23,14 @@ def pulse_test(pulse_time, rest_time, pulse_current):
 operating_mode = "current"
 
 options = {
-    "thermal": "two-state lumped",
-    "side reactions": "decomposition",
+    "current collector": "potential pair",
+    "thermal": "x-lumped",
+    # "side reactions": "decomposition",
     "operating mode": operating_mode, 
+    "dimensionality":1,
 }
 models = [
-    pybamm.lithium_ion.SPM({"thermal": "lumped", "operating mode": operating_mode}, name="without decomposition"),
+    pybamm.lithium_ion.SPM(options, name="SPM"),
 ]
 
 solutions = []
@@ -35,6 +39,7 @@ for model in models:
     geometry = model.default_geometry
 
     # load parameter values and process model and geometry
+    soc_0 = 1
     param = pybamm.ParameterValues(chemistry=pybamm.parameter_sets.Cai2019)
     param.update(
         {
@@ -42,35 +47,45 @@ for model in models:
         # "Typical current [A]": 0.5,
         "Current function [A]": pulse_test(2*60, 5*60, 9),
         "Edge heat transfer coefficient [W.m-2.K-1]": 3000,
-        "Negative electrode thickness [m]":62E-06*4.2/5, # cell 43 
-        "Positive electrode thickness [m]":67E-06*4.2/5,
+        "Negative electrode thickness [m]":62E-06*100, # cell 43 
+        "Positive electrode thickness [m]":67E-06*100,
         # "Separator thickness [m]":12E-06,
         # "Positive electrode conductivity [S.m-1]":100,
         # "Negative electrode conductivity [S.m-1]":100,
         # "Positive particle radius [m]": 3.5E-06*2,
         # "Negative particle radius [m]":2.5E-06*2,
-        # "Initial concentration in negative electrode [mol.m-3]": 0.87*28746, #x0 (soc_0*(0.87-0.0017)+0.0017)*28746 (0.0017) * Csmax_n(28746)
-        # "Initial concentration in positive electrode [mol.m-3]": 0.025*35380, #y0 (0.8907-soc_0*(0.8907-0.03))*35380 (0.8907) * Csmax_p(35380) 
+        "Initial concentration in negative electrode [mol.m-3]": (soc_0*(0.87-0.0017)+0.0017)*28746, #x0 (soc_0*(0.87-0.0017)+0.0017)*28746 (0.0017) * Csmax_n(28746)
+        "Initial concentration in positive electrode [mol.m-3]": (0.8907-soc_0*(0.8907-0.03))*35380, #y0 (0.8907-soc_0*(0.8907-0.03))*35380 (0.8907) * Csmax_p(35380) 
+        # "Negative electrode diffusion coefficient [m2.s-1]":5.0E-15,
+        # "Positive particle radius [m]": 3.5E-06,
         "Ambient temperature [K]": 23+273.15,
         "Initial temperature [K]": 23+273.15,
+
+        "Negative tab centre z-coordinate [m]": 0,
+        "Positive tab centre z-coordinate [m]": pybamm.geometric_parameters.L_z,
+        # "Negative current collector conductivity [S.m-1]": 59600000*0.1,
+        # "Positive current collector conductivity [S.m-1]": 35500000*0.1,
         },
         check_already_exists=False,
     )
-    # param["Current function [A]"] = "[input]"
-    param.process_model(model)
-    param.process_geometry(geometry)
 
-    # set mesh
-    mesh = pybamm.Mesh(geometry, model.default_submesh_types, model.default_var_pts)
+    var = pybamm.standard_spatial_vars
+    scale = 2
+    var_pts =  {
+        var.x_n: 20*scale,
+        var.x_s: 20*scale,
+        var.x_p: 20*scale,
+        var.r_n: 10*scale,
+        var.r_p: 10*scale,
+        var.z: 10
+    }
 
-    # discretise model
-    disc = pybamm.Discretisation(mesh, model.default_spatial_methods)
-    disc.process_model(model)
+    sim = pybamm.Simulation(model, parameter_values=param, var_pts=var_pts) 
 
     # solve model 
-    t_eval = np.linspace(0,5532, 3600)
-    solution = model.default_solver.solve(model, t_eval)
-
+    # t_eval = np.linspace(0,5532, 3600)
+    t_eval = np.linspace(0,5532, 5532*5)
+    solution = sim.solve(solver=pybamm.CasadiSolver(mode="safe", dt_max= 0.001, extra_options_setup={"max_num_steps": 1000}), t_eval=t_eval)
     solutions.append(solution)
 
 # save data to csv
@@ -81,24 +96,27 @@ solution.save_data(
         "Current [A]",
         "Terminal voltage [V]",
         "Discharge capacity [A.h]",
-        "X-averaged cell temperature [K]",
+        "Volume-averaged cell temperature [K]",
     ],
     to_format="csv",
 )
+src = "C:/Users/Vivian/Documents/PyBaMM/pulse.csv" 
+dst = "C:/Users/Vivian/Box/Research/ESC modeling/dcr/pulse.csv"
+copy(src, dst)
 
 # plot
 plot = pybamm.QuickPlot(
     solutions,
     [
-        "X-averaged negative particle concentration",
-        "X-averaged positive particle concentration",
-        "Electrolyte concentration [mol.m-3]",
+        # "X-averaged negative particle concentration",
+        # "X-averaged positive particle concentration",
+        # "Electrolyte concentration [mol.m-3]",
         "Current [A]",
-        "Negative electrode potential [V]",
-        "Electrolyte potential [V]",
-        "Positive electrode potential [V]",
+        # "Negative electrode potential [V]",
+        # "Electrolyte potential [V]",
+        # "Positive electrode potential [V]",
         "Terminal voltage [V]",
-        "X-averaged cell temperature [K]",
+        "Volume-averaged cell temperature [K]",
         "X-averaged negative electrode extent of lithiation",
         
     ],
