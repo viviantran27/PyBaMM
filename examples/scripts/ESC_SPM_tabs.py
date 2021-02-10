@@ -28,22 +28,7 @@ options = {
 
 model = pybamm.lithium_ion.SPM(options, name="SPM w/ tabbing resistance")
 
-# add variable to confirm actual resistance is constant
-V = model.variables["Terminal voltage [V]"]
-I = model.variables["Current [A]"]
-R_tab = pybamm.Parameter("Tabbing resistance [ohm]")
-R_ext = pybamm.Parameter("External resistance [ohm]")
-
-model.variables.update({
-    "Terminal voltage [V]": V - I*R_tab,
-    "Actual resistance [ohm]":V/I,
-    }
-)
-
 # model.events={} #ignore all events
-
-# create geometry
-geometry = model.default_geometry
 
 # load parameter values and process model and geometry
 param = pybamm.ParameterValues(chemistry=pybamm.parameter_sets.Cai2019)
@@ -81,8 +66,6 @@ param.update(
     check_already_exists=False,
 )
 
-param.process_model(model)
-param.process_geometry(geometry)
 
 # set mesh
 var = pybamm.standard_spatial_vars
@@ -95,17 +78,12 @@ var_pts =  {
     var.r_p: 10*scale,
     var.z: 20*scale,
 }
-mesh = pybamm.Mesh(geometry, model.default_submesh_types, var_pts)
 
-# discretise model
-disc = pybamm.Discretisation(mesh, model.default_spatial_methods)
-disc.process_model(model)
-        
 # solve model 
 t_end = [600]
 t_eval = np.linspace(0,t_end[0], 1000)
-solver = pybamm.CasadiSolver(mode="safe", dt_max= 0.1, extra_options_setup={"max_num_steps": 1000})
-solution = solver.solve(model, t_eval)
+sim = pybamm.Simulation(model, parameter_values=param, var_pts=var_pts)
+solution = sim.solve(solver=pybamm.CasadiSolver(mode="safe", dt_max= 0.01, extra_options_setup={"max_num_steps": 1000}), t_eval=t_eval)
 
 
 # save data to csv and copy to a different folder for matlab processing 
@@ -161,7 +139,7 @@ plot = pybamm.QuickPlot(
         # # "Core-surface temperature difference [K]"
         "Volume-averaged cell temperature [K]",
         "Tab heating [W.m-3]",
-        "Actual resistance [ohm]",
+        "Local ECM resistance [Ohm]"
     ],
     time_unit="seconds",
     spatial_unit="um",
