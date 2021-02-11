@@ -15,7 +15,10 @@ models = [full_thermal_model]
 
 # load parameter values and process models and geometry
 param = models[0].default_parameter_values
-param.update({"Edge heat transfer coefficient [W.m-2.K-1]": 1})
+param.update({
+    "Edge heat transfer coefficient [W.m-2.K-1]": 15,
+    "Ambient temperature [K]":273.15,
+    "Initial temperature [K]": 273.15,})
 
 for model in models:
     param.process_model(model)

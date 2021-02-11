@@ -89,7 +89,7 @@ class BaseThermal(pybamm.BaseSubModel):
         param = self.param
         Q_scale = param.i_typ * param.potential_scale / param.L_x # moved to accommodate tabbing I^2R
         I = variables["Current [A]"]
-        R_tab = pybamm.Parameter("Tabbing resistance [ohm]")
+        R_tab = pybamm.Parameter("Tabbing resistance [Ohm]")
         Q_tabbing = I**2*R_tab/ param.V_cell/2/Q_scale # originally W.m-3
 
         T = variables["Cell temperature"]

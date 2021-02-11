@@ -10,12 +10,13 @@ from shutil import copy
 pybamm.set_logging_level("INFO")
 
 # calculate load profile for constant resistance (R_ext + R_tab)
+param=pybamm.LithiumIonParameters() # pre-define param to get timescale in function 
 class ExternalCircuitResistanceFunction():
     def __call__(self, variables):
         I = variables["Current [A]"]
         V = variables["Terminal voltage [V]"]
-        R_ext = pybamm.FunctionParameter("External resistance [ohm]", {"Time [s]": pybamm.t})
-        R_tab = pybamm.FunctionParameter("Tabbing resistance [ohm]", {"Time [s]": pybamm.t})
+        R_ext = pybamm.FunctionParameter("External resistance [Ohm]", {"Time [s]": pybamm.t * param.timescale})
+        R_tab = pybamm.FunctionParameter("Tabbing resistance [Ohm]", {"Time [s]": pybamm.t * param.timescale})
         return V/I - (R_ext + R_tab)
 
 # choose submodels 
@@ -28,15 +29,30 @@ options = {
 
 model = pybamm.lithium_ion.SPM(options, name="SPM w/ tabbing resistance")
 
+# add variable to confirm actual resistance is constant
+V = model.variables["Terminal voltage [V]"]
+I = model.variables["Current [A]"]
+R_tab = pybamm.Parameter("Tabbing resistance [Ohm]")
+R_ext = pybamm.Parameter("External resistance [Ohm]")
+
+model.variables.update({
+    "Terminal voltage [V]": V - I*R_tab,
+    "Actual resistance [Ohm]":V/I,
+    }
+)
+
 # model.events={} #ignore all events
+
+# create geometry
+geometry = model.default_geometry
 
 # load parameter values and process model and geometry
 param = pybamm.ParameterValues(chemistry=pybamm.parameter_sets.Cai2019)
 soc_0 = 1
 param.update(
     {
-    "Tabbing resistance [ohm]": 0.009, #0.004
-    "External resistance [ohm]": 0.015, # matches 100% SOC ESC data
+    "Tabbing resistance [Ohm]": 0.0097, 
+    "External resistance [Ohm]": 0.016-0.0097, # matches 100% SOC ESC data
 
     "Lower voltage cut-off [V]": 0,    
     "Cell capacity [A.h]": 4.6, #nominal
@@ -54,11 +70,8 @@ param.update(
     "Total heat transfer coefficient [W.m-2.K-1]":20,
     "Negative electrode thickness [m]":62E-06, #*4.2/5, 
     "Positive electrode thickness [m]":67E-06, #*4.2/5,
-    # "Negative electrode diffusion coefficient [m2.s-1]":5.0E-15*0.001,
-    # "Positive particle radius [m]": 3.5E-06*2.6,
-
-    "Negative tab centre z-coordinate [m]": 0,
-    "Positive tab centre z-coordinate [m]": pybamm.geometric_parameters.L_z,
+    "Negative electrode diffusion coefficient [m2.s-1]":5.0E-15*0.001,
+    "Positive particle radius [m]": 3.5E-06*2.6,
 
     # "Negative current collector conductivity [S.m-1]": 59600000*0.005,
     # "Positive current collector conductivity [S.m-1]": 35500000*0.005,
@@ -66,6 +79,8 @@ param.update(
     check_already_exists=False,
 )
 
+param.process_model(model)
+param.process_geometry(geometry)
 
 # set mesh
 var = pybamm.standard_spatial_vars
@@ -78,16 +93,21 @@ var_pts =  {
     var.r_p: 10*scale,
     var.z: 20*scale,
 }
+mesh = pybamm.Mesh(geometry, model.default_submesh_types, var_pts)
 
+# discretise model
+disc = pybamm.Discretisation(mesh, model.default_spatial_methods)
+disc.process_model(model)
+        
 # solve model 
 t_end = [600]
 t_eval = np.linspace(0,t_end[0], 1000)
-sim = pybamm.Simulation(model, parameter_values=param, var_pts=var_pts)
-solution = sim.solve(solver=pybamm.CasadiSolver(mode="safe", dt_max= 0.01, extra_options_setup={"max_num_steps": 1000}), t_eval=t_eval)
+solver = pybamm.CasadiSolver(mode="safe", dt_max= 0.1, extra_options_setup={"max_num_steps": 1000})
+solution = solver.solve(model, t_eval)
 
 
 # save data to csv and copy to a different folder for matlab processing 
-filename = "ESC_15mOhm_100SOC.csv"
+filename = "ESC_R_fit.csv"
 solution.save_data(
     filename,
     [
@@ -139,12 +159,9 @@ plot = pybamm.QuickPlot(
         # # "Core-surface temperature difference [K]"
         "Volume-averaged cell temperature [K]",
         "Tab heating [W.m-3]",
-        "Local ECM resistance [Ohm]"
+        "Actual resistance [Ohm]",
     ],
     time_unit="seconds",
     spatial_unit="um",
 )
 plot.dynamic_plot()
-
-
-
