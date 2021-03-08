@@ -24,7 +24,7 @@ options = {
     "thermal": "x-lumped",
     "side reactions": "decomposition",
     "operating mode": ExternalCircuitResistanceFunction(),
-    "kinetics": "modified BV", 
+    # "kinetics": "diffusion limited",     
 }
 
 model = pybamm.lithium_ion.SPM(options, name="SPM w/ tabbing resistance")
@@ -70,8 +70,9 @@ param.update(
     "Total heat transfer coefficient [W.m-2.K-1]":20,
     "Negative electrode thickness [m]":62E-06, #*4.2/5, 
     "Positive electrode thickness [m]":67E-06, #*4.2/5,
-    "Negative electrode diffusion coefficient [m2.s-1]":5.0E-15*0.001,
-    "Positive particle radius [m]": 3.5E-06*2.6,
+    # "Negative electrode diffusion coefficient [m2.s-1]":5.0E-15*0.01,
+    # "Positive particle radius [m]": 3.5E-06*0.3,
+    # "Positive electrode diffusivity [m2.s-1]":"[function]NMC_diffusivity_PeymanMPM",
 
     # "Negative current collector conductivity [S.m-1]": 59600000*0.005,
     # "Positive current collector conductivity [S.m-1]": 35500000*0.005,
@@ -100,9 +101,9 @@ disc = pybamm.Discretisation(mesh, model.default_spatial_methods)
 disc.process_model(model)
         
 # solve model 
-t_end = [600]
-t_eval = np.linspace(0,t_end[0], 1000)
-solver = pybamm.CasadiSolver(mode="safe", dt_max= 0.1, extra_options_setup={"max_num_steps": 1000})
+t_end = [100]
+t_eval = np.linspace(0,t_end[0], 800)
+solver = pybamm.CasadiSolver(mode="safe", dt_max= 0.001, extra_options_setup={"max_num_steps": 10000})
 solution = solver.solve(model, t_eval)
 
 
@@ -131,12 +132,12 @@ plot = pybamm.QuickPlot(
         "Terminal voltage [V]",
         # "Tab voltage [V]",
         # "X-averaged negative particle concentration",
-        # "X-averaged positive particle concentration",
-        # "Positive electrolyte concentration [mol.m-3]",
+        "X-averaged positive particle concentration",
+        # # "Positive electrolyte concentration [mol.m-3]",
         # "X-averaged electrolyte concentration [mol.m-3]",
         # # "Negative particle surface concentration [mol.m-3]",
         # "Electrolyte concentration [mol.m-3]",
-        # # "Positive particle surface concentration [mol.m-3]",
+        # "Positive particle surface concentration [mol.m-3]",
         # # "Negative electrode potential [V]",
         # # "Electrolyte potential [V]",
         # # "Positive electrode potential [V]",
