@@ -159,6 +159,9 @@ class TestEvaluate(unittest.TestCase):
         )
 
         # test that Concatentation throws
+        a = pybamm.StateVector(slice(0, 1), domain="test a")
+        b = pybamm.StateVector(slice(1, 2), domain="test b")
+
         expr = pybamm.Concatenation(a, b)
         with self.assertRaises(NotImplementedError):
             pybamm.find_symbols(expr, constant_symbols, variable_symbols)
@@ -252,12 +255,10 @@ class TestEvaluate(unittest.TestCase):
         b_dom = ["separator"]
         a = pybamm.Variable("a", domain=a_dom)
         b = pybamm.Variable("b", domain=b_dom)
-        conc = pybamm.Concatenation(a, b)
-        disc.set_variable_slices([conc])
+        conc = pybamm.Concatenation(2 * a, 3 * b)
+        disc.set_variable_slices([a, b])
         expr = disc.process_symbol(conc)
         self.assertIsInstance(expr, pybamm.DomainConcatenation)
-        a_disc = expr.children[0]
-        b_disc = expr.children[1]
 
         y = np.empty((expr._size, 1))
         for i in range(len(y)):
@@ -266,10 +267,6 @@ class TestEvaluate(unittest.TestCase):
         constant_symbols = OrderedDict()
         variable_symbols = OrderedDict()
         pybamm.find_symbols(expr, constant_symbols, variable_symbols)
-
-        self.assertEqual(list(variable_symbols.keys())[0], a_disc.id)
-        self.assertEqual(list(variable_symbols.keys())[1], b_disc.id)
-        self.assertEqual(list(variable_symbols.keys())[2], expr.id)
 
         self.assertEqual(len(constant_symbols), 0)
 
@@ -474,7 +471,11 @@ class TestEvaluate(unittest.TestCase):
         a = pybamm.StateVector(slice(0, 1))
         b = pybamm.StateVector(slice(1, 2))
 
-        y_tests = [np.array([[2.0], [3.0]]), np.array([[1.0], [3.0]])]
+        y_tests = [
+            np.array([[2.0], [3.0]]),
+            np.array([[1.0], [3.0]]),
+            np.array([1.0, 3.0]),
+        ]
         t_tests = [1.0, 2.0]
 
         # test a * b
@@ -573,8 +574,8 @@ class TestEvaluate(unittest.TestCase):
         # test the sparse-scalar multiplication
         A = pybamm.Matrix(scipy.sparse.csr_matrix(np.array([[1, 0], [0, 4]])))
         for expr in [
-                A * pybamm.t @ pybamm.StateVector(slice(0, 2)),
-                pybamm.t * A @ pybamm.StateVector(slice(0, 2)),
+            A * pybamm.t @ pybamm.StateVector(slice(0, 2)),
+            pybamm.t * A @ pybamm.StateVector(slice(0, 2)),
         ]:
             evaluator = pybamm.EvaluatorJax(expr)
             for t, y in zip(t_tests, y_tests):
@@ -618,9 +619,9 @@ class TestEvaluate(unittest.TestCase):
         A = pybamm.Matrix(scipy.sparse.csr_matrix(np.array([[1]])))
         v = pybamm.StateVector(slice(0, 1))
         for expr in [
-                pybamm.Inner(A, v) @ v,
-                pybamm.Inner(v, A) @ v,
-                pybamm.Inner(v, v) @ v
+            pybamm.Inner(A, v) @ v,
+            pybamm.Inner(v, A) @ v,
+            pybamm.Inner(v, v) @ v,
         ]:
             evaluator = pybamm.EvaluatorJax(expr)
             for t, y in zip(t_tests, y_tests):
@@ -630,7 +631,7 @@ class TestEvaluate(unittest.TestCase):
     @unittest.skipIf(system() == "Windows", "JAX not supported on windows")
     def test_evaluator_jax_jacobian(self):
         a = pybamm.StateVector(slice(0, 1))
-        y_tests = [np.array([[2.0]]), np.array([[1.0]])]
+        y_tests = [np.array([[2.0]]), np.array([[1.0]]), np.array([1.0])]
 
         expr = a ** 2
         expr_jac = 2 * a
@@ -651,8 +652,17 @@ class TestEvaluate(unittest.TestCase):
         evaluator.debug(y=y_test)
 
     @unittest.skipIf(system() == "Windows", "JAX not supported on windows")
+    def test_evaluator_jax_inputs(self):
+        a = pybamm.InputParameter("a")
+        expr = a ** 2
+        evaluator = pybamm.EvaluatorJax(expr)
+        result = evaluator.evaluate(inputs={"a": 2})
+        self.assertEqual(result, 4)
+
+    @unittest.skipIf(system() == "Windows", "JAX not supported on windows")
     def test_jax_coo_matrix(self):
         import jax
+
         A = pybamm.JaxCooMatrix([0, 1], [0, 1], [1.0, 2.0], (2, 2))
         Adense = jax.numpy.array([[1.0, 0], [0, 2.0]])
         v = jax.numpy.array([[2.0], [1.0]])

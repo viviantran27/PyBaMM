@@ -37,6 +37,7 @@ if system() != "Windows":
         shape: 2-element tuple (x, y)
             where x is the number of rows, and y the number of columns of the matrix
         """
+
         def __init__(self, row, col, data, shape):
             self.row = jax.numpy.array(row)
             self.col = jax.numpy.array(col)
@@ -73,9 +74,7 @@ if system() != "Windows":
             """
             # assume b is a scalar or ndarray with 1 element
             return JaxCooMatrix(
-                self.row, self.col,
-                (self.data * b).reshape(-1),
-                self.shape
+                self.row, self.col, (self.data * b).reshape(-1), self.shape
             )
 
         def multiply(self, b):
@@ -103,10 +102,12 @@ if system() != "Windows":
         col = jax.numpy.asarray(scipy_coo.col)
         data = jax.numpy.asarray(scipy_coo.data)
         return JaxCooMatrix(row, col, data, value.shape)
+
+
 else:
 
     def create_jax_coo_matrix(value):  # pragma: no cover
-        raise NotImplementedError('Jax is not available on Windows')
+        raise NotImplementedError("Jax is not available on Windows")
 
 
 def id_to_python_variable(symbol_id, constant=False):
@@ -204,18 +205,22 @@ def find_symbols(symbol, constant_symbols, variable_symbols, output_jax=False):
             dummy_eval_right = symbol.children[1].evaluate_for_shape()
             if scipy.sparse.issparse(dummy_eval_left):
                 if output_jax and is_scalar(dummy_eval_right):
-                    symbol_str = "{0}.scalar_multiply({1})"\
-                        .format(children_vars[0], children_vars[1])
+                    symbol_str = "{0}.scalar_multiply({1})".format(
+                        children_vars[0], children_vars[1]
+                    )
                 else:
-                    symbol_str = "{0}.multiply({1})"\
-                        .format(children_vars[0], children_vars[1])
+                    symbol_str = "{0}.multiply({1})".format(
+                        children_vars[0], children_vars[1]
+                    )
             elif scipy.sparse.issparse(dummy_eval_right):
                 if output_jax and is_scalar(dummy_eval_left):
-                    symbol_str = "{1}.scalar_multiply({0})"\
-                        .format(children_vars[0], children_vars[1])
+                    symbol_str = "{1}.scalar_multiply({0})".format(
+                        children_vars[0], children_vars[1]
+                    )
                 else:
-                    symbol_str = "{1}.multiply({0})"\
-                        .format(children_vars[0], children_vars[1])
+                    symbol_str = "{1}.multiply({0})".format(
+                        children_vars[0], children_vars[1]
+                    )
             else:
                 symbol_str = "{0} * {1}".format(children_vars[0], children_vars[1])
         elif isinstance(symbol, pybamm.Division):
@@ -223,11 +228,13 @@ def find_symbols(symbol, constant_symbols, variable_symbols, output_jax=False):
             dummy_eval_right = symbol.children[1].evaluate_for_shape()
             if scipy.sparse.issparse(dummy_eval_left):
                 if output_jax and is_scalar(dummy_eval_right):
-                    symbol_str = "{0}.scalar_multiply(1/{1})"\
-                        .format(children_vars[0], children_vars[1])
+                    symbol_str = "{0}.scalar_multiply(1/{1})".format(
+                        children_vars[0], children_vars[1]
+                    )
                 else:
-                    symbol_str = "{0}.multiply(1/{1})"\
-                        .format(children_vars[0], children_vars[1])
+                    symbol_str = "{0}.multiply(1/{1})".format(
+                        children_vars[0], children_vars[1]
+                    )
             else:
                 symbol_str = "{0} / {1}".format(children_vars[0], children_vars[1])
 
@@ -236,18 +243,22 @@ def find_symbols(symbol, constant_symbols, variable_symbols, output_jax=False):
             dummy_eval_right = symbol.children[1].evaluate_for_shape()
             if scipy.sparse.issparse(dummy_eval_left):
                 if output_jax and is_scalar(dummy_eval_right):
-                    symbol_str = "{0}.scalar_multiply({1})"\
-                        .format(children_vars[0], children_vars[1])
+                    symbol_str = "{0}.scalar_multiply({1})".format(
+                        children_vars[0], children_vars[1]
+                    )
                 else:
-                    symbol_str = "{0}.multiply({1})"\
-                        .format(children_vars[0], children_vars[1])
+                    symbol_str = "{0}.multiply({1})".format(
+                        children_vars[0], children_vars[1]
+                    )
             elif scipy.sparse.issparse(dummy_eval_right):
                 if output_jax and is_scalar(dummy_eval_left):
-                    symbol_str = "{1}.scalar_multiply({0})"\
-                        .format(children_vars[0], children_vars[1])
+                    symbol_str = "{1}.scalar_multiply({0})".format(
+                        children_vars[0], children_vars[1]
+                    )
                 else:
-                    symbol_str = "{1}.multiply({0})"\
-                        .format(children_vars[0], children_vars[1])
+                    symbol_str = "{1}.multiply({0})".format(
+                        children_vars[0], children_vars[1]
+                    )
             else:
                 symbol_str = "{0} * {1}".format(children_vars[0], children_vars[1])
 
@@ -260,14 +271,17 @@ def find_symbols(symbol, constant_symbols, variable_symbols, output_jax=False):
             dummy_eval_left = symbol.children[0].evaluate_for_shape()
             dummy_eval_right = symbol.children[1].evaluate_for_shape()
             if output_jax and (
-                    scipy.sparse.issparse(dummy_eval_left) and
-                    scipy.sparse.issparse(dummy_eval_right)
+                scipy.sparse.issparse(dummy_eval_left)
+                and scipy.sparse.issparse(dummy_eval_right)
             ):
-                raise NotImplementedError('sparse mat-mat multiplication not supported '
-                                          'for output_jax == True')
+                raise NotImplementedError(
+                    "sparse mat-mat multiplication not supported "
+                    "for output_jax == True"
+                )
             else:
-                symbol_str = children_vars[0] + " " + symbol.name + " " \
-                    + children_vars[1]
+                symbol_str = (
+                    children_vars[0] + " " + symbol.name + " " + children_vars[1]
+                )
         else:
             symbol_str = children_vars[0] + " " + symbol.name + " " + children_vars[1]
 
@@ -312,7 +326,8 @@ def find_symbols(symbol, constant_symbols, variable_symbols, output_jax=False):
                     raise NotImplementedError
                 else:
                     symbol_str = "scipy.sparse.vstack(({}))".format(
-                        ",".join(children_vars))
+                        ",".join(children_vars)
+                    )
             else:
                 symbol_str = "{}".format(",".join(children_vars))
 
@@ -470,6 +485,7 @@ class EvaluatorPython:
         python_str = python_str + "\nself._evaluate = evaluate"
 
         self._python_str = python_str
+        self._result_var = result_var
         self._symbol = symbol
 
         # compile and run the generated python code,
@@ -491,6 +507,23 @@ class EvaluatorPython:
             return result, known_evals
         else:
             return result
+
+    def __getstate__(self):
+        # Control the state of instances of EvaluatorPython
+        # before pickling. Method "_evaluate" cannot be pickled.
+        # See https://github.com/pybamm-team/PyBaMM/issues/1283
+        state = self.__dict__.copy()
+        del state["_evaluate"]
+        return state
+
+    def __setstate__(self, state):
+        # Restore pickled attributes and
+        # compile code from "python_str"
+        # Execution of bytecode (re)adds attribute
+        # "_method"
+        self.__dict__.update(state)
+        compiled_function = compile(self._python_str, self._result_var, "exec")
+        exec(compiled_function)
 
 
 class EvaluatorJax:
@@ -523,23 +556,31 @@ class EvaluatorJax:
             if isinstance(constants[symbol_id], np.ndarray):
                 constants[symbol_id] = jax.device_put(constants[symbol_id])
 
-        # extract constants in generated function
-        for i, symbol_id in enumerate(constants.keys()):
-            const_name = id_to_python_variable(symbol_id, True)
-            python_str = "{} = constants[{}]\n".format(const_name, i) + python_str
+        # get a list of constant arguments to input to the function
+        arg_list = [
+            id_to_python_variable(symbol_id, True) for symbol_id in constants.keys()
+        ]
 
-        # constants passed in as an ordered dict, convert to list
-        self._constants = list(constants.values())
+        # get a list of hashable arguments to make static
+        # a jax device array is not hashable
+        static_argnums = (
+            i
+            for i, c in enumerate(constants.values())
+            if not (isinstance(c, jax.interpreters.xla.DeviceArray))
+        )
+
+        # store constants
+        self._constants = tuple(constants.values())
 
         # indent code
         python_str = "   " + python_str
         python_str = python_str.replace("\n", "\n   ")
 
         # add function def to first line
-        python_str = (
-            "def evaluate_jax(constants, t=None, y=None, "
-            "y_dot=None, inputs=None, known_evals=None):\n" + python_str
-        )
+        args = "t=None, y=None, y_dot=None, inputs=None, known_evals=None"
+        if arg_list:
+            args = ",".join(arg_list) + ", " + args
+        python_str = "def evaluate_jax({}):\n".format(args) + python_str
 
         # calculate the final variable that will output the result of calling `evaluate`
         # on `symbol`
@@ -563,11 +604,13 @@ class EvaluatorJax:
         compiled_function = compile(python_str, result_var, "exec")
         exec(compiled_function)
 
-        self._jit_evaluate = jax.jit(self._evaluate_jax, static_argnums=(0, 4, 5))
+        n = len(arg_list)
+        static_argnums = tuple(static_argnums)
+        self._jit_evaluate = jax.jit(self._evaluate_jax, static_argnums=static_argnums)
 
         # store a jit version of evaluate_jax's jacobian
-        jacobian_evaluate = jax.jacfwd(self._evaluate_jax, argnums=2)
-        self._jac_evaluate = jax.jit(jacobian_evaluate, static_argnums=(0, 4, 5))
+        jacobian_evaluate = jax.jacfwd(self._evaluate_jax, argnums=1 + n)
+        self._jac_evaluate = jax.jit(jacobian_evaluate, static_argnums=static_argnums)
 
     def get_jacobian(self):
         return EvaluatorJaxJacobian(self._jac_evaluate, self._constants)
@@ -579,7 +622,7 @@ class EvaluatorJax:
 
         # execute code
         jaxpr = jax.make_jaxpr(self._evaluate_jax)(
-            self._constants, t, y, y_dot, inputs, known_evals
+            *self._constants, t, y, y_dot, inputs, known_evals
         ).jaxpr
         print("invars:", jaxpr.invars)
         print("outvars:", jaxpr.outvars)
@@ -597,7 +640,7 @@ class EvaluatorJax:
         if y is not None and y.ndim == 1:
             y = y.reshape(-1, 1)
 
-        result = self._jit_evaluate(self._constants, t, y, y_dot, inputs, known_evals)
+        result = self._jit_evaluate(*self._constants, t, y, y_dot, inputs, known_evals)
 
         # don't need known_evals, but need to reproduce Symbol.evaluate signature
         if known_evals is not None:
@@ -620,7 +663,7 @@ class EvaluatorJaxJacobian:
             y = y.reshape(-1, 1)
 
         # execute code
-        result = self._jac_evaluate(self._constants, t, y, y_dot, inputs, known_evals)
+        result = self._jac_evaluate(*self._constants, t, y, y_dot, inputs, known_evals)
         result = result.reshape(result.shape[0], -1)
 
         # don't need known_evals, but need to reproduce Symbol.evaluate signature
