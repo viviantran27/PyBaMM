@@ -25,6 +25,6 @@ def NMC_diffusivity_PeymanMPM(sto, T):
 
     D_ref = 8 * 10 ** (-15)
     E_D_s = 18550
-    arrhenius = exp(E_D_s / constants.R * (1 / 298.15 - 1 / T))
+    arrhenius = exp(E_D_s / constants.R * (1 / 298.15 - 1 / T)) * 0.2
 
     return D_ref * arrhenius

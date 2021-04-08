@@ -1,4 +1,4 @@
-from pybamm import exp, constants, Parameter
+from pybamm import exp, constants, Parameter, tanh, maximum
 
 
 def graphite_electrolyte_exchange_current_density_PeymanMPM(c_e, c_s_surf, T):
@@ -33,5 +33,6 @@ def graphite_electrolyte_exchange_current_density_PeymanMPM(c_e, c_s_surf, T):
     c_n_max = Parameter("Maximum concentration in negative electrode [mol.m-3]")
 
     return (
-        m_ref * arrhenius * c_e ** 0.5 * c_s_surf ** 0.5 * (c_n_max - c_s_surf) ** 0.5
+        # m_ref * arrhenius * c_e ** 0.5 * c_s_surf ** 0.5 * (c_n_max - c_s_surf) ** 0.5 * tanh((c_s_surf)/1000) ** 12
+        m_ref * arrhenius * c_e ** 0.5 * maximum(c_s_surf, 10**-16) ** 0.5 * maximum( (c_n_max - c_s_surf), 10**-16) ** 0.5 * tanh((c_s_surf)/1000) ** 12
     )

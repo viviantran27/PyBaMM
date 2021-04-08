@@ -27,7 +27,7 @@ options = {
     # "kinetics": "diffusion limited",     
 }
 
-model = pybamm.lithium_ion.SPM(options, name="SPM w/ tabbing resistance")
+model = pybamm.lithium_ion.SPMe(options, name="SPM w/ tabbing resistance")
 
 # add variable to confirm actual resistance is constant
 V = model.variables["Terminal voltage [V]"]
@@ -62,15 +62,15 @@ param.update(
     "Initial concentration in negative electrode [mol.m-3]":(soc_0*(0.87-0.0017)+0.0017)*28746, #x0 (0.0017) * Csmax_n(28746)
     "Initial concentration in positive electrode [mol.m-3]":(0.8907-soc_0*(0.8907-0.03))*35380, #y0 (0.8907) * Csmax_p(35380)
 
-    "Negative current collector surface heat transfer coefficient [W.m-2.K-1]": 20,  
-    "Positive current collector surface heat transfer coefficient [W.m-2.K-1]": 20,  
-    "Negative tab heat transfer coefficient [W.m-2.K-1]":20,  
-    "Positive tab heat transfer coefficient [W.m-2.K-1]":20,  
-    "Edge heat transfer coefficient [W.m-2.K-1]":20,
-    "Total heat transfer coefficient [W.m-2.K-1]":20,
-    "Negative electrode thickness [m]":62E-06, #*4.2/5, 
-    "Positive electrode thickness [m]":67E-06, #*4.2/5,
-    # "Negative electrode diffusion coefficient [m2.s-1]":5.0E-15*0.01,
+    "Negative current collector surface heat transfer coefficient [W.m-2.K-1]": 5,  
+    "Positive current collector surface heat transfer coefficient [W.m-2.K-1]": 5,  
+    # "Negative tab heat transfer coefficient [W.m-2.K-1]":20,  
+    # "Positive tab heat transfer coefficient [W.m-2.K-1]":20,  
+    # "Edge heat transfer coefficient [W.m-2.K-1]":20,
+    # "Total heat transfer coefficient [W.m-2.K-1]":20,
+    "Negative electrode thickness [m]":62E-06 * 4.2/5, 
+    "Positive electrode thickness [m]":67E-06 * 4.2/5,
+    "Negative electrode diffusion coefficient [m2.s-1]":5.0E-15,
     # "Positive particle radius [m]": 3.5E-06*0.3,
     # "Positive electrode diffusivity [m2.s-1]":"[function]NMC_diffusivity_PeymanMPM",
 
@@ -101,7 +101,7 @@ disc = pybamm.Discretisation(mesh, model.default_spatial_methods)
 disc.process_model(model)
         
 # solve model 
-t_end = [100]
+t_end = [200]
 t_eval = np.linspace(0,t_end[0], 800)
 solver = pybamm.CasadiSolver(mode="safe", dt_max= 0.001, extra_options_setup={"max_num_steps": 10000})
 solution = solver.solve(model, t_eval)
@@ -133,16 +133,17 @@ plot = pybamm.QuickPlot(
         # "Tab voltage [V]",
         # "X-averaged negative particle concentration",
         "X-averaged positive particle concentration",
+        "X-averaged negative particle concentration",
         # # "Positive electrolyte concentration [mol.m-3]",
         # "X-averaged electrolyte concentration [mol.m-3]",
         # # "Negative particle surface concentration [mol.m-3]",
-        # "Electrolyte concentration [mol.m-3]",
+        "Electrolyte concentration [mol.m-3]",
         # "Positive particle surface concentration [mol.m-3]",
         # # "Negative electrode potential [V]",
         # # "Electrolyte potential [V]",
         # # "Positive electrode potential [V]",
-        # # "Anode decomposition reaction rate",
-        # # "Cathode decomposition reaction rate",
+        # "Anode decomposition reaction rate",
+        # "Cathode decomposition reaction rate",
         # "X-averaged cell temperature [K]",
         # # "Surface cell temperature [K]",
         # # "Ambient temperature [K]",
@@ -161,6 +162,9 @@ plot = pybamm.QuickPlot(
         "Volume-averaged cell temperature [K]",
         "Tab heating [W.m-3]",
         "Actual resistance [Ohm]",
+        "Positive electrode exchange current density [A.m-2]",
+        "Negative electrode exchange current density [A.m-2]"
+
     ],
     time_unit="seconds",
     spatial_unit="um",
