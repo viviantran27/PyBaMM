@@ -34,5 +34,6 @@ def graphite_electrolyte_exchange_current_density_PeymanMPM(c_e, c_s_surf, T):
 
     return (
         # m_ref * arrhenius * c_e ** 0.5 * c_s_surf ** 0.5 * (c_n_max - c_s_surf) ** 0.5 * tanh((c_s_surf)/1000) ** 12
-        m_ref * arrhenius * c_e ** 0.5 * maximum(c_s_surf, 10**-16) ** 0.5 * maximum( (c_n_max - c_s_surf), 10**-16) ** 0.5 * tanh((c_s_surf)/1000) ** 12
+        m_ref * arrhenius * c_e ** 0.5 * maximum(c_s_surf, 10**-16) ** 0.5 * maximum( (c_n_max - c_s_surf), 10**-16) ** 0.5 
+        * tanh((c_s_surf)/300) ** 12 * tanh((c_n_max - c_s_surf)/300) ** 12
     )

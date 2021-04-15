@@ -335,7 +335,7 @@ class BaseBatteryModel(pybamm.BaseModel):
                         self
                     )
                 )
-        if options["surface form"] not in ["false", "differential", "algebraic"]:
+        if options["surface form"] not in ["false", "differential", "algebraic", "diffusion limited"]:
             raise pybamm.OptionError(
                 "surface form '{}' not recognised".format(options["surface form"])
             )

@@ -1,1 +1,2 @@
 from .inverse_butler_volmer import InverseButlerVolmer, CurrentForInverseButlerVolmer
+from .inverse_diffusion_limited_butler_volmer import InverseDiffusionLimitedButlerVolmer, CurrentForDiffusionLimitedInverseButlerVolmer

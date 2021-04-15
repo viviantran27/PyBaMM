@@ -24,10 +24,14 @@ options = {
     "thermal": "x-lumped",
     "side reactions": "decomposition",
     "operating mode": ExternalCircuitResistanceFunction(),
-    # "kinetics": "diffusion limited",     
+    "surface form": "differential"
 }
 
-model = pybamm.lithium_ion.SPMe(options, name="SPM w/ tabbing resistance")
+filename = "ESC_SPMe_9mOhm_100SOC_h5_R100mOhm.csv"
+model = pybamm.lithium_ion.SPMe(options)
+soc_0 = 1
+h = 5
+R_total = 0.1
 
 # add variable to confirm actual resistance is constant
 V = model.variables["Terminal voltage [V]"]
@@ -48,13 +52,12 @@ geometry = model.default_geometry
 
 # load parameter values and process model and geometry
 param = pybamm.ParameterValues(chemistry=pybamm.parameter_sets.Cai2019)
-soc_0 = 1
 param.update(
     {
-    "Tabbing resistance [Ohm]": 0.0097, 
-    "External resistance [Ohm]": 0.016-0.0097, # matches 100% SOC ESC data
+    "Tabbing resistance [Ohm]": 0.009, 
+    "External resistance [Ohm]": R_total -0.009, # 0.016 matches 100% SOC ESC data
 
-    "Lower voltage cut-off [V]": 0,    
+    "Lower voltage cut-off [V]": 0,     
     "Cell capacity [A.h]": 4.6, #nominal
     "Typical current [A]": 4.6,
     "Ambient temperature [K]":296.7,
@@ -62,8 +65,8 @@ param.update(
     "Initial concentration in negative electrode [mol.m-3]":(soc_0*(0.87-0.0017)+0.0017)*28746, #x0 (0.0017) * Csmax_n(28746)
     "Initial concentration in positive electrode [mol.m-3]":(0.8907-soc_0*(0.8907-0.03))*35380, #y0 (0.8907) * Csmax_p(35380)
 
-    "Negative current collector surface heat transfer coefficient [W.m-2.K-1]": 5,  
-    "Positive current collector surface heat transfer coefficient [W.m-2.K-1]": 5,  
+    "Negative current collector surface heat transfer coefficient [W.m-2.K-1]": h,  
+    "Positive current collector surface heat transfer coefficient [W.m-2.K-1]": h,  
     # "Negative tab heat transfer coefficient [W.m-2.K-1]":20,  
     # "Positive tab heat transfer coefficient [W.m-2.K-1]":20,  
     # "Edge heat transfer coefficient [W.m-2.K-1]":20,
@@ -79,6 +82,7 @@ param.update(
     },
     check_already_exists=False,
 )
+# param["Current function [A]"] = "[current data]ESC_100SOC_test" # uncomment to use measured ESC current 
 
 param.process_model(model)
 param.process_geometry(geometry)
@@ -101,14 +105,13 @@ disc = pybamm.Discretisation(mesh, model.default_spatial_methods)
 disc.process_model(model)
         
 # solve model 
-t_end = [200]
-t_eval = np.linspace(0,t_end[0], 800)
+t_end = [600]
+t_eval = np.linspace(0,t_end[0], 1000)
 solver = pybamm.CasadiSolver(mode="safe", dt_max= 0.001, extra_options_setup={"max_num_steps": 10000})
 solution = solver.solve(model, t_eval)
 
 
 # save data to csv and copy to a different folder for matlab processing 
-filename = "ESC_R_fit.csv"
 solution.save_data(
     filename,
     [
@@ -155,6 +158,7 @@ plot = pybamm.QuickPlot(
         "SEI decomposition heating [W.m-3]",
         ["Volume-averaged Ohmic heating [W.m-3]",
         "Volume-averaged irreversible electrochemical heating [W.m-3]",
+        "Volume-averaged reversible heating [W.m-3]",
         "Volume-averaged total heating [W.m-3]",],
         "X-averaged negative electrode extent of lithiation",     
         # # "Exchange current density [A.m-2]",           
@@ -163,7 +167,10 @@ plot = pybamm.QuickPlot(
         "Tab heating [W.m-3]",
         "Actual resistance [Ohm]",
         "Positive electrode exchange current density [A.m-2]",
-        "Negative electrode exchange current density [A.m-2]"
+        "Negative electrode exchange current density [A.m-2]",
+        "Electrolyte flux", 
+        "Negative electrode entropic change",
+        "Positive electrode entropic change"
 
     ],
     time_unit="seconds",

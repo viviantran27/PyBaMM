@@ -140,6 +140,23 @@ class SPMe(BaseModel):
             ] = pybamm.interface.CurrentForInverseButlerVolmer(
                 self.param, "Positive", "lithium-ion main"
             )
+        # elif self.options["surface form"] == "diffusion limited":
+        #     self.submodels["negative interface"] = pybamm.interface.InverseDiffusionLimitedButlerVolmer(
+        #         self.param, "Negative", "lithium-ion main", self.options
+        #     )
+        #     self.submodels["positive interface"] = pybamm.interface.InverseDiffusionLimitedButlerVolmer(
+        #         self.param, "Positive", "lithium-ion main", self.options
+        #     )
+        #     self.submodels[
+        #         "negative interface current"
+        #     ] = pybamm.interface.CurrentForDiffusionLimitedInverseButlerVolmer(
+        #         self.param, "Negative", "lithium-ion main"
+        #     )
+        #     self.submodels[
+        #         "positive interface current"
+        #     ] = pybamm.interface.CurrentForDiffusionLimitedInverseButlerVolmer(
+        #         self.param, "Positive", "lithium-ion main"
+        #     )
         else:
             self.submodels["negative interface"] = pybamm.interface.ButlerVolmer(
                 self.param, "Negative", "lithium-ion main", self.options

@@ -1,4 +1,4 @@
-from pybamm import exp
+from pybamm import exp, tanh, maximum
 
 
 def NMC_entropic_change_PeymanMPM(sto):
@@ -28,11 +28,12 @@ def NMC_entropic_change_PeymanMPM(sto):
         + 1.6225 * sto ** 2
         - 2.0843 * sto ** 3
         + 3.5146 * sto ** 4
-        - 0.5623 * 10 ** (-4) * exp(109.451 * sto - 100.006)
+        - 0.5623 * 10 ** (-4) * exp(109.451 * sto - 100.006) * 0.5 * (-tanh((sto-1)*200)+1)
+        * 0.5*(tanh((sto+0.5)*200)+1)
     )
 
     du_dT = (
         -800 + 779 * u_eq - 284 * u_eq ** 2 + 46 * u_eq ** 3 - 2.8 * u_eq ** 4
     ) * 10 ** (-3)
 
-    return du_dT
+    return maximum(du_dT, -0.00044) # from linear extrapolation of IMC-ocv to 2.5V (Lower voltage cut-off[V])
