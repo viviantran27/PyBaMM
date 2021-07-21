@@ -1,6 +1,7 @@
 #
 # Simulate drive cycle loaded from csv file
 #
+import pandas
 import pybamm
 
 pybamm.set_logging_level("INFO")
@@ -24,7 +25,10 @@ param.update({
     },
     check_already_exists=False
 )
-param["Current function [A]"] = "[current data]PBA_discharge_test"
+drive_cycle = pandas.read_csv("pybamm/input/drive_cycles/PBA_discharge_test.csv", comment="#", header=None).to_numpy()
+timescale = param.evaluate(model.timescale)
+current_interpolant = pybamm.Interpolant(drive_cycle[:, 0], drive_cycle[:, 1], timescale * pybamm.t)
+param["Current function [A]"] = current_interpolant
 
 # create and run simulation using the CasadiSolver
 sim = pybamm.Simulation(
@@ -33,18 +37,18 @@ sim = pybamm.Simulation(
 sim.solve()
 
 solution = sim.solution
-solution.save_data(
-    "output.csv",
-    [
-        "Time [h]",
-        "Current [A]",
-        "Terminal voltage [V]",
-        "X-averaged cell temperature [K]",
-        "State of Charge"
-    ],
-    to_format="csv",
-)
-print("Done saving data to csv.")
+# solution.save_data(
+#     "output.csv",
+#     [
+#         "Time [h]",
+#         "Current [A]",
+#         "Terminal voltage [V]",
+#         "X-averaged cell temperature [K]",
+#         "State of Charge"
+#     ],
+#     to_format="csv",
+# )
+# print("Done saving data to csv.")
 
 output_variables = [
     "Terminal voltage [V]",

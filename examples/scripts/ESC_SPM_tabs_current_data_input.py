@@ -1,9 +1,10 @@
 #
 # SPM model with ESC + tabbing resistance
-# NOTE: For solver integration error, reduce the t_eval endtime.
+# Current data input, but doesn't run b/c can't find states
 
 import pybamm 
 import numpy as np
+import pandas as pd
 from shutil import copy
 
 
@@ -27,15 +28,13 @@ options = {
     "surface form": "differential"
 }
 
+
 filename = "ESC_SPMe_9mOhm_100SOC_h1-5_R16mOhm_1-5Cp_Dp_arr_0-4.csv"
 model = pybamm.lithium_ion.SPMe(options)
 soc_0 = 1
 h = 1.5
 R_total = 0.016
 Cp = 1.5
-
-
-
 
 # add variable to confirm actual resistance is constant
 V = model.variables["Terminal voltage [V]"]
@@ -96,6 +95,10 @@ param.update(
     check_already_exists=False,
 )
 # param["Current function [A]"] = "[current data]ESC_100SOC_test" # uncomment to use measured ESC current 
+drive_cycle = pd.read_csv("pybamm/input/drive_cycles/ESC_100_SOC_data.csv", comment="#", header=None).to_numpy()
+timescale = param.evaluate(model.timescale)
+current_interpolant = pybamm.Interpolant(drive_cycle[:, 0], drive_cycle[:, 1], timescale * pybamm.t)
+param["Current function [A]"] = current_interpolant
 
 param.process_model(model)
 param.process_geometry(geometry)

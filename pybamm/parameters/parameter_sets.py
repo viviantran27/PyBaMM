@@ -173,7 +173,7 @@ Cai2019 = {
     "anode": "graphite_Cai2019",
     "separator": "separator_Mohtat2020",
     "cathode": "nmc_Cai2019",
-    "electrolyte": "LiPF6_Mohtat2020",
+    "electrolyte": "LiPF6_Cai2020",
     "experiment": "1C_discharge_from_full_Mohtat2020",
     "sei": "example",
     "citation": "Mohtat2020",

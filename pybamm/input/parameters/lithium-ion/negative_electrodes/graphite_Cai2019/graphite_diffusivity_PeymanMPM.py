@@ -1,4 +1,4 @@
-from pybamm import exp, constants
+from pybamm import exp, constants, Parameter
 
 
 def graphite_diffusivity_PeymanMPM(sto, T):
