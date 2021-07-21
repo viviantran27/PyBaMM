@@ -136,6 +136,10 @@ class BatteryModelOptions(pybamm.FuzzyDict):
                 Which electrode(s) intercalates and which is counter. If "both"
                 (default), the model is a standard battery. Otherwise can be "negative"
                 or "positive" to indicate a half-cell model.
+            * "side reactions" : list
+                Contains a list of any side reactions to include. Default is []. If this
+                list is not empty (i.e. side reactions are included in the model), then
+                "surface form" cannot be 'false'. Mainly for thermal runaway reactions.
 
     **Extends:** :class:`dict`
     """
@@ -186,6 +190,7 @@ class BatteryModelOptions(pybamm.FuzzyDict):
             "thermal": ["isothermal", "lumped", "x-lumped", "x-full"],
             "total interfacial current density as a state": ["true", "false"],
             "working electrode": ["both", "negative", "positive"],
+            "side reactions": ["none", "decomposition"],
         }
 
         default_options = {
@@ -209,6 +214,7 @@ class BatteryModelOptions(pybamm.FuzzyDict):
             "thermal": "isothermal",
             "total interfacial current density as a state": "false",
             "working electrode": "both",
+            "side reactions": "none",
         }
 
         # Change the default for cell geometry based on which thermal option is provided

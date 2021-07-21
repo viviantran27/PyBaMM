@@ -122,16 +122,12 @@ class Full(BaseModel):
                 ] = surf_form.FullAlgebraic(self.param, domain)
 
     def set_side_reaction_submodels(self):
-<<<<<<< HEAD
         
         self.submodels["anode decomposition"] = pybamm.decomposition.NoAnodeDecomposition(self.param)
         self.submodels["cathode decomposition"] = pybamm.decomposition.NoCathodeDecomposition(self.param)
         self.submodels["SEI decomposition"] = pybamm.decomposition.NoSeiDecomposition(self.param)
 
-        if "oxygen" in self.options["side reactions"]:
-=======
         if self.options["hydrolysis"] == "true":
->>>>>>> develop
             self.submodels["oxygen diffusion"] = pybamm.oxygen_diffusion.Full(
                 self.param
             )
