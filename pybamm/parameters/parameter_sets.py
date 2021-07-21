@@ -198,7 +198,7 @@ Ramadass2004 = {
 
 # same as Mohtat2020 but includes additional Cai2019 thermal runaway parameters
 Cai2019 = {
-    "chemistry": "lithium-ion",
+    "chemistry": "lithium_ion",
     "cell": "UMBL_Mohtat2020",
     "anode": "graphite_Cai2019",
     "separator": "separator_Mohtat2020",
