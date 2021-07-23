@@ -35,8 +35,6 @@ R_total = 0.016
 Cp = 1.5
 
 
-
-
 # add variable to confirm actual resistance is constant
 V = model.variables["Terminal voltage [V]"]
 I = model.variables["Current [A]"]

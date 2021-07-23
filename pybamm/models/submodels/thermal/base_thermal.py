@@ -216,7 +216,7 @@ class BaseThermal(pybamm.BaseSubModel):
                 "Volume-averaged total heating": Q_vol_av,
                 "Volume-averaged total heating [W.m-3]": Q_vol_av * Q_scale,
 
-                "Tab heating [W.m-3]": Q_tabbing*Q_scale
+                "Tab heating [W.m-3]": Q_tabbing * Q_scale
             }
         )
         return variables

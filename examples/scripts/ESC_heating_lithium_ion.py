@@ -13,7 +13,7 @@ class ExternalCircuitFunction:
     def __call__(self, variables):
         I = variables["Current [A]"]
         V = variables["Terminal voltage [V]"]
-        return V / I - pybamm.FunctionParameter("Function", {"Time [s]": pybamm.t})
+        return V / I - pybamm.FunctionParameter("External resistance [Ohm]", {"Time [s]": pybamm.t})
 
 
 options = {
@@ -22,16 +22,16 @@ options = {
     "operating mode": ExternalCircuitFunction()
 }
 model = pybamm.lithium_ion.DFN(options)
-model.events = {}
+# model.events = {}
 parameter_values = model.default_parameter_values
-parameter_values.update({"Function": 0.2}, check_already_exists=False)
+parameter_values.update({"External resistance [Ohm]": 0.2}, check_already_exists=False)
 
 
 # set external thermal model
 sim = pybamm.Simulation(model, parameter_values=parameter_values)
-param = pybamm.standard_parameters_lithium_ion
-T_ref = parameter_values.evaluate(param.T_ref)
-Delta_T = parameter_values.evaluate(param.Delta_T)
+param = pybamm.LithiumIonParameters
+T_ref = parameter_values.evaluate(model.param.T_ref)
+Delta_T = parameter_values.evaluate(model.param.Delta_T)
 T_av_dim = 300
 t_end = 301 #s
 t_eval = np.linspace(0, t_end, 100) #in s
