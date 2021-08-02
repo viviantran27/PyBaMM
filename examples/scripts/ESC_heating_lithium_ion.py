@@ -44,6 +44,8 @@ for i in np.arange(1, len(t_eval) - 1):
     T_av_dim += 0.5 #update T function 
     sim.step(dt, external_variables=external_variables)
 
+# sim.solve(t_eval) #same result as when using external_variables....
+
 #plot
 output_variables =[
     "Electrolyte concentration",

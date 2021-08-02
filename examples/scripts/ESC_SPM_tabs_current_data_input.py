@@ -24,12 +24,12 @@ class ExternalCircuitResistanceFunction():
 options = {
     "thermal": "x-lumped",
     "side reactions": "decomposition",
-    "operating mode": ExternalCircuitResistanceFunction(),
-    "surface form": "differential"
+    # "operating mode": ExternalCircuitResistanceFunction(),
+    # "surface form": "differential"
 }
 
 
-filename = "ESC_SPMe_9mOhm_100SOC_h1-5_R16mOhm_1-5Cp_Dp_arr_0-4.csv"
+# filename = "ESC_SPMe_9mOhm_100SOC_h1-5_R16mOhm_1-5Cp_Dp_arr_0-4.csv"
 model = pybamm.lithium_ion.SPMe(options)
 soc_0 = 1
 h = 1.5
@@ -86,7 +86,6 @@ param.update(
     "Negative electrode specific heat capacity [J.kg-1.K-1]": 1100*Cp,
     "Positive electrode specific heat capacity [J.kg-1.K-1]": 1100*Cp,
 
-    # Anode decomposition,,,
     "Frequency factor for anode decomposition [s-1]":2.5E13,
     "Activation energy for anode decomposition [J]":2.24E-19,
     "Enthalpy of anode decomposition [J.kg-1]":1714000,
@@ -95,7 +94,7 @@ param.update(
     check_already_exists=False,
 )
 # param["Current function [A]"] = "[current data]ESC_100SOC_test" # uncomment to use measured ESC current 
-drive_cycle = pd.read_csv("pybamm/input/drive_cycles/ESC_100_SOC_data.csv", comment="#", header=None).to_numpy()
+drive_cycle = pd.read_csv("pybamm/input/drive_cycles/ESC_100SOC_current.csv", comment="#", header=None).to_numpy()
 timescale = param.evaluate(model.timescale)
 current_interpolant = pybamm.Interpolant(drive_cycle[:, 0], drive_cycle[:, 1], timescale * pybamm.t)
 param["Current function [A]"] = current_interpolant
@@ -122,27 +121,27 @@ disc.process_model(model)
         
 # solve model 
 t_end = [600]
-t_eval = np.linspace(0,t_end[0], 1000)
+t_eval = np.linspace(0,t_end[0], 10000)
 solver = pybamm.CasadiSolver(mode="safe", dt_max= 0.001, extra_options_setup={"max_num_steps": 10000})
 solution = solver.solve(model, t_eval)
 
 
 # save data to csv and copy to a different folder for matlab processing 
-solution.save_data(
-    filename,
-    [
-        "Time [h]",
-        "Current [A]",
-        "Terminal voltage [V]",
-        "Discharge capacity [A.h]",
-        "Volume-averaged cell temperature [K]",
-    ],
-    to_format="csv",
-)
+# solution.save_data(
+#     filename,
+#     [
+#         "Time [h]",
+#         "Current [A]",
+#         "Terminal voltage [V]",
+#         "Discharge capacity [A.h]",
+#         "Volume-averaged cell temperature [K]",
+#     ],
+#     to_format="csv",
+# )
 
-src = "C:/Users/Vivian/Documents/PyBaMM/" + filename 
-dst = "C:/Users/Vivian/Box/Research/ESC modeling/ESC/Sim/" + filename
-copy(src, dst)
+# src = "C:/Users/Vivian/Documents/PyBaMM/" + filename 
+# dst = "C:/Users/Vivian/Box/Research/ESC modeling/ESC/Sim/" + filename
+# copy(src, dst)
 
 # plot simulation results
 plot = pybamm.QuickPlot(
@@ -174,7 +173,6 @@ plot = pybamm.QuickPlot(
         "SEI decomposition heating [W.m-3]",
         ["Volume-averaged Ohmic heating [W.m-3]",
         "Volume-averaged irreversible electrochemical heating [W.m-3]",
-        "Volume-averaged reversible heating [W.m-3]",
         "Volume-averaged total heating [W.m-3]",],
         "X-averaged negative electrode extent of lithiation",     
         # # "Exchange current density [A.m-2]",           

@@ -31,7 +31,7 @@ filename = "ESC_SPMe_9mOhm_100SOC_h1-5_R16mOhm_1-5Cp_Dp_arr_0-4.csv"
 model = pybamm.lithium_ion.SPMe(options)
 soc_0 = 1
 h = 1.5
-R_total = 0.016
+R_total = 0.0243 #0.016
 Cp = 1.5
 
 

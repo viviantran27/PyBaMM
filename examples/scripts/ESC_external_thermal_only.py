@@ -4,13 +4,48 @@
 import pybamm 
 import numpy as np
 from shutil import copy
+import pandas
+from scipy.interpolate import interp1d
+
+pybamm.set_logging_level("INFO")
 
 # 1. initialise the moel
-model = pybamm.BaseModel()
+model = pybamm.lithium_ion.SPMe() 
+class ExternalCircuitResistanceFunction():
+    def __call__(self, variables):
+        I = variables["Current [A]"]
+        V = variables["Terminal voltage [V]"]
+        R_ext = pybamm.FunctionParameter("External resistance [Ohm]", {"Time [s]": pybamm.t * model.param.timescale})
+        R_tab = pybamm.FunctionParameter("Tabbing resistance [Ohm]", {"Time [s]": pybamm.t * model.param.timescale})
+        return V/I - (R_ext + R_tab)
 
+# choose submodels 
+options = {
+    "thermal": "x-lumped",
+    # "side reactions": "decomposition",
+    "operating mode": ExternalCircuitResistanceFunction(),
+    # "surface form": "differential"
+    "external submodels": []
+}
 # 2. define parameters and variables
+filename = "ESC_SPMe_thermal_input_h1-5_Cp1-5_R016.csv"
+model = pybamm.lithium_ion.SPMe(options)
+soc_0 = 1
+R_total = 0.016 #0.016 original, min R for 600s is 0.0243
 h = 1.5
-Cp = 1.5 
+Cp = 1.5
+
+# add variable to confirm actual resistance is constant
+V = model.variables["Terminal voltage [V]"]
+I = model.variables["Current [A]"]
+R_tab = pybamm.Parameter("Tabbing resistance [Ohm]")
+R_ext = pybamm.Parameter("External resistance [Ohm]")
+
+model.variables.update({
+    "Terminal voltage [V]": V - I*R_tab,
+    "Actual resistance [Ohm]":V/I,
+    }
+)
 
 param = pybamm.ParameterValues(chemistry=pybamm.parameter_sets.Cai2019)
 param.update(
@@ -19,13 +54,8 @@ param.update(
     "Typical current [A]": 4.6,
     "Ambient temperature [K]":296.7,
     "Initial temperature [K]": 296.7,
-
     "Negative current collector surface heat transfer coefficient [W.m-2.K-1]": h,  
     "Positive current collector surface heat transfer coefficient [W.m-2.K-1]": h,  
-
-    # "Negative electrode thickness [m]":62E-06 * 4.2/5, 
-    # "Positive electrode thickness [m]":67E-06 * 4.2/5,
-
     "Negative electrode specific heat capacity [J.kg-1.K-1]": 1100*Cp,
     "Positive electrode specific heat capacity [J.kg-1.K-1]": 1100*Cp,
     },
