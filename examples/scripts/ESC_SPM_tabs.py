@@ -135,9 +135,9 @@ solution.save_data(
     to_format="csv",
 )
 
-src = "C:/Users/Vivian/Documents/PyBaMM/" + filename 
-dst = "C:/Users/Vivian/Box/Research/ESC modeling/ESC/Sim/" + filename
-copy(src, dst)
+# src = "C:/Users/Vivian/Documents/PyBaMM/" + filename 
+# dst = "C:/Users/Vivian/Box/Research/ESC modeling/ESC/Sim/" + filename
+# copy(src, dst)
 
 # plot simulation results
 plot = pybamm.QuickPlot(

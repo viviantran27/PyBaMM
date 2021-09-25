@@ -12,7 +12,7 @@ from scipy.interpolate import interp1d
 pybamm.set_logging_level("INFO")
 
 # calculate load profile for constant resistance (R_ext + R_tab)
-model = pybamm.lithium_ion.SPMe() # pre-define model to get timescale in function
+model = pybamm.lithium_ion.DFN() # pre-define model to get timescale in function
 class ExternalCircuitResistanceFunction():
     def __call__(self, variables):
         I = variables["Current [A]"]
@@ -27,11 +27,12 @@ options = {
     # "side reactions": "decomposition",
     "operating mode": ExternalCircuitResistanceFunction(),
     # "surface form": "differential"
-    "external submodels": ["thermal"]
+    "external submodels": ["thermal"],
+    "interface": "diffusion limited",
 }
 
-filename = "ESC_SPMe_thermal_input_h1-5_Cp2-5_R016.csv"
-model = pybamm.lithium_ion.SPMe(options)
+filename = "ESC_DFN_thermal_input_h1-5_Cp2-5_R1.csv"
+model = pybamm.lithium_ion.DFN(options)
 soc_0 = 1
 R_total = 0.016 #0.016 original, min R for 600s is 0.0243
 h = 1.5
@@ -41,8 +42,15 @@ Cp = 2.5
 V = model.variables["Terminal voltage [V]"]
 I = model.variables["Current [A]"]
 R_tab = pybamm.Parameter("Tabbing resistance [Ohm]")
-R_ext = pybamm.Parameter("External resistance [Ohm]")
+R_ext = pybamm.FunctionParameter("External resistance [Ohm]", {"Time [s]": pybamm.t * model.param.timescale})
 
+def R_ext_fun(t):
+    R_ext_0 = 1
+    R_ext_f = R_total
+    delta_T = 10
+    # R_ext = max(R_ext_0 - (R_ext_0 - R_ext_f)/delta_T * t, R_ext_f)\
+    R_ext = R_ext_f
+    return R_ext - 0.009
 
 model.variables.update({
     "Terminal voltage [V]": V - I*R_tab,
@@ -60,7 +68,7 @@ param.update(
     {
     # "Temperature function [K]": temperature_interpolant,
     "Tabbing resistance [Ohm]": 0.009, 
-    "External resistance [Ohm]": R_total -0.009, # 0.016 matches 100% SOC ESC data
+    "External resistance [Ohm]": R_ext_fun, # 0.016 matches 100% SOC ESC data
 
     "Lower voltage cut-off [V]": 0,     
     "Nominal cell capacity [A.h]": 4.6, 
@@ -99,7 +107,7 @@ for i in np.arange(1, len(t_eval) - 1):
     solution = sim.step(dt, external_variables=external_variables)
 
 # save data to csv and copy to a different folder for matlab processing 
-# 
+
 sim.solution.save_data(
     filename,
     [
@@ -112,20 +120,22 @@ sim.solution.save_data(
     to_format="csv",
 )
 
-# src = "C:/Users/Vivian/Documents/PyBaMM/" + filename 
-# dst = "C:/Users/Vivian/Box/Research/ESC modeling/ESC/Sim/" + filename
-# copy(src, dst)
+src = "C:/Users/Vivian/Documents/PyBaMM/" + filename 
+dst = "C:/Users/Vivian/Box/Research/ESC modeling/ESC/Sim/" + filename
+copy(src, dst)
 
-# output_variables =[
-#     "Electrolyte concentration",
-#     "Electrolyte potential [V]",
-#     "Negative electrode potential [V]",
-#     "Current [A]",
-#     "Interfacial current density",
-#     "X-averaged cell temperature [K]",
-#     "Terminal voltage [V]",
-#     "X-averaged positive particle concentration",
-#     "X-averaged negative particle concentration",
-# ]
+output_variables =[
+    "Electrolyte concentration [mol.m-3]",
+    "Electrolyte potential [V]",
+    "Negative electrode potential [V]",
+    "Current [A]",
+    "Interfacial current density",
+    "X-averaged cell temperature [K]",
+    "Terminal voltage [V]",
+    "Positive particle concentration",
+    "Negative particle concentration",
+    "Actual resistance [Ohm]"
+]
 
 sim.plot(output_variables)
+

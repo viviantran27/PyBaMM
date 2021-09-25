@@ -184,7 +184,9 @@ plot = pybamm.QuickPlot(
         "Negative electrode exchange current density [A.m-2]",
         "Electrolyte flux", 
         "Negative electrode entropic change",
-        "Positive electrode entropic change"
+        "Positive electrode entropic change",
+        "Positive electrode SOC",
+        "Negative electrode SOC",
 
     ],
     time_unit="seconds",

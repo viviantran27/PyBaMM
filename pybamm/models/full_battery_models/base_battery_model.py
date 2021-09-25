@@ -191,6 +191,7 @@ class BatteryModelOptions(pybamm.FuzzyDict):
             "total interfacial current density as a state": ["true", "false"],
             "working electrode": ["both", "negative", "positive"],
             "side reactions": ["none", "decomposition"],
+            "interface": ["default", "diffusion limited"],
         }
 
         default_options = {
@@ -215,6 +216,7 @@ class BatteryModelOptions(pybamm.FuzzyDict):
             "total interfacial current density as a state": "false",
             "working electrode": "both",
             "side reactions": "none",
+            "interface": "default"
         }
 
         # Change the default for cell geometry based on which thermal option is provided

@@ -12,7 +12,7 @@ from scipy.interpolate import interp1d
 pybamm.set_logging_level("INFO")
 
 # calculate load profile for constant resistance (R_ext + R_tab)
-model = pybamm.lithium_ion.SPMe() # pre-define model to get timescale in function
+model = pybamm.lithium_ion.DFN() # pre-define model to get timescale in function
 class ExternalCircuitResistanceFunction():
     def __call__(self, variables):
         I = variables["Current [A]"]
@@ -27,10 +27,11 @@ options = {
     # "side reactions": "decomposition",
     "operating mode": ExternalCircuitResistanceFunction(),
     # "surface form": "differential"
+    "total interfacial current density as a state": "true", #not sure if this does anything?
     "external submodels": ["thermal"]
 }
 
-filename = "ESC_SPMe_thermal_input_h1-5_Cp2-5_R016.csv"
+filename = "ESC_DFN_thermal_input_h1-5_Cp2-5_R016.csv"
 model = pybamm.lithium_ion.SPMe(options)
 soc_0 = 1
 R_total = 0.016 #0.016 original, min R for 600s is 0.0243

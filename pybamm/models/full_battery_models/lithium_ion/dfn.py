@@ -67,13 +67,20 @@ class DFN(BaseModel):
         ] = pybamm.convection.through_cell.NoConvection(self.param)
 
     def set_interfacial_submodel(self):
-
-        self.submodels["negative interface"] = pybamm.interface.ButlerVolmer(
-            self.param, "Negative", "lithium-ion main", self.options
-        )
-        self.submodels["positive interface"] = pybamm.interface.ButlerVolmer(
-            self.param, "Positive", "lithium-ion main", self.options
-        )
+        if self.options["interface"] == "diffusion limited":
+            self.submodels["negative interface"] = pybamm.interface.DiffusionLimitedButlerVolmer(
+                self.param, "Negative", "lithium-ion main", self.options
+            )
+            self.submodels["positive interface"] = pybamm.interface.DiffusionLimitedButlerVolmer(
+                self.param, "Positive", "lithium-ion main", self.options
+            )
+        else:
+            self.submodels["negative interface"] = pybamm.interface.ButlerVolmer(
+                self.param, "Negative", "lithium-ion main", self.options
+            )
+            self.submodels["positive interface"] = pybamm.interface.ButlerVolmer(
+                self.param, "Positive", "lithium-ion main", self.options
+            )
 
     def set_particle_submodel(self):
 
