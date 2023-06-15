@@ -252,6 +252,11 @@ class DomainThermalParameters(BaseParameters):
         """Dimensionless current collector thermal conductivity"""
         T_dim = self.main_param.Delta_T * T + self.main_param.T_ref
         return self.lambda_cc_dim(T_dim) / self.main_param.lambda_eff_dim_ref
+    
+    def P_sat(T):
+        """Dimensional saturation pressure"""
+        inputs = {"Temperature [K]": T}
+        return pybamm.FunctionParameter("Electrolyte saturation pressure [kPa]", inputs)
 
 
 
