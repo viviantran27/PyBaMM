@@ -45,12 +45,5 @@ class NoAnodeDecomposition(pybamm.BaseSubModel):
             "Outer section anode decomposition heating": default,
             "Outer section anode decomposition heating [W.m-3]": default,
         }
-        # variables = {
-        #     "Relative SEI thickness": pybamm.Scalar(0),
-        #     "Anode decomposition reaction rate [s-1]": pybamm.Scalar(0),
-        #     "Anode decomposition reaction rate": pybamm.Scalar(0),
-        #     "Anode decomposition heating": pybamm.Scalar(0),
-        #     "Anode decomposition heating [W.m-3]": pybamm.Scalar(0),
-        # }
 
         return variables

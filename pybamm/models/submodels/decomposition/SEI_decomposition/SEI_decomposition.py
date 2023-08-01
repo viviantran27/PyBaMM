@@ -22,7 +22,7 @@ class SeiDecomposition(pybamm.BaseSubModel):
         super().__init__(param)
 
     def get_fundamental_variables(self):
-        x_sei = pybamm.Variable("Fraction of Li in SEI", domain="negative electrode", auxiliary_domains={"secondary": "current collector"},)
+        x_sei = pybamm.Variable("Fraction of Li in SEI", domain="current collector")
 
         variables = {"Fraction of Li in SEI": x_sei}
         return variables
@@ -38,7 +38,7 @@ class SeiDecomposition(pybamm.BaseSubModel):
         r_sei_dimensional = (
             -param.therm.A_sei
             * x_sei
-            * pybamm.exp(-param.therm.E_sei / (k_b * T_dimensional))
+            * pybamm.exp(-param.therm.E_sei / (k_b * T_av_dimensional))
         )  # units 1/s
 
         m_an = rho_n_dim * param.L_y * param.L_z * param.n.L
@@ -62,7 +62,4 @@ class SeiDecomposition(pybamm.BaseSubModel):
 
     def set_initial_conditions(self, variables):
         x_sei = variables["Fraction of Li in SEI"]
-        x_sei_0 = pybamm.FullBroadcast(
-                     self.param.therm.x_sei_0, ["negative electrode"], "current collector"
-                )
-        self.initial_conditions = {x_sei: x_sei_0}
+        self.initial_conditions = {x_sei: self.param.therm.x_sei_0}
