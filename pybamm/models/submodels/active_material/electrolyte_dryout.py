@@ -108,4 +108,8 @@ class ElectrolyteDryout(BaseModel):
             eps_solid = variables[
                 self.domain + " electrode active material volume fraction"
             ]
-            self.initial_conditions = {eps_solid: eps_solid_init}
+            self.initial_conditions = {
+                eps_solid: eps_solid_init,
+                # a: pybamm.Scalar(1),
+                # s: pybamm.Scalar(1),
+            }
