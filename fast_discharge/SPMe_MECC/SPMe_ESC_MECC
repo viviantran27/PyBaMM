@@ -28,14 +28,14 @@ from pybamm import exp, constants, Parameter
 def modified_graphite_diffusivity_PeymanMPM(sto, T):
     # D_ref =  Parameter("Negative electrode diffusion coefficient [m2.s-1]")
     D_ref = 8e-14
-    E_D_s = 42770/10
+    E_D_s = 42770
     soc = (sto - 0)/(0.8321-0)
     k = 1.12070451*soc + 0.09209274 # Ds_restart_rmseV_11_simultaneous_rest (updated exp C-rate) only exclude kn>9
     return D_ref*k 
 
 def modified_NMC_diffusivity_PeymanMPM(sto, T):
     D_ref =  8e-15
-    E_D_s = 18550/10
+    E_D_s = 18550
     soc = (0.837-sto)/(0.837-0.034)
     k =  4.7302281*soc**2  -4.5023245*soc + 1.26466141 # # Ds_restart_rmseV_11_simultaneous_rest (updated exp C-rate)
     return D_ref *k
