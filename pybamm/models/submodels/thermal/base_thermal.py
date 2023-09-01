@@ -94,7 +94,7 @@ class BaseThermal(pybamm.BaseSubModel):
         Q_scale = param.i_typ * param.potential_scale / param.L_x # moved to accommodate tabbing I^2R
         I = variables["Current [A]"]
         R_tab = pybamm.Parameter("Tabbing resistance [Ohm]")
-        Q_tabbing = I**2*R_tab/ param.V_cell/Q_scale*0 # originally W.m-3
+        Q_tabbing = I**2*R_tab/ param.V_cell/Q_scale*1 # originally W.m-3
 
         # Ohmic heating in solid
         i_s_p = variables["Positive electrode current density"]

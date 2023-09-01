@@ -118,8 +118,8 @@ for j, soc in enumerate(SOC_0):
 # plot solutions 
 labels = [str(round(soc*100)) + '% SOC' for soc in SOC_name]
 
-fig, ax = plt.subplots(5,1, figsize=(4,8), sharex=True)
-ax = ax.flatten()
+fig, ax = plt.subplots(3,2, figsize=(8,6), sharex=True)
+ax = ax.T.flatten()
 linestyles = ['--','--','-.']*2
 data_colors = ['k','r','b','m']
 sim_colors = data_colors #['dimgray','lightcoral','b','m']
@@ -200,5 +200,5 @@ plt.xlim([t_eval[0],t_eval[-1]])
 plt.tight_layout()
 plt.rcParams['pdf.fonttype'] = 42
 plt.rcParams['ps.fonttype'] = 42
-plt.savefig('./fast_discharge/SPMe_MECC/figs/100_75.pdf', format='pdf')
+# plt.savefig('./fast_discharge/SPMe_MECC/figs/100_75.pdf', format='pdf')
 plt.show()
