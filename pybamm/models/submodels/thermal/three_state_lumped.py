@@ -218,17 +218,17 @@ class ThreeStateLumped(BaseThermal):
             )
             / (self.param.C_th * self.param.rho(T_vol_av)),
             T_outer: (
-                self.param.B * (Q_vol_av + Q_decomp_outer)*gamma_outer + lambda_k*(gamma_mid + gamma_core) *(T_mid -T_outer) - total_cooling_coefficient* (T_outer-T_amb)
+                self.param.B * (Q_vol_av*gamma_outer + Q_decomp_outer) + lambda_k*(gamma_mid + gamma_core) *(T_mid -T_outer) - total_cooling_coefficient* (T_outer-T_amb)
             )
-            / (self.param.C_th * self.param.rho(T_vol_av)*gamma_outer),
+            / (self.param.C_th * self.param.rho(T_outer)*gamma_outer),
             T_mid: (
-                self.param.B * (Q_vol_av+ Q_decomp_mid)*gamma_mid + lambda_k*gamma_core *(T_core -T_mid) - lambda_k*(gamma_mid + gamma_core) *(T_mid -T_outer)
+                self.param.B * (Q_vol_av*gamma_mid+ Q_decomp_mid)*gamma_mid + lambda_k*gamma_core *(T_core -T_mid) - lambda_k*(gamma_mid + gamma_core) *(T_mid -T_outer)
             )
-            / (self.param.C_th * self.param.rho(T_vol_av)*gamma_mid),
+            / (self.param.C_th * self.param.rho(T_mid)*gamma_mid),
             T_core: (
-                self.param.B * (Q_vol_av+ Q_decomp_core)*gamma_core + self.param.B * Q_isc- lambda_k*gamma_core * (T_core - T_mid)
+                self.param.B * (Q_vol_av*gamma_core+ Q_decomp_core) + self.param.B * Q_isc- lambda_k*gamma_core * (T_core - T_mid)
             )
-            / (self.param.C_th * self.param.rho(T_vol_av)*gamma_core)
+            / (self.param.C_th * self.param.rho(T_core)*gamma_core)
         }
 
  
