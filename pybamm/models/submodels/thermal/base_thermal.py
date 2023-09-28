@@ -79,8 +79,7 @@ class BaseThermal(pybamm.BaseSubModel):
             "X-averaged cell temperature": T_x_av,
             "X-averaged cell temperature [K]": param.Delta_T * T_x_av + param.T_ref,
             "Volume-averaged cell temperature": T_vol_av,
-            "Volume-averaged cell temperature [K]": param.Delta_T * T_vol_av
-            + param.T_ref,
+            "Volume-averaged cell temperature [K]": param.Delta_T * T_vol_av + param.T_ref,
             "Ambient temperature [K]": T_amb_dim,
             "Ambient temperature": T_amb,
         }
@@ -94,7 +93,7 @@ class BaseThermal(pybamm.BaseSubModel):
         Q_scale = param.i_typ * param.potential_scale / param.L_x # moved to accommodate tabbing I^2R
         I = variables["Current [A]"]
         R_tab = pybamm.Parameter("Tabbing resistance [Ohm]")
-        Q_tabbing = I**2*R_tab/ param.V_cell/Q_scale # originally W.m-3
+        Q_tabbing = I**2*R_tab/ (param.L_x*param.L_y*param.L_z)/Q_scale # originally W.m-3
 
         # Ohmic heating in solid
         i_s_p = variables["Positive electrode current density"]

@@ -205,30 +205,51 @@ class ThreeStateLumped(BaseThermal):
         T_n = variables["Negative electrode temperature"]
         T_s = variables["Separator temperature"]
         T_p = variables["Positive electrode temperature"]
+        T_x_av = pybamm.PrimaryBroadcast(T_vol_av, ["current collector"])
+        # T_cn = T_x_av
+        # T_cp = T_x_av
         # num_layers = 8*8
         lambda_k = pybamm.x_average(pybamm.concatenation(
             self.param.n.lambda_(T_n),
             self.param.s.lambda_(T_s),
             self.param.p.lambda_(T_p),
-        ))/ (self.param.delta**2)/100  # squared? number of layers
+        ))/ (self.param.delta**2)  # squared? number of layers
+
+        #Dimensionless electrode thermal conductivity
 
         self.rhs = {
+            # T_vol_av: (
+            #     self.param.B * (Q_vol_av + Q_decomp) - total_cooling_coefficient * (T_vol_av - T_amb)
+            # )
+            # / (self.param.C_th * self.param.rho(T_vol_av)),
+            # T_outer: (
+            #     self.param.B * (Q_vol_av*gamma_outer + Q_decomp_outer) + lambda_k*(gamma_mid + gamma_core) *(T_mid -T_outer) - total_cooling_coefficient* (T_outer-T_amb)
+            # )
+            # / (self.param.C_th * self.param.rho(T_outer)*gamma_outer),
+            # T_mid: (
+            #     self.param.B * (Q_vol_av*gamma_mid+ Q_decomp_mid)*gamma_mid + lambda_k*gamma_core *(T_core -T_mid) - lambda_k*(gamma_mid + gamma_core) *(T_mid -T_outer)
+            # )
+            # / (self.param.C_th * self.param.rho(T_mid)*gamma_mid),
+            # T_core: (
+            #     self.param.B * (Q_vol_av*gamma_core+ Q_decomp_core) + self.param.B * Q_isc- lambda_k*gamma_core * (T_core - T_mid)
+            # )
+            # / (self.param.C_th * self.param.rho(T_core)*gamma_core)
             T_vol_av: (
-                self.param.B * (Q_vol_av + Q_decomp) - total_cooling_coefficient * (T_vol_av - T_amb)
+                self.param.B * Q_vol_av + total_cooling_coefficient * (T_vol_av - T_amb)
             )
             / (self.param.C_th * self.param.rho(T_vol_av)),
             T_outer: (
-                self.param.B * (Q_vol_av*gamma_outer + Q_decomp_outer) + lambda_k*(gamma_mid + gamma_core) *(T_mid -T_outer) - total_cooling_coefficient* (T_outer-T_amb)
+                self.param.B * (Q_vol_av*gamma_outer + Q_decomp_outer) - total_cooling_coefficient * gamma_outer * (T_outer-T_amb) + lambda_k*(gamma_mid - gamma_core) *(T_mid -T_outer) 
             )
-            / (self.param.C_th * self.param.rho(T_outer)*gamma_outer),
+            / (self.param.C_th * self.param.rho(T_outer)),
             T_mid: (
-                self.param.B * (Q_vol_av*gamma_mid+ Q_decomp_mid)*gamma_mid + lambda_k*gamma_core *(T_core -T_mid) - lambda_k*(gamma_mid + gamma_core) *(T_mid -T_outer)
+                self.param.B * (Q_vol_av*gamma_mid+ Q_decomp_mid)  - total_cooling_coefficient * gamma_mid * (T_mid-T_amb) + lambda_k*gamma_core *(T_core -T_mid) - lambda_k*(gamma_mid - gamma_core) *(T_mid -T_outer)
             )
-            / (self.param.C_th * self.param.rho(T_mid)*gamma_mid),
+            / (self.param.C_th * self.param.rho(T_mid)),
             T_core: (
-                self.param.B * (Q_vol_av*gamma_core+ Q_decomp_core) + self.param.B * Q_isc- lambda_k*gamma_core * (T_core - T_mid)
+                self.param.B * (Q_vol_av*gamma_core + Q_decomp_core + Q_isc) - total_cooling_coefficient * gamma_core * (T_core-T_amb)- lambda_k*gamma_core * (T_core - T_mid)
             )
-            / (self.param.C_th * self.param.rho(T_core)*gamma_core)
+            / (self.param.C_th * self.param.rho(T_core))
         }
 
  
