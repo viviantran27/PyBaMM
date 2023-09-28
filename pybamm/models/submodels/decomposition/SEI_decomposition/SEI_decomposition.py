@@ -41,7 +41,7 @@ class SeiDecomposition(pybamm.BaseSubModel):
             * pybamm.exp(-param.therm.E_sei / (k_b * T_av_dimensional))
         )  # units 1/s
 
-        m_an = rho_n_dim * param.V_cell #* param.L_y * param.L_z * param.n.L
+        m_an = rho_n_dim * param.L_y * param.L_z * param.n.L
 
         Q_scale = param.i_typ * param.potential_scale / param.L_x 
         Q_exo_sei = -m_an * param.therm.h_sei * r_sei_dimensional/ param.V_cell / Q_scale 
