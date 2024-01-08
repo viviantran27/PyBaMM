@@ -23,11 +23,13 @@ class NoSeiDecomposition(pybamm.BaseSubModel):
 
     def get_fundamental_variables(self):
         default = pybamm.Scalar(0)
+        x_sei = self.param.therm.x_sei_0
+
         variables = {
-            "Fraction of Li in SEI": default,
-            "Fraction of Li in SEI in the core section": default,
-            "Fraction of Li in SEI in the middle section": default,
-            "Fraction of Li in SEI in the outer section": default,
+            "Fraction of Li in SEI": x_sei,
+            "Fraction of Li in SEI in the core section": x_sei,
+            "Fraction of Li in SEI in the middle section": x_sei,
+            "Fraction of Li in SEI in the outer section": x_sei,
 
             "SEI decomposition reaction rate [s-1]": default,
             "SEI decomposition reaction rate": default,

@@ -33,3 +33,9 @@ Positive electrode density [kg.m-3],3100,Peyman MPM, cell lumped value
 Positive electrode specific heat capacity [J.kg-1.K-1],1100,Peyman MPM, cell lumped value
 Positive electrode thermal conductivity [W.m-1.K-1],2.1,,no info from Peyman MPM
 Positive electrode OCP entropic change [V.K-1],[function]NMC_entropic_change_PeymanMPM,
+,,,
+# Cathode decomposition,,,
+Frequency factor for cathode decomposition [s-1],2.55E14, Cai 2019,
+Activation energy for cathode decomposition [J],2.64E-19, Cai 2019,
+Enthalpy of cathode decomposition [J.kg-1],790000, Cai 2019,
+Initial degree of conversion of cathode decomposition, 0.04, Cai 2019,

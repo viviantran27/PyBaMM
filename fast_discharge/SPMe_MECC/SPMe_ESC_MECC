@@ -12,7 +12,13 @@ print(sys.path[0])
 import pybamm
 print(pybamm.__path__[0])
 import inspect
-
+plt.rcParams.update({
+    'text.usetex': True,
+    'font.family': 'serif',
+    'font.serif': 'Computer Modern',
+    'font.sans-serif': ['Computer Modern'],
+    'font.size': 11,
+})
 
 class ExternalCircuitResistanceFunction():
     def __call__(self, variables):
@@ -52,7 +58,7 @@ data_sets = []
 # R_tab_list =  [0.0085]#, 0.015] # 0.0085 (100%), 0.0078 (75%), 0.007? (50%)
 
 # load data import ESC data from file
-raw_data = pd.read_csv("./fast_discharge/SPMe_MECC/ESC_"+  str(int(SOC_name*100)) + "SOC_full.csv")
+raw_data = pd.read_csv("ESC_"+  '100A' + "SOC_full.csv")
 esc_start = raw_data[-raw_data['Current Shunt']>1].index[0]
 esc_end = len(raw_data)
 # T_amb = np.mean(raw_data['Cell Temperature'][(raw_data.index < esc_start) & (raw_data['Cell Temperature'] >0)])
@@ -62,7 +68,7 @@ data['Time (s)'] = data['Time (s)'] - data['Time (s)'].loc[esc_start]
 df_labels = ['t', 'V', 'Temp','I', 'F']
 data.set_axis(df_labels, axis=1, inplace=True)
 data['I_C'] = data.I/Q_nom 
-AhT_calculated = integrate.cumtrapz(abs(data.I), data.t-data.t.iloc[0])/3600
+AhT_calculated = integrate.cumtrapz(abs (data.I), data.t-data.t.iloc[0])/3600
 AhT_calculated = np.append(AhT_calculated,AhT_calculated[-1])
 data['SOC'] = SOC_0 - AhT_calculated/Q_nom 
 T_amb = data.Temp.iloc[0]
@@ -74,7 +80,7 @@ options = {
     "operating mode": ExternalCircuitResistanceFunction(),
 }
 model = pybamm.lithium_ion.SPMe(options = options)
-chemistry = pybamm.parameter_sets.Mohtat2020
+chemistry = pybamm.parameter_sets.Tran2023
 param = pybamm.ParameterValues(chemistry)
 
 param.update({
