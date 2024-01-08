@@ -11,6 +11,7 @@ print(sys.path[0])
 import pybamm
 print(pybamm.__path__[0])
 import inspect
+plt.rcParams.update({'font.size': 14})
 
 class ExternalCircuitResistanceFunction():
     def __call__(self, variables):
@@ -39,7 +40,7 @@ def modified_NMC_diffusivity_PeymanMPM(sto, T):
     return D_ref *k
 
 solutions = []
-SOC_0 = [1,0.75]
+SOC_0 = [1]
 SOC_name = SOC_0
 Q_nom = 4.6
 h = 0.72753047-0.05 #0.77996386
@@ -76,7 +77,7 @@ for j, soc in enumerate(SOC_0):
         "operating mode": ExternalCircuitResistanceFunction(),
     }
     model = pybamm.lithium_ion.SPMe(options = options)
-    chemistry = pybamm.parameter_sets.Mohtat2020
+    chemistry = pybamm.parameter_sets.Tran2023
     # chemistry["electrolyte"] = "lipf6_Nyman2008"
     # chemistry["electrolyte"] = "LiPF6_Mohtat2020"
     param = pybamm.ParameterValues(chemistry)
@@ -116,9 +117,10 @@ for j, soc in enumerate(SOC_0):
 
 
 # plot solutions 
+
 labels = [str(round(soc*100)) + '% SOC' for soc in SOC_name]
 
-fig, ax = plt.subplots(3,2, figsize=(8,6), sharex=True)
+fig, ax = plt.subplots(3,2, figsize=(10,8), sharex=True)
 ax = ax.T.flatten()
 linestyles = ['--','--','-.']*2
 data_colors = ['k','r','b','m']
@@ -141,7 +143,7 @@ for l, (solution,data) in enumerate(zip(solutions, data_sets)):
     ax[0].semilogx(data.t,data.I/param['Nominal cell capacity [A.h]'], label=labels[l] + ' Data',color = data_color)
     ax[0].semilogx(x_plot, I(t), linestyle=sim_ls, color = sim_color, label=labels[l] + ' Model')
     ax[0].set_xlabel(xlabel)
-    ax[0].set_ylabel('C-rate')
+    ax[0].set_ylabel('C-rate [A/Ah]')
     # ax[0].legend()
 
     V = solution['Terminal voltage [V]']
@@ -164,23 +166,25 @@ for l, (solution,data) in enumerate(zip(solutions, data_sets)):
     soc = (c_n_avg - 0)/(0.8321-0)
     e_soc = (solution['R-averaged negative particle concentration'](t=data.t, x=x[0])- 0)/(0.8321-0) -  data.SOC
     x = solution["x [m]"].entries[:, 0]
-    ax[2].semilogx(data.t, data.SOC,color = data_color)
-    ax[2].semilogx(x_plot, soc,linestyle=sim_ls, color = sim_color, label = labels[l] + ": SOC" )  # can evaluate at arbitrary x (single representative particle)
-    ax[2].set_xlabel(xlabel)
-    ax[2].set_ylabel('SOC')
-
-    ax[3].semilogx(data.t, abs(e_soc),color = data_color)  # ,label = 'RMSE = ' + str(np.round(rmse_soc,3) can evaluate at arbitrary x (single representative particle)
+    ax[3].semilogx(data.t, data.SOC,color = data_color)
+    ax[3].semilogx(x_plot, soc,linestyle=sim_ls, color = sim_color, label = labels[l] + ": SOC" )  # can evaluate at arbitrary x (single representative particle)
     ax[3].set_xlabel(xlabel)
-    ax[3].set_ylabel('|$e_{\mathrm{SOC}}$|')
-    ax[3].set_ylim([0,0.25])
+    ax[3].set_ylabel('SOC')
 
-    ax[4].semilogx(data.t,data.F, color = data_color)
+    ax[4].semilogx(data.t, abs(e_soc),color = data_color)  # ,label = 'RMSE = ' + str(np.round(rmse_soc,3) can evaluate at arbitrary x (single representative particle)
     ax[4].set_xlabel(xlabel)
-    ax[4].set_ylabel('$\Delta\sigma$ [kPa]')
-    ax[4].set_ylim([0,41])
+    ax[4].set_ylabel('|$e_{\mathrm{SOC}}$|')
+    ax[4].set_ylim([0,0.25])
+
+    ax[2].semilogx(data.t,data.F, color = data_color)
+    ax[2].set_xlabel(xlabel)
+    ax[2].set_ylabel('$\Delta\sigma$ [kPa]')
+    ax[2].set_ylim([0,41])
 
     # plot venting line 
     c = 'm'
+    T_bp = 110
+    t_boiling = data.t[(T_bp-data.Temp)<0.2].iloc[0]
     for i, axs in enumerate(fig.get_axes()[0:-2]):
         ylims = axs.get_ylim()
         # if i <(len(fig.get_axes())-1):
@@ -190,8 +194,15 @@ for l, (solution,data) in enumerate(zip(solutions, data_sets)):
         else:
             axs.annotate('Vent', xy=(90, np.diff(ylims)*0.60+ ylims[0]), color = c, rotation=-90) #
         axs.set_ylim(ylims) # keep original limits
-        # axs.grid()
 
+        if l ==0:
+            axs.plot([t_boiling]*2, list(ylims), color = 'g', linestyle = ':')
+            if i ==4:
+                axs.annotate('BP', xy=(t_boiling-10, np.diff(ylims)*0.85+ ylims[0]), rotation=-90, color = 'g')
+            else: 
+                axs.annotate('BP', xy=(t_boiling-10, np.diff(ylims)*0.65+ ylims[0]), rotation=-90, color = 'g')
+
+        # axs.grid()    
 
 handles, labels = ax[0].get_legend_handles_labels()
 ax[0].legend(labels, fancybox=True, ncol=2, bbox_to_anchor=(0.43, 1.6),loc='upper center') 
@@ -201,4 +212,6 @@ plt.tight_layout()
 plt.rcParams['pdf.fonttype'] = 42
 plt.rcParams['ps.fonttype'] = 42
 # plt.savefig('./fast_discharge/SPMe_MECC/figs/100_75.pdf', format='pdf')
+plt.savefig('./figs/100_75.pdf', format='pdf', dpi=1400)
+
 plt.show()
