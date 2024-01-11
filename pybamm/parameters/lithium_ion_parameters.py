@@ -834,7 +834,39 @@ class ParticleLithiumIonParameters(BaseParameters):
         d = self.domain.lower()[0]
         dudt_dim_func.print_name = r"\frac{dU_{" + d + r"}}{dT}"
         return u_ref + (T - self.main_param.T_ref) * dudt_dim_func
+    
+    def dUdsto_dimensional(self, sto, T, lithiation=None):
+        """
+        Dimensional derivative of the open-circuit potential with respect to the
+        stoichiometry [V]
+        """
+        Domain = self.domain
+        domain =self.domain.lower
+        tol = pybamm.settings.tolerances["U__c_s"]
+        sto = pybamm.maximum(pybamm.minimum(sto, 1 - tol), tol)
+        if lithiation is None:
+            lithiation = ""
+        else:
+            lithiation = lithiation + " "
 
+        u_ref = pybamm.FunctionParameter(
+            f"{self.phase_prefactor}{Domain} electrode {lithiation}OCP [V]",
+            {f"{self.phase_prefactor}{Domain} particle stoichiometry": sto},
+            # diff_variable=sto,
+        ).diff(sto)
+
+        dudt = pybamm.FunctionParameter(
+            f"{self.phase_prefactor}{Domain} electrode OCP entropic change [V.K-1]",
+            {
+                f"{Domain} particle stoichiometry": sto,
+                f"{self.phase_prefactor}Maximum {domain} particle "
+                "surface concentration [mol.m-3]": self.c_max,
+            },
+            diff_variable=sto,
+        )
+
+        return u_ref + (T - self.main_param.T_ref) * dudt
+    
     def dUdT_dimensional(self, sto):
         """
         Dimensional entropic change of the open-circuit potential [V.K-1]

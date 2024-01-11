@@ -2,6 +2,7 @@
 # Base class for thermal effects
 #
 import pybamm
+import numpy as np
 
 
 class BaseThermal(pybamm.BaseSubModel):
@@ -221,6 +222,17 @@ class BaseThermal(pybamm.BaseSubModel):
             ]
         )
 
+        # Heat of mixing
+        # Q_mix_s_n, Q_mix_s_s, Q_mix_s_p = self._heat_of_mixing(variables)
+        # Q_mix = pybamm.concatenation(Q_mix_s_n, Q_mix_s_s, Q_mix_s_p)
+        # Q_mix = pybamm.concatenation(
+        #     *[
+        #         pybamm.FullBroadcast(Q_mix_s_n,["negative electrode"], "current collector"),
+        #         Q_mix_s_s,
+        #         Q_mix_s_p,
+        #     ]
+        # )
+
         # Total heating
         Q = Q_ohm + Q_rxn + Q_rev + Q_tabbing + Q_mix
 
@@ -245,6 +257,7 @@ class BaseThermal(pybamm.BaseSubModel):
 
         variables.update(
             {
+                # "Test heat": Q_test,
                 "Ohmic heating": Q_ohm,
                 "Volume-averaged tab heating": Q_tab_vol_av,
                 "Ohmic heating [W.m-3]": Q_ohm * Q_scale,
@@ -288,6 +301,129 @@ class BaseThermal(pybamm.BaseSubModel):
         )
         return variables
 
+    def _heat_of_mixing(self, variables):
+        """Compute heat of mixing source terms."""
+        param = self.param
+
+        if self.options["heat of mixing"] == "true":
+            F = pybamm.constants.F.value
+            pi = np.pi
+
+            # Compute heat of mixing in negative electrode
+            # if self.options.electrode_types["negative"] == "planar":
+            #     Q_mix_s_n = pybamm.FullBroadcast(
+            #         0, ["negative electrode"], "current collector"
+            #     )
+            # else:
+            a_n = variables["Negative electrode surface area to volume ratio [m-1]"]
+            R_n = variables["Negative particle radius [m]"]
+            N_n = a_n / (4 * pi * R_n**2)
+
+            c_n = variables["X-averaged negative particle concentration [mol.m-3]"]
+            T_n = variables["X-averaged negative electrode temperature [K]"]
+            
+            T_n_part = pybamm.PrimaryBroadcast(T_n, ["negative particle"])
+
+            # c_n_part = pybamm.FullBroadcast(c_n , ["negative particle"], 'current collector')
+            D_n = param.n.prim.D_dimensional(c_n/param.n.prim.c_max, T_n_part)
+            dc_n_dr2 = pybamm.inner(pybamm.grad(c_n),pybamm.grad(c_n))
+            
+            # dUeq_n = 1 #param.n.prim.dUdsto_dimensional(c_n / param.n.prim.c_max, T_n_part)
+            # print(dUeq_n.shape_for_testing)
+            # dUeq_n = pybamm.FullBroadcast(dUeq_n, ["negative particle"], 'current collector')
+            # Ueq_n = param.n.prim.U_dimensional
+            # TODO: Drop terms as it has spatial operators and diff doesn't work
+            dUeq_n = param.n.prim.dUdsto_dimensional(c_n/ param.n.prim.c_max, T_n_part) #children[0].children[0]#
+            # print(dUeq_n.shape_for_testing) #165 = 5*33
+
+            integrand_r_n = (D_n * dc_n_dr2 * dUeq_n/ param.n.prim.c_max)# domain: negative particle
+            # integrand_r_n = integrand_r_n.create_copy()
+            # integrand_r_n.domains.update({'secondary':'negative electrode'})
+            print(integrand_r_n.shape_for_testing) #165 = 5*33
+            print(integrand_r_n.domain) #165 = 5*33
+
+            integration_variable_r_n = pybamm.SpatialVariable("r", 
+                domain=integrand_r_n.domain, 
+                coord_sys="spherical polar")
+            # print(integration_variable_r_n.shape_for_testing) #5
+            # integration_variable_r_n = pybamm.standard_spatial_vars.r_n
+            print(integration_variable_r_n.shape_for_testing) #165
+            print(integration_variable_r_n.domains) 
+            integral_r_n = pybamm.Integral(integrand_r_n, integration_variable_r_n) # domain: negative electrode
+            print(integral_r_n.shape_for_testing) # 33
+            print(integral_r_n.domains) # 33
+            
+            integral_r_n_electrode =  pybamm.SecondaryBroadcast(integral_r_n, ["negative electrode"])
+            Q_mix_s_n = -F * N_n * integral_r_n_electrode # domain: negative electrode
+            # print(Q_mix_s_n.shape_for_testing) # 33
+            # print(Q_mix_s_n.shape_for_testing)
+            # print(Q_mix_s_n.evaluate_for_shape_using_domain)
+            # Q_mix_s_n = pybamm.FullBroadcast(
+            #     5, ["negative electrode"], "current collector"
+            # )
+
+            # # Compute heat of mixing in positive electrode
+            # a_p = variables["Positive electrode surface area to volume ratio [m-1]"]
+            # R_p = variables["Positive particle radius [m]"]
+            # N_p = a_p / (4 * pi * R_p**2)
+            # # if self.x_average:
+            # #     c_p = variables["X-averaged positive particle concentration [mol.m-3]"]
+            # #     T_p = variables["X-averaged positive electrode temperature [K]"]
+            # # else:
+            # c_p = variables["Positive particle concentration [mol.m-3]"]
+            # T_p = variables["Positive electrode temperature [K]"]
+            # T_p_part = pybamm.PrimaryBroadcast(T_p, ["positive particle"])
+            # dc_p_dr2 = pybamm.inner(pybamm.grad(c_p), pybamm.grad(c_p))
+            # D_p = param.p.prim.D(c_p, T_p_part)
+            # dUeq_p = param.p.prim.dUdsto_dimensional(c_p / param.p.prim.c_max, T_p_part)
+            # integrand_r_p = D_p * dc_p_dr2 * dUeq_p / param.p.prim.c_max
+            # integration_variable_r_p = [
+            #     pybamm.SpatialVariable("r", domain=integrand_r_p.domain)
+            # ]
+            # integral_r_p = pybamm.Integral(integrand_r_p, integration_variable_r_p)
+            # Q_mix_s_p = -F * N_p * integral_r_p
+            # Q_mix_s_s = pybamm.FullBroadcast(0, ["separator"], "current collector")
+        else:
+            Q_mix_s_n = pybamm.FullBroadcast(
+                0, ["negative electrode"], "current collector"
+            )
+        # print(Q_mix_s_n.shape_for_testing) #33
+        Q_mix_s_p = pybamm.FullBroadcast(
+            0, ["positive electrode"], "current collector"
+        )
+        Q_mix_s_s = pybamm.FullBroadcast(
+            0, ["separator"], "current collector"
+        )
+        return Q_mix_s_n, Q_mix_s_s, Q_mix_s_p
+
+    def _x_average(self, var, var_cn, var_cp):
+        """
+        Computes the X-average over the whole cell (including current collectors)
+        from the variable in the cell (negative electrode, separator,
+        positive electrode), negative current collector, and positive current
+        collector.
+        Note: we do this as we cannot create a single variable which is
+        the concatenation [var_cn, var, var_cp] since var_cn and var_cp share the
+        same domain. (In the N+1D formulation the current collector variables are
+        assumed independent of x, so we do not make the distinction between negative
+        and positive current collectors in the geometry).
+        """
+        out = (
+            self.param.n.L_cc * var_cn
+            + self.param.L_x * pybamm.x_average(var)
+            + self.param.p.L_cc * var_cp
+        ) / self.param.L
+        return out
+
+    def _yz_average(self, var):
+        """Computes the y-z average."""
+        # TODO: change the behaviour of z_average and yz_average so the if statement
+        # can be removed
+        if self.options["dimensionality"] in [0, 1]:
+            return pybamm.z_average(var)
+        elif self.options["dimensionality"] == 2:
+            return pybamm.yz_average(var)
+    
     def _current_collector_heating(self, variables):
         """Compute Ohmic heating in current collectors."""
         cc_dimension = self.options["dimensionality"]

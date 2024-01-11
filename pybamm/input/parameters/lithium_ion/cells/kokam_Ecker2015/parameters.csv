@@ -39,3 +39,4 @@ Positive current collector thermal conductivity [W.m-1.K-1],238,Zhao et al. (201
 Nominal cell capacity [A.h], 0.15625, 7.5/48 (parameter set for a single layer cell),
 Typical current [A], 0.15652,,
 Current function [A],0.15652,default current function (1C),
+Tabbing resistance [Ohm], 0, default,
