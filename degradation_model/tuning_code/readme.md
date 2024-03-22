@@ -75,6 +75,22 @@ Initializes the model and experiment for the particular cell number.
 **Outputs**: `active material ratio of negative electrode and positive electrode, C-rate of charge, C-rate of discharge, discharge until (50% SOC or 0% SOC), Temperature of experiment, initial SOC`
 
 
+### Code for executing step:
+To perform step 2, please run this [notebook](./step_2_cycling.ipynb)
+
+### Functions
+Additional function definitions used in step 2:
+
+#### 1. load_data()
+Loads eSOH and OCV data for a given cell number. Cell numbers are linked to particular cycling conditions  
+**Inputs**: `cell number, directory of eSOH data, directory of RPT test data`  
+**Outputs**: `string with cell number, dataframe of eSOH data (dfe), dataframe of RPT test data(dfo_0), cycle number at which RPT data is present(N)`
+#### 2. init_exp()
+Initializes the model and experiment for the particular cell number.  
+**Inputs**: `cell number, dataframe of eSOH data, model internal parameters (spm.param), dictionary of parameter values`
+**Outputs**: `active material ratio of negative electrode and positive electrode, C-rate of charge, C-rate of discharge, discharge until (50% SOC or 0% SOC), Temperature of experiment, initial SOC`
+
+
 ## Step 3
 1. Resistance in the battery increases due to active material loss (resulting in increase in overpotential), SEI growth and Li plating.
 2. The parameters in our model which needs to be tuned to match the resistance data are:
