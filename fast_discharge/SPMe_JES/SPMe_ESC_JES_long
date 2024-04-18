@@ -232,12 +232,14 @@ for l, solution in enumerate(solutions[0::]):
 
     if l  == len(solutions)-1:
         ax2=ax[3].twinx()
-        j0p = solution['Positive electrode exchange current density [A.m-2]']
-        p4, = ax2.semilogx(x_plot, j0p (t=t, x = x[-1]),color = 'darkgoldenrod',linestyle=sim_ls )
+        # j0p = solution['Positive electrode exchange current density [A.m-2]']
+        # p4, = ax2.semilogx(x_plot, j0p (t=t, x = x[-1]),color = 'darkgoldenrod',linestyle=sim_ls )
+        j0p = solution['X-averaged positive electrode exchange current density [A.m-2]']
+        p4, = ax2.semilogx(x_plot, j0p (t=t),color = 'darkgoldenrod',linestyle=sim_ls )
         ax2.yaxis.label.set_color(p4.get_color())
         ax2.tick_params(axis='y', colors=p4.get_color())
         ax2.spines.right.set_color(p4.get_color())
-        ax2.set_ylabel('$j_{0,p}$ [A.m-2]',labelpad=1)
+        ax2.set_ylabel('$\overline{j}_{0,p}$ [A.m-2]',labelpad=1)
 
         ax4=ax[4].twinx()
         rp = solution["r_p [m]"].entries[:, 0]

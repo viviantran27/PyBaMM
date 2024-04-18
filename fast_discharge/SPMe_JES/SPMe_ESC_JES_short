@@ -18,7 +18,7 @@ plt.rcParams.update({
     'font.family': 'serif',
     'font.serif': 'Computer Modern',
     'font.sans-serif': ['Computer Modern'],
-    'font.size': 11,
+    'font.size': 9,
 })
 
 class ExternalCircuitResistanceFunction():
@@ -138,14 +138,15 @@ solutions.append(solution)
 # Plot effect of concentration dependence
 labels = ["Constant $D_p$ and $D_n$", "$D_p(c_s)$", "$D_p(c_s)$ and $D_n(c_s)$"]
 
-fig, ax = plt.subplots(3,1, figsize=(4,8), layout="constrained")
+fig, ax = plt.subplots(3,1, figsize=(3.275,5))
+plt.subplots_adjust(left=0.15, bottom=0.08, right=0.99, top=0.89, wspace=0, hspace=0.2)
 ax = ax.T.flatten()
 
 linestyles = ['--',':','-.']*2
 sim_colors = ['g','b','r']
 
 t_transition = []
-for l, solution in enumerate(solutions[0::]):
+for l, solution in enumerate(solutions):
     print(labels[l])
     t = solution["Time [s]"].entries
     x = solution["x [m]"].entries[:, 0]
@@ -191,8 +192,8 @@ for l, solution in enumerate(solutions[0::]):
     if l ==0:
         ax[0].semilogx(data.t,data.I/param['Nominal cell capacity [A.h]'], label='Data',color = data_color)
     ax[0].semilogx(x_plot, I(t), linestyle=sim_ls, color = sim_color, label=labels[l])
-    ax[0].set_xlabel(xlabel)
-    ax[0].set_ylabel('C-rate [A/Ah]')
+    # ax[0].set_xlabel(xlabel,labelpad=0)
+    ax[0].set_ylabel('C-rate [A/Ah]',labelpad=0)
     ax[0].set_ylim([0,51])
     # ax[0].set_title("Log Time")
     ax[0].set_xlim([0,t[-1]])
@@ -201,8 +202,8 @@ for l, solution in enumerate(solutions[0::]):
     if l ==0:
         ax[1].plot(data.t, data.V,color = data_color)
     ax[1].semilogx(x_plot, V(t),linestyle=sim_ls, color = sim_color)
-    ax[1].set_xlabel(xlabel)
-    ax[1].set_ylabel('Terminal voltage [V]')
+    # ax[1].set_xlabel(xlabel,labelpad=0)
+    ax[1].set_ylabel('Terminal voltage [V]',labelpad=0)
     ax[1].set_ylim([0,2])
     ax[1].set_xlim([0,t[-1]])
 
@@ -211,8 +212,8 @@ for l, solution in enumerate(solutions[0::]):
     if l ==0:
         ax[2].semilogx(data.t, data.SOC,color = data_color, label = 'Data')
     ax[2].semilogx(x_plot, soc,linestyle=sim_ls, color = sim_color, label = labels[l])  # can evaluate at arbitrary x (single representative particle)
-    ax[2].set_xlabel(xlabel)
-    ax[2].set_ylabel('SOC')
+    ax[2].set_xlabel(xlabel,labelpad=0)
+    ax[2].set_ylabel('SOC',labelpad=0)
     ax[2].set_xlim([0,t[-1]])
 
     # plot transition lines
@@ -236,7 +237,7 @@ for l, solution in enumerate(solutions[0::]):
                 axs.annotate(str(r+1), xy=(t_trans, np.diff(ylims)*0.03+ ylims[0]), color = c)
                 axs.set_ylim(ylims) # keep original limits
             axs.plot([80]*2, list(ylims), color = 'm', linestyle = ':')
-            axs.annotate('Venting', xy=(90, np.diff(ylims)*0.65+ ylims[0]), color = 'm', rotation=-90) #
+            axs.annotate('Vent', xy=(90, np.diff(ylims)*0.65+ ylims[0]), color = 'm', rotation=-90) #
             axs.set_ylim(ylims) # keep original limits
 
         # ax[0].annotate('Linear time', xy=(90,), color = 'm', rotation=-90) #
@@ -249,9 +250,9 @@ print(t_transition)
 handles, labels = ax[0].get_legend_handles_labels()
 # plt.legend(labels, bbox_to_anchor=(1.02, 0.1), loc='upper center', borderaxespad=0)
 # ax[0].legend(labels, fancybox=True, ncol=2, bbox_to_anchor=(0.46, 1.62),loc='upper center') 
-fig.legend(handles, labels, loc='upper center', prop={'size': 10}, ncol = 2, bbox_to_anchor=(0.5, 1.06), fancybox=True) #ncol=len(labels)
+fig.legend(handles, labels, loc='upper center', ncol = 2, bbox_to_anchor=(0.5, 1), fancybox=True) #ncol=len(labels)
 plt.xlim([t_eval[0],t_eval[-1]])
-plt.tight_layout()
+# plt.tight_layout()
 # plt.rcParams['pdf.fonttype'] = 42
 # plt.rcParams['ps.fonttype'] = 42
 plt.savefig('./figs/effect_D_c_short.eps', format='eps', dpi = 300)
