@@ -250,10 +250,11 @@ print(t_transition)
 handles, labels = ax[0].get_legend_handles_labels()
 # plt.legend(labels, bbox_to_anchor=(1.02, 0.1), loc='upper center', borderaxespad=0)
 # ax[0].legend(labels, fancybox=True, ncol=2, bbox_to_anchor=(0.46, 1.62),loc='upper center') 
-fig.legend(handles, labels, loc='upper center', ncol = 2, bbox_to_anchor=(0.5, 1), fancybox=True) #ncol=len(labels)
+fig.legend(handles, labels, loc='upper center', ncol = 2, bbox_to_anchor=(0.5, 1), fancybox=True, columnspacing=0.5) #ncol=len(labels)
 plt.xlim([t_eval[0],t_eval[-1]])
 # plt.tight_layout()
 # plt.rcParams['pdf.fonttype'] = 42
 # plt.rcParams['ps.fonttype'] = 42
 plt.savefig('./figs/effect_D_c_short.eps', format='eps', dpi = 300)
+plt.savefig('./figs/effect_D_c_short.jpg', format='jpg', dpi = 300)
 plt.show()
