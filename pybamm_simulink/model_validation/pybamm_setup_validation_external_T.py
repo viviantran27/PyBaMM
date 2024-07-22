@@ -15,16 +15,15 @@ import os
 # print(pybamm.__path__[0])
 # from pybamm import exp, constants, Parameter
 # #import matplotlib.pyplot as plt
-# move back to folder containing this file
+# # move back to folder containing this file
 # os.chdir(sys.path[0])
 
+
+sys.path.append(os.path.dirname(os.path.abspath("__file__"))) 
 # for debugging
-# sys.path.append(os.path.dirname(os.path.abspath("__file__"))) # for debugging
 # os.chdir(sys.path[0])
-
 
 import pybamm
-print(pybamm.__path__[0])
 from pybamm import exp, constants, Parameter
 import numpy as np
 from scipy import io
@@ -35,13 +34,13 @@ import pandas as pd
 import pickle
 from scipy.interpolate import interp1d
 
-class ExternalCircuitResistanceFunction():
-    def __call__(self, variables):
-        I = variables["Current [A]"]
-        V = variables["Terminal voltage [V]"]
-        R_ext = pybamm.FunctionParameter("External short resistance [Ohm]",  {"Time [s]": pybamm.t}) 
-        R_tab = pybamm.FunctionParameter("Tabbing resistance [Ohm]",  {"Time [s]": pybamm.t})
-        return V/I - (R_ext + R_tab)
+# class ExternalCircuitResistanceFunction():
+#     def __call__(self, variables):
+#         I = variables["Current [A]"]
+#         V = variables["Terminal voltage [V]"]
+#         R_ext = pybamm.FunctionParameter("External short resistance [Ohm]",  {"Time [s]": pybamm.t}) 
+#         R_tab = pybamm.FunctionParameter("Tabbing resistance [Ohm]",  {"Time [s]": pybamm.t})
+#         return V/I - (R_ext + R_tab)
 
 def modified_graphite_diffusivity_PeymanMPM(sto, T):
     D_ref =  Parameter("Negative electrode diffusion coefficient [m2.s-1]")
@@ -49,9 +48,10 @@ def modified_graphite_diffusivity_PeymanMPM(sto, T):
     # E_D_s = 42770
     # arrhenius = exp(E_D_s / constants.R * (1 / 298.15 - 1 / T))
     soc = (sto - 0)/(0.8321-0)
-    k = 1.12070451*soc + 0.09209274 # ORIGINAL!! Ds_restart_rmseV_11_simultaneous_rest (updated exp C-rate) only exclude kn>9
+    k = 1.12070451*soc + 0.09209274 # ORIGINAL!!! Ds_restart_rmseV_11_simultaneous_rest (updated exp C-rate) only exclude kn>9
     # k = 47.43212855*soc**4 + -119.85420669*soc**3 + 104.9741128*soc**2  + -35.54312648*soc  +  4.18552321
     k = pybamm.maximum(k, 0.1)
+    # k = pybamm.softplus(k, 0.35,1) # 10 recommended
     # soc_fit = np.array([0.931499472,0.862995346,0.79449311,0.725995244,0.657493658,0.588993969,0.520494998,0.246491535,0.177990605,0.109487916][-1:0:-1])
     # k_fit = np.array([0.998960993,0.962562613,1.088848875,0.960830764,0.980577779,0.767837023,0.826562007,0.192714141,0.571586523,0.725658028][-1:0:-1])
     # x = [soc]
@@ -70,7 +70,7 @@ def modified_NMC_diffusivity_PeymanMPM(sto, T):
     # x = [soc]
     # k = pybamm.Interpolant(soc_fit, k_fit, x, name=None, interpolator='linear', extrapolate=True, entries_string=None)
     
-    return D_ref #*k #*arrhenius
+    return D_ref *k #*arrhenius
 
 def modified_electrolyte_diffusivity_PeymanMPM(c_e, T):
     # D_c_e = 5.35 * 10 ** (-10)
@@ -104,42 +104,41 @@ def modified_graphite_electrolyte_exchange_current_density_PeymanMPM(c_e, c_s_su
         m_ref * c_e**0.5 * c_s_surf**0.5 * (c_s_max - c_s_surf) ** 0.5 #*arrhenius
     )
 
-def modified_graphite_ocp(sto):
-    """
-    Graphite Open Circuit Potential (OCP) as a function of the
-    stochiometry. The fit is taken from Peyman MPM [1].
+# def modified_graphite_ocp(sto):
+#     """
+#     Graphite Open Circuit Potential (OCP) as a function of the
+#     stochiometry. The fit is taken from Peyman MPM [1].
 
-    References
-    ----------
-    .. [1] Peyman Mohtat et al, MPM (to be submitted)
-    """
+#     References
+#     ----------
+#     .. [1] Peyman Mohtat et al, MPM (to be submitted)
+#     """
 
-    u_eq = (
-        0.063
-        + 0.8 * pybamm.exp(-75 * (sto + 0.007))
-        # + 0.8 * exp(-100 * (sto + 0.00))
-        - 0.0120 * pybamm.tanh((sto - 0.127) / 0.016)
-        - 0.0118 * pybamm.tanh((sto - 0.155) / 0.016)
-        - 0.0035 * pybamm.tanh((sto - 0.220) / 0.020)
-        - 0.0095 * pybamm.tanh((sto - 0.190) / 0.013)
-        - 0.0145 * pybamm.tanh((sto - 0.490) / 0.020)
-        - 0.0800 * pybamm.tanh((sto - 1.030) / 0.055)
-    )
+#     u_eq = (
+#         0.063
+#         # + 0.8 * pybamm.exp(-75 * (sto + 0.1))
+#         - 0.0120 * pybamm.tanh((sto - 0.127) / 0.016)
+#         - 0.0118 * pybamm.tanh((sto - 0.155) / 0.016)
+#         - 0.0035 * pybamm.tanh((sto - 0.220) / 0.020)
+#         - 0.0095 * pybamm.tanh((sto - 0.190) / 0.013)
+#         - 0.0145 * pybamm.tanh((sto - 0.490) / 0.020)
+#         - 0.0800 * pybamm.tanh((sto - 1.030) / 0.055)
+#     )
 
-    return u_eq
+#     return u_eq
 
 def main(plot=False):
-    pybamm.settings.max_smoothing = 'exact' # 'exact'(default), 10 (recommended)
+    pybamm.settings.max_smoothing = 'exact'; # (default), 10 (recommended)
     settings = pd.read_csv('sim_settings.csv').to_dict(orient='index')[0]
     dt = settings['dt']
     soc_init = settings['soc_init']
 
     # create model
-    R_tab = pybamm.Parameter("Tabbing resistance [Ohm]")
-    R_ext = pybamm.Parameter("External resistance [Ohm]")
+    # R_tab = pybamm.Parameter("Tabbing resistance [Ohm]")
+    # R_ext = pybamm.Parameter("External resistance [Ohm]")
     model_options = {
         "thermal": "lumped",
-        # "external submodels": ["thermal"],
+        "external submodels": ["thermal"],
         "decomposition": "true", 
         # "cell geometry": "arbitrary",
         # "operating mode": ExternalCircuitResistanceFunction(),
@@ -157,10 +156,10 @@ def main(plot=False):
     R_escs = {'100A':  0.0067, '100B':0.004, '75':0.0067-0.0005, '50':0.0067}
     # k_A_sei = {'100A':  0.07912785, '100B':0.238155, '75':0.04571944, '50':0.05716926}
     k_A_sei = {'100A': 0.13210066, '100B': 0.320855, '75': 0.06343707, '50':0.08423777}# k_A = 0.05716926 (MSE 1e-8 50%), k_A = 0.04571944 (MSE 1e-8 75%), k_A = 0.07912785(MSE 1e-8 100% t<80s), k_A = 0.238155 (MSE 1e-8 100F% t<53s)
-    T_amb = 25
-    sigma_0 = 15
     k_capacity = settings['k_capacity']
     k_R_tab = settings['k_R_tab']
+    T_amb = settings['T_amb']
+    # sigma_0 = 15
     param.update({
         "Current function [A]": "[input]",
         "Frequency factor for SEI decomposition [s-1]": 1.67E15*k_A_sei[SOC_name],
@@ -171,9 +170,10 @@ def main(plot=False):
         "Negative electrode porosity": 0.3*k_capacity,
         "Positive electrode porosity": 0.3*k_capacity,
         "Lower voltage cut-off [V]": 0,
-        "Ambient temperature [K]":T_amb + 273.15,
-        "Initial temperature [K]": T_amb + 273.15,
-        "Initial cell compression stress [kPa]": sigma_0, #data['F'].iloc[0]/param['Active material surface area [m2]']/1000,
+        "Ambient temperature [K]":T_amb,
+        "Initial temperature [K]": T_amb,
+        "Reference temperature [K]": 25+273.15,
+        # "Initial cell compression stress [kPa]": sigma_0, #data['F'].iloc[0]/param['Active material surface area [m2]']/1000,
         "Total heat transfer coefficient [W.m-2.K-1]":hs[SOC_name],
         "Negative electrode specific heat capacity [J.kg-1.K-1]": 1100*Cps[SOC_name],
         "Positive electrode specific heat capacity [J.kg-1.K-1]": 1100*Cps[SOC_name],
@@ -188,23 +188,35 @@ def main(plot=False):
         "Positive electrode OCP entropic change [V.K-1]":0,
         # "Negative electrode OCP [V]": modified_graphite_ocp,
     }, check_already_exists = False)
-    # liion = pybamm.LithiumIonParameters()
-    # rho = param.evaluate(liion.therm.rho_eff_dim(T_amb+273.15)) #eff vol heat cap
-    # cell_surface_area = param.evaluate(liion.A_cooling)
-    # cell_volume = param.evaluate(liion.V_cell)
-    # h_total = param.evaluate(liion.therm.h_total_dim)
-    # print(rho)
-    # print(cell_surface_area)
-    # print(cell_volume)
-    # print(h_total)
-    # print(total_cooling_coefficient)
+
+    # resave params to csv
+    liion = pybamm.LithiumIonParameters()
+
+        #     return (
+        #     self.n.rho_cc_dim(T) * self.n.c_p_cc_dim(T) * self.geo.n.L_cc
+        #     + self.n.rho_dim(T) * self.n.c_p_dim(T) * self.geo.n.L
+        #     + self.s.rho_dim(T) * self.s.c_p_dim(T) * self.geo.s.L
+        #     + self.p.rho_dim(T) * self.p.c_p_dim(T) * self.geo.p.L
+        #     + self.p.rho_cc_dim(T) * self.p.c_p_cc_dim(T) * self.geo.p.L_cc
+        # ) / self.geo.L
+    cell_surface_area = param.evaluate(liion.A_cooling)
+    cell_volume = param.evaluate(liion.V_cell)
+    h_total = param.evaluate(liion.therm.h_total_dim) # total heat transfer coeff
+    # m_cell = param.evaluate(liion.therm.rho(T_amb))*param.evaluate(liion.L)/param.evaluate(liion.L_x)
+    # settings['m_cell'] = m_cell
+    settings['rho_thermal'] = param.evaluate(liion.therm.rho_eff_dim(T_amb))
+    settings['mCp'] = param.evaluate(liion.therm.rho_eff_dim(T_amb))*cell_volume
+    settings['h_total'] = h_total
+    settings['A_cool'] = cell_surface_area 
+    settings['V_cell'] = cell_volume
+    settings['soc_name'] = [SOC_name] # reformat non-numeric values for converting to df 
+    pd.DataFrame.from_dict(settings).to_csv('sim_settings.csv', index=False)
 
     # update voltage definition 
-
     V = model.variables["Terminal voltage [V]"]
     I = model.variables["Current [A]"]
     model.variables.update({
-        "Measured voltage [V]": V - I*R_tabs['100A'],
+        "Measured voltage [V]": V - I*R_tabs[SOC_name],
         "Actual resistance [Ohm]":V/I,
         }
     )
@@ -214,15 +226,17 @@ def main(plot=False):
     sim = pybamm.Simulation(model, parameter_values=param, solver=solver)
     inputs = {
         "Current function [A]":4.6*40,
-        }
-    t_eval = np.linspace(0, 1e-6, 3)
-    sim.solve(t_eval=t_eval, inputs=inputs, initial_soc=soc_init)
+    }
+    external_variables = {"Volume-averaged cell temperature": 0.0}
+
+    t_eval = np.linspace(0, dt, 50)
+    sim.solve(t_eval=t_eval, inputs=inputs, external_variables=external_variables, initial_soc=soc_init)
               
     # Save the inital states
     x0 = sim.solution.y.full()[:, 0]
     cwd = os.getcwd()
-    temp_dir = os.path.join(cwd, 'temp')
-    # temp_dir = os.path.join(cwd, 'temp_' + str(int(dt*1000))+'ms')
+    temp_dir = os.path.join(cwd, 'temp_extT')
+    # temp_dir = os.path.join(cwd, 'temp_extT_' + str(int(dt*1000))+'ms')
 
     shutil.rmtree(temp_dir, ignore_errors=True)
     os.mkdir(temp_dir)
@@ -232,7 +246,7 @@ def main(plot=False):
     t_eval = np.linspace(0, dt, 50)
     t_eval_ndim = t_eval / sim.built_model.timescale.evaluate(inputs=inputs)
     inp_and_ext = inputs
-    # inp_and_ext.update(external_variables)
+    inp_and_ext.update(external_variables)
     casadi_integrator = solver.create_integrator(sim.built_model, inputs=inp_and_ext, t_eval=t_eval_ndim)
     # Save the integrator and variables function
     ci_path = os.path.join(temp_dir, 'integrator.casadi')
@@ -240,7 +254,7 @@ def main(plot=False):
     # These will be the outputs from the simulink class so must be changed there too
     variable_names = ['Terminal voltage [V]',
                       'Measured battery open circuit voltage [V]',
-                      'Volume-averaged cell temperature [K]',
+                      # 'Volume-averaged cell temperature [K]',
                       'Electrolyte concentration', #'Cell expansion stress [kPa]',
                       'X-averaged total heating [W.m-3]',
                       'X-averaged negative particle concentration', # [mol.m-3]

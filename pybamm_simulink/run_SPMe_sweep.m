@@ -1,0 +1,105 @@
+clear; close all; 
+%warning off; 
+clc; 
+
+% python file path setup 
+p = py.sys.path;
+p.insert(int32(0),'C:\Users\Vivian\Dropbox (University of Michigan)\from_box\Research\PyBaMM\PyBaMM') %path to pybamm package
+p.insert(int32(1),'C:\Users\Vivian\Dropbox (University of Michigan)\from_box\Research\PyBaMM\PyBaMM\venv\Lib\site-packages') % path to other libraries in venv
+
+% matlab file path setup 
+pybamm = py.importlib.import_module('pybamm');
+addpath('C:\Users\Vivian\University of Michigan Dropbox\Vivian Tran\from_box\Research\PyBaMM\PyBaMM\pybamm_simulink\casadi-windows-matlabR2016a-v3.5.5') % path to matlab casadi 
+casadi_solver = py.importlib.import_module('casadi'); % import python casadi
+
+% Regenerate the casadi objects
+py.pybamm_setup.main()
+%% Model setup and sim
+disp(string(datetime, 'HH:mm:SS')+'  Model set up');
+
+% The simulink model name
+mdl ='SPMe_CC_simulink';
+
+% Read in settings and calculate some derived parameters
+ocv_init = 4.2;   % initial cell voltage
+t_end = 60*8;
+param = table2struct(readtable('sim_settings.csv'));
+dt = param.dt; % needs to be the same as when generated pybamm casadi objects 
+V_min = 0;
+% R = 8.3145; %J.mol-1.K-1
+% A = 0.009; %m2 (0.121*0.074)
+% DMC = [6.4338; 1413; -44.25]; %Antoine coeffs [A B C] 
+% EC = [6.4897; 1836.57; -102.23];
+% y_dmc = 0.7;
+% y_ec = 1-y_dmc;         
+% m_an = 0.0191; 
+% M_C6 = 72/1000; %kg/mol
+% x_sei_0 = 0.15;
+% V_head_0 = 6.65e-06; %m-3
+% L_p0 = 2.4e-3; %m for 2 poron
+% E_p = 0.19e6; %Pa Young's modulus for poron
+% % E_c = 1e12; %assume large by default
+% alpha = 1.1e-6; %m/K
+% P_atm = 101e3; %Pa
+% P_crit = 158e3; %Pa
+% % P0 = 14e3; %Pa
+% R = 8.3145; %J.mol-1.K-1
+% % k_b = 1.380649e-23; %m2.kg.s-2.K-1;
+% T_amb = 273.15+25; % K
+% sigma_0 = 1.5120e+04;
+
+% Run the simulations
+C_rates = 5:5:40;
+for c=1:length(C_rates)
+    tic;
+    Q_nom = 4.6;
+    I = 4.6*C_rates(c);
+    N_sum = 1;
+    in(1:N_sum) = Simulink.SimulationInput(mdl); 
+    disp(string(datetime, 'HH:mm:SS')+'  Start simulink');
+    sols(c) = sim(in, 'ShowProgress' ,true); % array
+    disp(string(datetime, 'HH:mm:SS')+'  Finish simulink');
+    t_eval = toc
+    disp(string(round(sols(c).tout(end)/t_eval, 2)) + ' sim to real time')
+
+    % Display error message
+    if ~isempty(sols(c).ErrorMessage)
+        sols(c).ErrorMessage
+    end
+end
+
+%% plot results and compare to pybamm 
+figure(1)
+tiledlayout(2,1,'TileSpacing','tight', 'TileIndexing','columnmajor');
+
+% plot signals
+for i =1:length(sols)
+    sol=sols(i);
+
+    t = sol.tout;
+    V = squeeze(sol.V.Data);
+    T = squeeze(sol.T.Data);
+    
+    ax1 = nexttile(1);
+    hold on 
+    plot(t, V, DisplayName= string(C_rates(i))+'C')
+    ylabel('Measured voltage [V]')
+    xlabel('Time [s]')
+    ylim([-0.1,4])
+    
+    ax2 = nexttile(2);
+    hold on 
+    plot(t, T-273.15)
+    ylabel('Temperature [degC]')
+    xlabel('Time [s]')
+    ylim([20,70])
+end
+
+% format plot
+linkaxes([ax1,ax2],"x")
+xlim([0,t_end])
+nexttile(1)
+legend(NumColumns=2, Location="se")
+set(findall(gcf,'type','line'),'linewidth',2)
+set(findall(gcf,'type','axes'),'fontsize',10)
+% set(gcf,'Position',[40 60 900,1000 ])

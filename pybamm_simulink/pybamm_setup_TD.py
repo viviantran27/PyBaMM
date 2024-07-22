@@ -15,16 +15,14 @@ import os
 # print(pybamm.__path__[0])
 # from pybamm import exp, constants, Parameter
 # #import matplotlib.pyplot as plt
-# move back to folder containing this file
+# # move back to folder containing this file
 # os.chdir(sys.path[0])
 
 # for debugging
-# sys.path.append(os.path.dirname(os.path.abspath("__file__"))) # for debugging
-# os.chdir(sys.path[0])
-
+sys.path.append(os.path.dirname(os.path.abspath("__file__"))) # for debugging
+os.chdir(sys.path[0])
 
 import pybamm
-print(pybamm.__path__[0])
 from pybamm import exp, constants, Parameter
 import numpy as np
 from scipy import io
@@ -35,34 +33,25 @@ import pandas as pd
 import pickle
 from scipy.interpolate import interp1d
 
-class ExternalCircuitResistanceFunction():
-    def __call__(self, variables):
-        I = variables["Current [A]"]
-        V = variables["Terminal voltage [V]"]
-        R_ext = pybamm.FunctionParameter("External short resistance [Ohm]",  {"Time [s]": pybamm.t}) 
-        R_tab = pybamm.FunctionParameter("Tabbing resistance [Ohm]",  {"Time [s]": pybamm.t})
-        return V/I - (R_ext + R_tab)
-
 def modified_graphite_diffusivity_PeymanMPM(sto, T):
     D_ref =  Parameter("Negative electrode diffusion coefficient [m2.s-1]")
     # D_ref = 16*5.0 * 10 ** (-15)
-    # E_D_s = 42770
-    # arrhenius = exp(E_D_s / constants.R * (1 / 298.15 - 1 / T))
+    E_D_s = 42770
+    arrhenius = exp(E_D_s / constants.R * (1 / 298.15 - 1 / T))
     soc = (sto - 0)/(0.8321-0)
-    k = 1.12070451*soc + 0.09209274 # ORIGINAL!! Ds_restart_rmseV_11_simultaneous_rest (updated exp C-rate) only exclude kn>9
-    # k = 47.43212855*soc**4 + -119.85420669*soc**3 + 104.9741128*soc**2  + -35.54312648*soc  +  4.18552321
-    k = pybamm.maximum(k, 0.1)
+    k = 1.12070451*soc + 0.09209274 # Ds_restart_rmseV_11_simultaneous_rest (updated exp C-rate) only exclude kn>9
+
     # soc_fit = np.array([0.931499472,0.862995346,0.79449311,0.725995244,0.657493658,0.588993969,0.520494998,0.246491535,0.177990605,0.109487916][-1:0:-1])
     # k_fit = np.array([0.998960993,0.962562613,1.088848875,0.960830764,0.980577779,0.767837023,0.826562007,0.192714141,0.571586523,0.725658028][-1:0:-1])
     # x = [soc]
     # k = pybamm.Interpolant(soc_fit, k_fit, x, name=None, interpolator='linear', extrapolate=True, entries_string=None)
     
-    return D_ref*k #*arrhenius # *(-0.9 * sto + 1)
+    return D_ref*k*arrhenius # *(-0.9 * sto + 1)
 
 def modified_NMC_diffusivity_PeymanMPM(sto, T):
     D_ref =  Parameter("Positive electrode diffusion coefficient [m2.s-1]")
-    # E_D_s = 18550
-    # arrhenius = exp(E_D_s / constants.R * (1 / 298.15 - 1 / T))
+    E_D_s = 18550
+    arrhenius = exp(E_D_s / constants.R * (1 / 298.15 - 1 / T))
     soc = (0.837-sto)/(0.837-0.034)
     k =  4.7302281*soc**2  -4.5023245*soc + 1.26466141 # Ds_restart_rmseV_11_simultaneous_rest (updated exp C-rate)
     # soc_fit = np.array([0.931499472,0.862995346,0.79449311,0.725995244,0.657493658,0.588993969,0.520494998,0.451992894,0.383496394,0.31499461,0.246491535,0.109487916][-1:0:-1])
@@ -70,18 +59,22 @@ def modified_NMC_diffusivity_PeymanMPM(sto, T):
     # x = [soc]
     # k = pybamm.Interpolant(soc_fit, k_fit, x, name=None, interpolator='linear', extrapolate=True, entries_string=None)
     
-    return D_ref #*k #*arrhenius
+    return D_ref *k*arrhenius
 
 def modified_electrolyte_diffusivity_PeymanMPM(c_e, T):
     # D_c_e = 5.35 * 10 ** (-10)
     D_c_e =  Parameter("Typical electrolyte diffusivity [m2.s-1]")
-    return D_c_e
+    E_D_e = 37040
+    arrhenius = exp(E_D_e / constants.R * (1 / 298.15 - 1 / T))
+    return D_c_e*arrhenius
 
 def modified_electrolyte_conductivity_PeymanMPM(c_e, T):
     # sigma_e = 1.3
     sigma_e = Parameter("Typical electrolyte conductivity [m2.s-1]")
     E_k_e = 34700
-    return sigma_e
+    arrhenius = exp(E_k_e / constants.R * (1 / 298.15 - 1 / T))
+
+    return sigma_e*arrhenius
 
 
 def modified_NMC_electrolyte_exchange_current_density_PeymanMPM(c_e, c_s_surf, c_s_max, T):
@@ -91,7 +84,7 @@ def modified_NMC_electrolyte_exchange_current_density_PeymanMPM(c_e, c_s_surf, c
     arrhenius = exp(E_r / constants.R * (1 / 298.15 - 1 /T))
 
     return (
-        m_ref * c_e**0.5 * c_s_surf**0.5 * (c_s_max - c_s_surf) ** 0.5 #* arrhenius
+        m_ref * c_e**0.5 * c_s_surf**0.5 * (c_s_max - c_s_surf) ** 0.5 * arrhenius
     )
 
 def modified_graphite_electrolyte_exchange_current_density_PeymanMPM(c_e, c_s_surf, c_s_max, T):
@@ -101,75 +94,43 @@ def modified_graphite_electrolyte_exchange_current_density_PeymanMPM(c_e, c_s_su
     arrhenius = exp(E_r / constants.R * (1 / 298.15 - 1 / T))
 
     return (
-        m_ref * c_e**0.5 * c_s_surf**0.5 * (c_s_max - c_s_surf) ** 0.5 #*arrhenius
+        m_ref * c_e**0.5 * c_s_surf**0.5 * (c_s_max - c_s_surf) ** 0.5 *arrhenius
     )
-
-def modified_graphite_ocp(sto):
-    """
-    Graphite Open Circuit Potential (OCP) as a function of the
-    stochiometry. The fit is taken from Peyman MPM [1].
-
-    References
-    ----------
-    .. [1] Peyman Mohtat et al, MPM (to be submitted)
-    """
-
-    u_eq = (
-        0.063
-        + 0.8 * pybamm.exp(-75 * (sto + 0.007))
-        # + 0.8 * exp(-100 * (sto + 0.00))
-        - 0.0120 * pybamm.tanh((sto - 0.127) / 0.016)
-        - 0.0118 * pybamm.tanh((sto - 0.155) / 0.016)
-        - 0.0035 * pybamm.tanh((sto - 0.220) / 0.020)
-        - 0.0095 * pybamm.tanh((sto - 0.190) / 0.013)
-        - 0.0145 * pybamm.tanh((sto - 0.490) / 0.020)
-        - 0.0800 * pybamm.tanh((sto - 1.030) / 0.055)
-    )
-
-    return u_eq
 
 def main(plot=False):
-    pybamm.settings.max_smoothing = 'exact' # 'exact'(default), 10 (recommended)
     settings = pd.read_csv('sim_settings.csv').to_dict(orient='index')[0]
     dt = settings['dt']
     soc_init = settings['soc_init']
 
     # create model
-    R_tab = pybamm.Parameter("Tabbing resistance [Ohm]")
-    R_ext = pybamm.Parameter("External resistance [Ohm]")
     model_options = {
         "thermal": "lumped",
         # "external submodels": ["thermal"],
         "decomposition": "true", 
         # "cell geometry": "arbitrary",
-        # "operating mode": ExternalCircuitResistanceFunction(),
         # "venting":"true",
     }
     model = pybamm.lithium_ion.SPMe(model_options)
-
+    
     # setup parameters
     chemistry = pybamm.parameter_sets.Tran2023
     param = pybamm.ParameterValues(chemistry=chemistry)
-    SOC_name = str(settings['soc_name'])
+    SOC_name = '100A'
     Cps = {'100A': 2.4847642158614396, '100B': 2.131841251256563, '75': 1.7615851440073333, '50': 1.8069119898506183}    # 12/31 test   T only, no weights
     hs = {'100A': 34.83874617168782, '100B': 34.211742173359575, '75': 37.17732764082647, '50': 35.31863975361435}   
     R_tabs = {'100A':  0.0086, '100B':0.0049, '75':0.0078+0.0005, '50':0.007}
     R_escs = {'100A':  0.0067, '100B':0.004, '75':0.0067-0.0005, '50':0.0067}
-    # k_A_sei = {'100A':  0.07912785, '100B':0.238155, '75':0.04571944, '50':0.05716926}
     k_A_sei = {'100A': 0.13210066, '100B': 0.320855, '75': 0.06343707, '50':0.08423777}# k_A = 0.05716926 (MSE 1e-8 50%), k_A = 0.04571944 (MSE 1e-8 75%), k_A = 0.07912785(MSE 1e-8 100% t<80s), k_A = 0.238155 (MSE 1e-8 100F% t<53s)
     T_amb = 25
     sigma_0 = 15
-    k_capacity = settings['k_capacity']
-    k_R_tab = settings['k_R_tab']
     param.update({
+        "Tabbing resistance [Ohm]": 0.0086,
         "Current function [A]": "[input]",
         "Frequency factor for SEI decomposition [s-1]": 1.67E15*k_A_sei[SOC_name],
-        "Tabbing resistance [Ohm]":  R_tabs[SOC_name]*k_R_tab,#0.0041,D
-        "External short resistance [Ohm]": R_escs[SOC_name], # 0.0067
-        "Negative electrode thickness [m]":62E-6*4.2/5,
-        "Positive electrode thickness [m]":67E-6*4.2/5,
-        "Negative electrode porosity": 0.3*k_capacity,
-        "Positive electrode porosity": 0.3*k_capacity,
+        # "Cell capacity [A.h]": 4.6, #nominal doesn't exist
+        "Typical current [A]": 4.6,
+        "Negative electrode thickness [m]":62E-06*4.2/5,
+        "Positive electrode thickness [m]":67E-06*4.2/5,
         "Lower voltage cut-off [V]": 0,
         "Ambient temperature [K]":T_amb + 273.15,
         "Initial temperature [K]": T_amb + 273.15,
@@ -181,13 +142,11 @@ def main(plot=False):
         "Positive electrode diffusivity [m2.s-1]": modified_NMC_diffusivity_PeymanMPM,
         "Electrolyte diffusivity [m2.s-1]": modified_electrolyte_diffusivity_PeymanMPM,
         "Electrolyte conductivity [S.m-1]": modified_electrolyte_conductivity_PeymanMPM,
-        # "Initial concentration in electrolyte [mol.m-3]":1000, #*1.3
         "Negative electrode exchange-current density [A.m-2]": modified_graphite_electrolyte_exchange_current_density_PeymanMPM,
         "Positive electrode exchange-current density [A.m-2]": modified_NMC_electrolyte_exchange_current_density_PeymanMPM,
         "Negative electrode OCP entropic change [V.K-1]":0,
         "Positive electrode OCP entropic change [V.K-1]":0,
-        # "Negative electrode OCP [V]": modified_graphite_ocp,
-    }, check_already_exists = False)
+    })
     # liion = pybamm.LithiumIonParameters()
     # rho = param.evaluate(liion.therm.rho_eff_dim(T_amb+273.15)) #eff vol heat cap
     # cell_surface_area = param.evaluate(liion.A_cooling)
@@ -200,7 +159,6 @@ def main(plot=False):
     # print(total_cooling_coefficient)
 
     # update voltage definition 
-
     V = model.variables["Terminal voltage [V]"]
     I = model.variables["Current [A]"]
     model.variables.update({
@@ -221,15 +179,13 @@ def main(plot=False):
     # Save the inital states
     x0 = sim.solution.y.full()[:, 0]
     cwd = os.getcwd()
-    temp_dir = os.path.join(cwd, 'temp')
-    # temp_dir = os.path.join(cwd, 'temp_' + str(int(dt*1000))+'ms')
-
+    temp_dir = os.path.join(cwd, 'temp_TD')
     shutil.rmtree(temp_dir, ignore_errors=True)
     os.mkdir(temp_dir)
     io.savemat(os.path.join(temp_dir, 'x0.mat'), {'x0':x0})
     
     # Create integrator for specified time interval
-    t_eval = np.linspace(0, dt, 50)
+    t_eval = np.linspace(0, dt, 21)
     t_eval_ndim = t_eval / sim.built_model.timescale.evaluate(inputs=inputs)
     inp_and_ext = inputs
     # inp_and_ext.update(external_variables)
@@ -247,8 +203,6 @@ def main(plot=False):
                       'X-averaged positive particle concentration',
                       'Fraction of Li in SEI',
                       'Measured voltage [V]',
-                      'Negative electrode open circuit potential [V]',
-                      'Positive electrode open circuit potential [V]',
                       ]
     ipo = ["Current function [A]"] # input parameter order
     casadi_objs = sim.built_model.export_casadi_objects(variable_names=variable_names,

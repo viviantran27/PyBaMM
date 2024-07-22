@@ -1,0 +1,91 @@
+% Plot model results from EqCM and SPMe and compare
+clear; clc;
+close all   
+
+% set matlab filepaths
+addpath('EqCM_ESC_sim_results\')  
+addpath('pybamm_ESC_sim_results\')
+addpath('ESC_data\')
+
+
+SOCs = [100, 75, 50];
+t_max_inset = 60; 
+
+% LOAD AND PLOT DATA AND SIM RESULTS
+figure(1)
+big = tiledlayout(3,length(SOCs),'TileSpacing','tight', 'TileIndexing','columnmajor');
+posBig = get(big, 'Position');
+
+for i = 1:length(SOCs)
+    SOC = SOCs(i);
+    
+    % load pybamm sim results
+    spme = readtable('pybamm_' + string(SOC) +'_ESC_sim_results.csv');
+    
+    %  load eqcm sim results
+    eqcm_sim = load('ESC_fit_sim_results_' + string(SOC) +'.mat');
+    eqcm = eqcm_sim.out;
+    
+    % load data
+    % data = eqcm_sim.data; 
+    data = readtable('ESC_' + string(SOC) +'SOC_full.csv');
+    data = data(find(-data.CurrentShunt>10,1)-1:end, :);
+    data.t = data.Time_s_ - data.Time_s_(1);
+
+    % PLOT SIM RESULTS
+    ax(1+(i-1)*length(SOCs)) = nexttile(1+(i-1)*length(SOCs));
+    hold on 
+    plot(data.t, -data.CurrentShunt, 'k', DisplayName='Data')
+    plot(eqcm.I, '-.b', DisplayName='EqCM')
+    plot(spme.t, spme.I, ':r', DisplayName='PyBaMM')
+    ylabel('Current [A]')
+    xlabel('Time [s]')
+    xlim([0,600])
+    ylim([0, 250])
+    title(string(SOC) + '\% SOC$_0$')
+    % if i ==1
+    %     legend
+    % end
+
+
+    ax(2+(i-1)*length(SOCs)) = nexttile(2+(i-1)*length(SOCs));
+    hold on 
+    plot(data.t, data.Voltage_V_, 'k', DisplayName='Data')
+    plot(eqcm.V, '-.b', DisplayName='EqCM')
+    plot(spme.t, spme.V, ':r', DisplayName='PyBaMM')
+    ylabel('Voltage [V]')
+    xlabel('Time [s]')
+    xlim([0,600])
+    ylim([0, 2])
+    % p = get(ax, 'Position');
+    % ax2= axes('Box','on','position',[ p(1)+p(3)*0.3, p(2)+p(4)*0.3, p(3)*.65, p(4)*.65]); % [x0 y0 width height]
+    % hold on 
+    % plot(ax2, data.t(data.t<t_max_inset), -data.CurrentShunt(data.t<t_max_inset), 'k', DisplayName='Data')
+    % plot(ax2, eqcm.V.Time(eqcm.V.Time<t_max_inset), eqcm.V.Data(eqcm.V.Time<t_max_inset), '-.b', DisplayName='EqCM')
+    % plot(ax2, spme.t(spme.t<t_max_inset), spme.V(spme.t<t_max_inset), ':r', DisplayName='PyBaMM')
+    % axis tight
+    % xlim([0,t_max_inset])
+    % ylim([0, 2])
+
+    nexttile(3+(i-1)*length(SOCs));
+    hold on 
+    plot(data.t, data.CellTemperature, 'k', DisplayName='Data')
+    % plot(data.Time_s_, data.Thermocouple_2, 'k', DisplayName='Data')
+    plot(eqcm.T_cell-273.15, '-.b', DisplayName='EqCM')
+    plot(spme.t, spme.T-273.15, ':r', DisplayName='PyBaMM')
+    ylabel('Temperature [$^\circ$C]')
+    xlabel('Time [s]')
+    xlim([0,600])
+    ylim([20, 145])
+end
+
+for j=1:length(ax)
+
+end
+
+
+set(findall(gcf,'type','line'),'linewidth',2)
+set(findall(gcf,'type','axes'),'fontsize',12)
+set(findall(gcf,'type','axes'),'defaultAxesYGrid','off')
+
+set(gcf,'Position',[40 60 900,600])
