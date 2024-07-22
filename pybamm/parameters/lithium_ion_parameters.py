@@ -829,7 +829,7 @@ class ParticleLithiumIonParameters(BaseParameters):
         # add a term to ensure that the OCP goes to infinity at 0 and -infinity at 1
         # this will not affect the OCP for most values of sto
         # see #1435
-        u_ref = u_ref + 1e-6 * (1 / sto + 1 / (sto - 1))
+        # u_ref = u_ref + 1e-6 * (1 / sto + 1 / (sto - 1)) # changed for simulink. originally 1e-6
         dudt_dim_func = self.dUdT_dimensional(sto)
         d = self.domain.lower()[0]
         dudt_dim_func.print_name = r"\frac{dU_{" + d + r"}}{dT}"

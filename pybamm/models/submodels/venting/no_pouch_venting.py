@@ -27,7 +27,7 @@ class NoPouchVenting(pybamm.BaseSubModel):
             "Electrolyte gas saturation pressure [kPa]": pybamm.Scalar(0),
             "CO2 gas pressure [kPa]": pybamm.Scalar(0),
             "Headspace volume [m3]": pybamm.Scalar(0),
-            "Expansion stress [kPa]": pybamm.Scalar(0),
+            "Cell expansion stress [kPa]": pybamm.Scalar(0),
         }
 
         return variables
