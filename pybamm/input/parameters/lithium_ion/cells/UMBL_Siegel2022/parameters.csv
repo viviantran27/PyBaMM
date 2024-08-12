@@ -1,0 +1,45 @@
+Name [units],Value,Reference,Notes
+# Empty rows and rows starting with ‘#’ will be ignored,,,
+,,,
+# Macroscale geometry,,,
+Negative current collector thickness [m],1E-05,Siegel fukuda cu,
+Negative electrode thickness [m],60.6E-06,Siegel2022,
+Separator thickness [m],12E-06,MPM Etek 12EPH,
+Positive electrode thickness [m],63.15E-06,Siegel2022,
+Positive current collector thickness [m],1.5E-05,Scott Moura FastDFN,no info from Peyman MPM
+Electrode height [m],106e-3,UMBL Pouch,Not needed for 1D
+Electrode width [m],1.225,UMBL Pouch,Not needed for 1D 18*68e-3 12 layer pouch
+Cell cooling surface area [m2],0.41,,pouch
+Cell volume [m3],3.92E-5,,pouch
+,,,
+# Current collector properties ,,,
+Negative current collector conductivity [S.m-1],59600000,LIONSIMBA,carbon
+Positive current collector conductivity [S.m-1],35500000,LIONSIMBA,aluminium
+,,,
+# Density,,,
+Negative current collector density [kg.m-3],8954,,
+Positive current collector density [kg.m-3],2707,,
+,,,
+# Specific heat capacity,,,
+Negative current collector specific heat capacity [J.kg-1.K-1],385,,
+Positive current collector specific heat capacity [J.kg-1.K-1],897,,
+,,,
+# Thermal conductivity,,,
+Negative current collector thermal conductivity [W.m-1.K-1],401,,
+Positive current collector thermal conductivity [W.m-1.K-1],237,,
+,,,
+# Electrical,,,
+Nominal cell capacity [A.h],3.5,Siegel 2022,
+Typical current [A],3.5,,1C current
+Current function [A],3,default current function,
+Tabbing resistance [Ohm], 0, default,
+,,,
+# Venting,,,
+Active material surface area [m2], 0.009,,
+Initial head space volume [m3], 6.65e-06,,
+Poron sheet thickness [m], 0.0024, thickness of two sheets, 
+Initial cell compression stress [kPa], 1.511989742044445e+01,,
+Young's modulus of the poron sheet [kPa], 190,, 
+Atmospheric pressure [kPa], 101,,
+Thermal expansion coefficient of the cell [m.K-1], 1.1e-6,,
+Critical venting pressure [kPa], 1.587731e02,,

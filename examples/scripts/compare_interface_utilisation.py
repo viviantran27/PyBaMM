@@ -36,6 +36,7 @@ solutions = []
 t_eval = np.linspace(0, 3600, 100)
 
 for model in models:
+
     sim = pybamm.Simulation(model, parameter_values=param)
     solution = sim.solve(t_eval)
     solutions.append(solution)
@@ -51,6 +52,6 @@ pybamm.dynamic_plot(
         "Negative electrode interface utilisation",
         "Positive electrode interface utilisation",
         "Electrolyte potential [V]",
-        "Voltage [V]",
+        "Terminal voltage [V]",
     ],
 )

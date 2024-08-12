@@ -1,7 +1,7 @@
 import pybamm as pb
 
 pb.set_logging_level("NOTICE")
-model = pb.lithium_ion.SPM(
+model = pb.lithium_ion.DFN(
     {
         "SEI": "ec reaction limited",
         "SEI film resistance": "distributed",
@@ -50,30 +50,30 @@ experiment = pb.Experiment(
             "Charge at 1 C until 4.2 V",
             "Hold at 4.2 V until C/20",
             "Rest for 30 minutes",
-            pb.step.string("Discharge at 3 C until 2.8 V", period=10),
+            "Discharge at 3 C until 2.8 V (10 second period)",
             "Rest for 30 minutes",
         ),
     ]
 )
 
 sim = pb.Simulation(model, experiment=experiment, parameter_values=param)
-sim.solve(solver=pb.CasadiSolver(mode="fast with events"))
+sim.solve(solver=pb.CasadiSolver(mode="safe"))
 sim.plot(
     [
         "Current [A]",
         "Total current density [A.m-2]",
-        "Voltage [V]",
+        "Terminal voltage [V]",
         "Discharge capacity [A.h]",
         "Electrolyte potential [V]",
         "Electrolyte concentration [mol.m-3]",
-        "Negative total SEI thickness [m]",
+        "Total SEI thickness",
         "Negative electrode porosity",
         "X-averaged negative electrode porosity",
-        "X-averaged negative electrode SEI interfacial current density [A.m-2]",
-        "X-averaged negative total SEI thickness [m]",
+        "SEI interfacial current density [A.m-2]",
+        "X-averaged total SEI thickness [m]",
         [
             "Total lithium lost [mol]",
-            "Loss of lithium to negative SEI [mol]",
+            "Loss of lithium to SEI [mol]",
         ],
     ]
 )

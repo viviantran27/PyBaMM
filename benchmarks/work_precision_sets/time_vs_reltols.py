@@ -41,7 +41,9 @@ for ax, i, j in zip(
     itertools.product(solvers.values(), models.values()),
     itertools.product(solvers, models),
 ):
+
     for params in parameters:
+
         time_points = []
         solver = i[0]
 
@@ -74,11 +76,13 @@ for ax, i, j in zip(
         disc.process_model(model)
 
         for tol in reltols:
+
             solver.rtol = tol
             solver.solve(model, t_eval=t_eval)
             time = 0
             runs = 20
-            for _ in range(0, runs):
+            for k in range(0, runs):
+
                 solution = solver.solve(model, t_eval=t_eval)
                 time += solution.solve_time.value
             time = time / runs
@@ -102,9 +106,9 @@ plt.gca().legend(
 plt.savefig(f"benchmarks/benchmark_images/time_vs_reltols_{pybamm.__version__}.png")
 
 
-content = f"## Solve Time vs Reltols\n<img src='./benchmark_images/time_vs_reltols_{pybamm.__version__}.png'>\n"
+content = f"## Solve Time vs Reltols\n<img src='./benchmark_images/time_vs_reltols_{pybamm.__version__}.png'>\n"  # noqa
 
-with open("./benchmarks/release_work_precision_sets.md") as original:
+with open("./benchmarks/release_work_precision_sets.md", "r") as original:
     data = original.read()
 with open("./benchmarks/release_work_precision_sets.md", "w") as modified:
     modified.write(f"{content}\n{data}")

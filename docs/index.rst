@@ -1,115 +1,110 @@
 .. Root of all pybamm docs
 
-.. Remove the right side-bar for the home page
+.. _GitHub: https://github.com/pybamm-team/PyBaMM
 
-:html_theme.sidebar_secondary.remove:
+Welcome to PyBaMM's documentation!
+==================================
 
-####################
-PyBaMM documentation
-####################
+Python Battery Mathematical Modelling (**PyBAMM**) solves continuum models for
+batteries, using both numerical methods and asymptotic analysis.
 
-.. This TOC defines what goes in the top navbar
+PyBaMM is hosted on GitHub_. This page provides the *API*, or *developer
+documentation* for ``pybamm``.
+
+* :ref:`genindex`
+* :ref:`modindex`
+* :ref:`search`
+
+Quickstart
+=========================
+PyBaMM is available on GNU/Linux, MacOS and Windows.
+
+Using pip
+----------
+
+GNU/Linux and Windows
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. code:: bash
+
+   pip install pybamm
+
+macOS
+~~~~~~~~~~~~~~~~~~~~~~
+
+.. code:: bash
+
+   brew install sundials && pip install pybamm
+
+Using conda
+-------------
+PyBaMM is available as a conda package through the conda-forge channel.
+
+.. code:: bash
+
+   conda install -c conda-forge pybamm
+
+Optional solvers
+-----------------
+Following GNU/Linux and macOS solvers are optionally available:
+
+*  `scikits.odes <https://scikits-odes.readthedocs.io/en/latest/>`_ -based solver, see `Optional - scikits.odes solver <https://pybamm.readthedocs.io/en/latest/install/GNU-linux.html#optional-scikits-odes-solver>`_.
+*  `jax <https://jax.readthedocs.io/en/latest/notebooks/quickstart.html>`_ -based solver, see `Optional - JaxSolver <https://pybamm.readthedocs.io/en/latest/install/GNU-linux.html#optional-jaxsolver>`_.
+
+Installation
+============
+
 .. toctree::
    :maxdepth: 1
-   :hidden:
 
-   User Guide <source/user_guide/index>
-   source/api/index
-   source/examples/index
-   Contributing <source/user_guide/contributing>
+   install/GNU-linux
+   install/windows
+   install/windows-wsl
+   install/install-from-source
 
-**Version**: |version|
+API documentation
+====================
 
-**Useful links**:
-`Project Home Page <https://www.pybamm.org>`_ |
-`Installation <source/user_guide/installation/index.html>`_ |
-`Source Repository <https://github.com/pybamm-team/pybamm>`_ |
-`Issue Tracker <https://github.com/pybamm-team/pybamm/issues>`_ |
-`Discussions <https://github.com/pybamm-team/pybamm/discussions>`_
+.. module:: pybamm
 
-PyBaMM (Python Battery Mathematical Modelling) is an open-source battery simulation package
-written in Python. Our mission is to accelerate battery modelling research by
-providing open-source tools for multi-institutional, interdisciplinary collaboration.
-Broadly, PyBaMM consists of
+.. toctree::
+   :maxdepth: 2
 
-#. a framework for writing and solving systems of differential equations,
-#. a library of battery models and parameters, and
-#. specialized tools for simulating battery-specific experiments and visualizing the results.
+   source/expression_tree/index
+   source/models/index
+   source/parameters/index
+   source/geometry/index
+   source/meshes/index
+   source/spatial_methods/index
+   source/solvers/index
+   source/experiments/index
+   source/simulation
+   source/plotting/index
+   source/util
+   source/callbacks
+   source/citations
+   source/parameters_cli
+   source/batch_study
 
-Together, these enable flexible model definitions and fast battery simulations, allowing users to
-explore the effect of different battery designs and modeling assumptions under a variety of operating scenarios.
+Examples
+========
 
-.. grid:: 2
+Detailed examples can be viewed on the
+`GitHub examples page <https://github.com/pybamm-team/PyBaMM/tree/develop/examples/notebooks>`_,
+and run locally using ``jupyter notebook``, or online through
+`Google Colab <https://colab.research.google.com/github/pybamm-team/PyBaMM/blob/develop/>`_.
 
-   .. grid-item-card::
-      :img-top: _static/index-images/getting_started.svg
+Contributing
+============
 
-      User Guide
-      ^^^^^^^^^^
+There are many ways to contribute to PyBaMM:
 
-      The user guide is the best place to start learning PyBaMM. It contains an installation
-      guide, an introduction to the main concepts and links to additional tutorials.
+.. toctree::
+    :maxdepth: 1
 
-      +++
+    tutorials/add-parameter-values
+    tutorials/add-model
+    tutorials/add-spatial-method
+    tutorials/add-solver
 
-      .. button-ref:: source/user_guide/index
-         :expand:
-         :color: secondary
-         :click-parent:
-
-         To the user guide
-
-   .. grid-item-card::
-      :img-top: _static/index-images/examples.svg
-
-      Examples
-      ^^^^^^^^
-
-      Examples and tutorials can be viewed on the GitHub examples page,
-      which also provides a link to run them online through Google Colab.
-
-      +++
-
-      .. button-ref:: source/examples/index
-         :expand:
-         :color: secondary
-         :click-parent:
-
-         To the examples
-
-   .. grid-item-card::
-      :img-top: _static/index-images/api.svg
-
-      API Documentation
-      ^^^^^^^^^^^^^^^^^
-
-      The reference guide contains a detailed description of the functions,
-      modules, and objects included in PyBaMM. The reference describes how the
-      methods work and which parameters can be used.
-
-      +++
-
-      .. button-ref:: source/api/index
-         :expand:
-         :color: secondary
-         :click-parent:
-
-         To the API documentation
-
-   .. grid-item-card::
-      :img-top: _static/index-images/contributor.svg
-
-      Contributor's Guide
-      ^^^^^^^^^^^^^^^^^^^
-
-      Contributions to PyBaMM and its development are welcome! If you have ideas for
-      features, bug fixes, models, spatial methods, or solvers, we would love to hear from you.
-
-      +++
-
-      .. button-link:: source/user_guide/contributing.html
-         :expand:
-         :color: secondary
-         :click-parent:
-
-         To the contributor's guide
+Before contributing, please read the `Contribution Guidelines <https://github.com/pybamm-team/PyBaMM/blob/develop/CONTRIBUTING.md>`_.

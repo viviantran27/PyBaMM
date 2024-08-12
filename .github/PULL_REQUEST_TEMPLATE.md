@@ -12,13 +12,14 @@ Please add a line in the relevant section of [CHANGELOG.md](https://github.com/p
 - [ ] Optimization (back-end change that speeds up the code)
 - [ ] Bug fix (non-breaking change which fixes an issue)
 
+
 # Key checklist:
 
-- [ ] No style issues: `$ pre-commit run` (or `$ nox -s pre-commit`) (see [CONTRIBUTING.md](https://github.com/pybamm-team/PyBaMM/blob/develop/CONTRIBUTING.md#installing-and-using-pre-commit) for how to set this up to run automatically when committing locally, in just two lines of code)
-- [ ] All tests pass: `$ python run-tests.py --all` (or `$ nox -s tests`)
-- [ ] The documentation builds: `$ python run-tests.py --doctest` (or `$ nox -s doctests`)
+- [ ] No style issues: `$ flake8`
+- [ ] All tests pass: `$ python run-tests.py --unit`
+- [ ] The documentation builds: `$ cd docs` and then `$ make clean; make html`
 
-You can run integration tests, unit tests, and doctests together at once, using `$ python run-tests.py --quick` (or `$ nox -s quick`).
+You can run all three at once, using `$ python run-tests.py --quick`.
 
 ## Further checks:
 

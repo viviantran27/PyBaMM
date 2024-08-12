@@ -49,8 +49,6 @@ for l_n in thicknesses:
                 "Separator thickness [m]": l_s,
                 "Lower voltage cut-off [V]": 2.8,
                 "Upper voltage cut-off [V]": 4.7,
-                "Open-circuit voltage at 0% SOC [V]": 2.8,
-                "Open-circuit voltage at 100% SOC [V]": 4.7,
                 "Maximum concentration in negative electrode [mol.m-3]": 25000,
                 "Maximum concentration in positive electrode [mol.m-3]": 50000,
                 "Initial concentration in negative electrode [mol.m-3]": 12500,
@@ -71,8 +69,8 @@ for l_n in thicknesses:
         sol = model.default_solver.solve(model, t_eval)
         xpext = sol["X-averaged positive electrode extent of lithiation"]
         xnext = sol["X-averaged negative electrode extent of lithiation"]
-        xpsurf = sol["X-averaged positive particle surface concentration [mol.m-3]"]
-        xnsurf = sol["X-averaged negative particle surface concentration [mol.m-3]"]
+        xpsurf = sol["X-averaged positive particle surface concentration"]
+        xnsurf = sol["X-averaged negative particle surface concentration"]
         time = sol["Time [h]"]
         # Coulomb counting
         time_secs = sol["Time [s]"].entries

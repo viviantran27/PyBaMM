@@ -1,0 +1,273 @@
+# Use the interactive window to run code. need to restart jupyter server? kernal? whenever a change is made to the pybamm module? 
+# base (Python 3.9.12)
+import sys
+import os
+import numpy as np
+import pandas as pd
+import os
+from scipy import integrate
+import matplotlib.pyplot as plt
+sys.path.insert(0, r'c:\Users\Vivian\Dropbox (University of Michigan)\from_box\Research\PyBaMM\PyBaMM')
+sys.path.insert(0,os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath("__file__")))))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath("__file__"))))
+print(sys.path[0])
+import pybamm
+print(pybamm.__path__[0])
+import inspect
+plt.rcParams.update({
+    'text.usetex': True,
+    'font.family': 'serif',
+    'font.serif': 'Computer Modern',
+    'font.sans-serif': ['Computer Modern'],
+    'font.size': 11,
+})
+
+class ExternalCircuitResistanceFunction():
+    def __call__(self, variables):
+        I = variables["Current [A]"]
+        V = variables["Terminal voltage [V]"]
+        R_ext = pybamm.FunctionParameter("External resistance [Ohm]",  {"Time [s]": pybamm.t}) 
+        R_tab = pybamm.FunctionParameter("Tabbing resistance [Ohm]",  {"Time [s]": pybamm.t})
+        return V/I - (R_ext + R_tab)
+    
+from pybamm import exp, constants, Parameter
+
+
+def modified_graphite_diffusivity_PeymanMPM(sto, T):
+    # D_ref =  Parameter("Negative electrode diffusion coefficient [m2.s-1]")
+    D_ref = 8e-14
+    E_D_s = 42770
+    soc = (sto - 0)/(0.8321-0)
+    k = 1.12070451*soc + 0.09209274 # Ds_restart_rmseV_11_simultaneous_rest (updated exp C-rate) only exclude kn>9
+    return D_ref*k 
+
+def modified_NMC_diffusivity_PeymanMPM(sto, T):
+    D_ref =  8e-15
+    E_D_s = 18550
+    soc = (0.837-sto)/(0.837-0.034)
+    k =  4.7302281*soc**2  -4.5023245*soc + 1.26466141 # # Ds_restart_rmseV_11_simultaneous_rest (updated exp C-rate)
+    return D_ref *k
+
+solutions = []
+SOC_0 = 1
+SOC_name = SOC_0
+Q_nom = 4.6
+h = 0.72753047-0.05 #0.77996386
+Cp = 1.51997699 #1.94584251
+R_tab = pybamm.Parameter("Tabbing resistance [Ohm]")
+R_ext = pybamm.Parameter("External resistance [Ohm]")
+data_sets = []
+# R_tab_list =  [0.0085]#, 0.015] # 0.0085 (100%), 0.0078 (75%), 0.007? (50%)
+
+# load data import ESC data from file
+raw_data = pd.read_csv("ESC_"+  '100A' + "SOC_full.csv")
+esc_start = raw_data[-raw_data['Current Shunt']>1].index[0]
+esc_end = len(raw_data)
+# T_amb = np.mean(raw_data['Cell Temperature'][(raw_data.index < esc_start) & (raw_data['Cell Temperature'] >0)])
+data = raw_data[['Time (s)', 'Voltage (V)', 'Cell Temperature', 'Current Shunt', 'Force']].loc[esc_start:esc_end].copy()
+data['Current Shunt'] = -data['Current Shunt']
+data['Time (s)'] = data['Time (s)'] - data['Time (s)'].loc[esc_start]
+df_labels = ['t', 'V', 'Temp','I', 'F']
+data.set_axis(df_labels, axis=1, inplace=True)
+data['I_C'] = data.I/Q_nom 
+AhT_calculated = integrate.cumtrapz(abs(data.I), data.t-data.t.iloc[0])/3600
+AhT_calculated = np.append(AhT_calculated,AhT_calculated[-1])
+data['SOC'] = SOC_0 - AhT_calculated/Q_nom 
+T_amb = data.Temp.iloc[0]
+data_sets.append(data)
+
+options = {
+    # "thermal": "lumped",
+    # "decomposition": True, 
+    "operating mode": ExternalCircuitResistanceFunction(),
+}
+model = pybamm.lithium_ion.SPMe(options = options)
+chemistry = pybamm.parameter_sets.Tran2023
+# chemistry["electrolyte"] = "lipf6_Nyman2008"
+# chemistry["electrolyte"] = "LiPF6_Mohtat2020"
+param = pybamm.ParameterValues(chemistry)
+
+param.update({
+    "Tabbing resistance [Ohm]":  0.0086,#0.0041,D
+    "External resistance [Ohm]": 0.0067, # 0.0067
+    "Cell capacity [A.h]": Q_nom, #nominal
+    "Typical current [A]": Q_nom,
+    'Nominal cell capacity [A.h]': Q_nom,
+    "Negative electrode thickness [m]":62E-06*4.2/5,
+    "Positive electrode thickness [m]":67E-06*4.2/5,
+    "Lower voltage cut-off [V]": 0,
+    "Ambient temperature [K]":T_amb + 273.15,
+    "Initial temperature [K]": T_amb + 273.15,
+    "Negative tab width [m]":2.5e-2,
+    "Positive tab width [m]":2.5e-2,
+}, check_already_exists = False)
+
+V = model.variables["Terminal voltage [V]"]
+I = model.variables["Current [A]"]
+model.variables.update({
+    "Terminal voltage [V]": V - I*R_tab,
+    "Actual resistance [Ohm]":V/I,
+    }
+)
+
+dt = 0.1
+t_eval = np.arange(0, 15*60, dt)
+solver = pybamm.CasadiSolver(mode="safe", dt_max=1) #, extra_options_setup={"max_num_steps": 10000}
+sim = pybamm.Simulation(model, parameter_values = param, solver=solver) 
+solution = sim.solve( initial_soc=SOC_0, t_eval = t_eval)
+solutions.append(solution)
+
+# Add Dp
+param.update({
+    "Positive electrode diffusivity [m2.s-1]": modified_NMC_diffusivity_PeymanMPM,
+}, check_already_exists = False)
+solver = pybamm.CasadiSolver(mode="safe", dt_max=1) #, extra_options_setup={"max_num_steps": 10000}
+sim = pybamm.Simulation(model, parameter_values = param, solver=solver) 
+solution = sim.solve( initial_soc=SOC_0, t_eval = t_eval)
+solutions.append(solution)
+
+# Add Dn
+param.update({
+    "Negative electrode diffusivity [m2.s-1]": modified_graphite_diffusivity_PeymanMPM,
+}, check_already_exists = False)
+solver = pybamm.CasadiSolver(mode="safe", dt_max=1) #, extra_options_setup={"max_num_steps": 10000}
+sim = pybamm.Simulation(model, parameter_values = param, solver=solver) 
+solution = sim.solve( initial_soc=SOC_0, t_eval = t_eval)
+solutions.append(solution)
+
+# Plot effect of concentration dependence
+labels = ["Constant $D_p$ and $D_n$", "$D_p(c_s)$", "$D_p(c_s)$ and $D_n(c_s)$"]
+
+fig, ax = plt.subplots(6,1, figsize=(4,10), gridspec_kw = {'wspace':0.3, 'hspace':0.2}) # layout="constrained",
+ax = ax.T.flatten()
+
+linestyles = ['--',':','-.']*2
+sim_colors = ['g','b','r']
+
+t_transition = []
+for l, solution in enumerate(solutions[0::]):
+    print(labels[l])
+    t = solution["Time [s]"].entries
+    x = solution["x [m]"].entries[:, 0]
+    x_plot = t
+    xlabel = "Time [s]"
+    data_color = 'k' 
+    sim_color = sim_colors[l]
+    sim_ls = linestyles[l]
+
+    # LOG TIME PLOTS (RIGHT COLUMN)
+    I = solution['C-rate']
+    if l ==0:
+        ax[0].semilogx(data.t,data.I/param['Nominal cell capacity [A.h]'], label='Data',color = data_color)
+    ax[0].semilogx(x_plot, I(t), linestyle=sim_ls, color = sim_color, label=labels[l])
+    # ax[0].set_xlabel(xlabel)
+    ax[0].set_ylabel('C-rate [A/Ah]',labelpad=0)
+    ax[0].set_ylim([0,51])
+    # ax[0].set_title("Log Time")
+    ax[0].set_xlim([0,t[-1]])
+
+    V = solution['Terminal voltage [V]']
+    if l ==0:
+        ax[1].plot(data.t, data.V,color = data_color)
+    ax[1].semilogx(x_plot, V(t),linestyle=sim_ls, color = sim_color)
+    ax[1].semilogx(x_plot, V(t),linestyle=sim_ls, color = sim_color)
+    # ax[1].set_xlabel(xlabel)
+    ax[1].set_ylabel('Terminal voltage [V]',labelpad=0)
+    ax[1].set_ylim([0,2])
+    ax[1].set_xlim([0,t[-1]])
+
+    soc = SOC_0 - integrate.cumtrapz(I(t),t)/3600
+    soc = np.insert(soc,0,SOC_0)
+    if l ==0:
+        ax[2].semilogx(data.t, data.SOC,color = data_color, label = 'Data')
+    ax[2].semilogx(x_plot, soc,linestyle=sim_ls, color = sim_color, label = labels[l]) 
+    # ax[2].set_xlabel(xlabel)
+    ax[2].set_ylabel('SOC',labelpad=0)
+    ax[2].set_xlim([0,t[-1]])
+
+    if l  == len(solutions)-1:
+        c_e_p= solution['Positive electrolyte concentration']
+        ax[3].semilogx(x_plot, c_e_p (t=t, x = x[-1]),color = sim_color, linestyle=sim_ls ) 
+        ax[3].semilogx([x_plot[0],x_plot[-1]*100], [0]*2, color = 'k', linewidth=0.5)
+        ax[3].set_ylabel('$c_{e,p}$',labelpad=0)
+        ax[3].set_xlim([0,t[-1]])
+
+        c_s_p_surf = solution['Positive particle surface concentration']
+        ax[4].semilogx(x_plot, c_s_p_surf(t=t, x=x[-1]),color = sim_color, linestyle=sim_ls  )  # can evaluate at arbitrary x (single representative particle)
+        ax[4].set_ylabel('$c_{s,surf,p}$',labelpad=0)
+
+        c_s_n_surf = solution['Negative particle surface concentration']
+        ax[5].semilogx(x_plot, c_s_n_surf(t=t, x=x[0]),color = sim_color, linestyle=sim_ls  )  # can evaluate at arbitrary x (single representative particle)
+        ax[5].set_xlabel(xlabel)
+        ax[5].set_ylabel('$c_{s,surf,n}$',labelpad=0)
+
+    # plot transition lines
+    c = 'grey'
+    if l  == len(solutions)-1:
+        t_transition.append(t[np.where(c_e_p (t=t, x = x[-1]) <=0)[0][0]]) # cep first =0
+        t_transition.append(t[np.where(c_s_p_surf (t=t, x = x[-1]) >= 0.90)[0][0]]) # cep first =0
+        t_transition.append(t[np.where(c_s_n_surf (t=t, x = x[0]) <=1e-3)[0][0]]) # cep first =0
+    
+        #for each subplot
+        for i, axs in enumerate(fig.get_axes()):
+            ylims = axs.get_ylim() 
+            if i<3:            
+                for r, t_trans in enumerate(t_transition):
+                    axs.semilogx([t_trans]*2, list(ylims), color = c, linestyle = ':')
+                    axs.annotate(str(r+1), xy=(t_trans, np.diff(ylims)*0.03+ ylims[0]), color = c)
+            else: 
+                t_trans = t_transition[i-3]
+                axs.semilogx([t_trans]*2, list(ylims), color = c, linestyle = ':')
+                if i in [3,5]:
+                    axs.annotate(str(i-2), xy=(t_trans, np.diff(ylims)*0.90+ ylims[0]), color = c)
+                else:     
+                    axs.annotate(str(i-2), xy=(t_trans, np.diff(ylims)*0.03+ ylims[0]), color = c)
+
+            axs.set_ylim(ylims) # keep original limits
+            axs.semilogx([80]*2, list(ylims), color = 'm', linestyle = ':')
+            axs.annotate('Vent', xy=(90, np.diff(ylims)*0.50+ ylims[0]), color = 'm', rotation=-90) #
+            axs.set_ylim(ylims) # keep original limits
+
+        # ax[0].annotate('Linear time', xy=(90,), color = 'm', rotation=-90) #
+
+    if l  == len(solutions)-1:
+        ax2=ax[3].twinx()
+        # j0p = solution['Positive electrode exchange current density [A.m-2]']
+        # p4, = ax2.semilogx(x_plot, j0p (t=t, x = x[-1]),color = 'darkgoldenrod',linestyle=sim_ls )
+        j0p = solution['X-averaged positive electrode exchange current density [A.m-2]']
+        p4, = ax2.semilogx(x_plot, j0p (t=t),color = 'darkgoldenrod',linestyle=sim_ls )
+        ax2.yaxis.label.set_color(p4.get_color())
+        ax2.tick_params(axis='y', colors=p4.get_color())
+        ax2.spines.right.set_color(p4.get_color())
+        ax2.set_ylabel('$\overline{j}_{0,p}$ [A.m-2]',labelpad=1)
+
+        ax4=ax[4].twinx()
+        rp = solution["r_p [m]"].entries[:, 0]
+        Dp = solution['X-averaged positive particle effective diffusivity [m2.s-1]'](t=t, r=rp[-1])[0,:] 
+        p6, = ax4.semilogx(x_plot, Dp, color = 'darkgoldenrod',linestyle=sim_ls )
+        ax4.set_ylabel('$D_{p, surf}$ [m2.s-1]',labelpad=1)
+        ax4.yaxis.label.set_color(p6.get_color())
+        ax4.tick_params(axis='y', colors=p6.get_color())
+        ax4.spines.right.set_color(p6.get_color())
+
+        ax3=ax[5].twinx()
+        j0n = solution['Negative electrode exchange current density [A.m-2]']
+        p5, = ax3.semilogx(x_plot, j0n (t=t, x = x[0]),color = 'darkgoldenrod',linestyle=sim_ls )
+        ax3.set_ylabel('$j_{0,n}$ [A.m-2]',labelpad=1)
+        ax3.yaxis.label.set_color(p5.get_color())
+        ax3.tick_params(axis='y', colors=p5.get_color())
+        ax3.spines.right.set_color(p5.get_color())
+
+
+print(t_transition)
+
+handles, labels = ax[0].get_legend_handles_labels()
+# plt.legend(labels, bbox_to_anchor=(1.02, 0.1), loc='upper center', borderaxespad=0)
+# ax[0].legend(labels, fancybox=True, ncol=2, bbox_to_anchor=(0.46, 1.62),loc='upper center') 
+fig.legend(handles, labels, loc='upper center', prop={'size': 10}, ncol = 2, bbox_to_anchor=(0.5, 0.95), fancybox=True) #ncol=len(labels)
+plt.xlim([t_eval[0],t_eval[-1]])
+plt.tight_layout()
+# plt.rcParams['pdf.fonttype'] = 42
+# plt.rcParams['ps.fonttype'] = 42
+plt.savefig('./figs/effect_D_c_long.eps', format='eps', dpi = 300)
+plt.show()

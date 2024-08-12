@@ -41,7 +41,7 @@ plot = pybamm.QuickPlot(
         "Negative electrode potential [V]",
         "Electrolyte potential [V]",
         "Positive electrode potential [V]",
-        "Voltage [V]",
+        "Terminal voltage [V]",
     ],
     time_unit="seconds",
     spatial_unit="um",

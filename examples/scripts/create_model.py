@@ -1,5 +1,5 @@
 # This script is intended to be a stripped back version of the
-# 'docs/source/examples/notebooks/create-model.ipnb' so for more details please see
+# 'examples/notebooks/create-model.ipnb' so for more details please see
 # that notebook
 
 import pybamm
@@ -113,7 +113,7 @@ t = np.linspace(0, 1, 100)
 solution = solver.solve(model, t)
 
 # Extract output variables
-L_out = solution["SEI thickness [m]"]
+L_out = solution["SEI thickness"]
 
 # plot
 plt.plot(solution.t, L_out(solution.t))

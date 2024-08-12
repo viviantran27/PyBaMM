@@ -31,7 +31,7 @@ model.boundary_conditions = {
         "right": (pybamm.Scalar(0), "Dirichlet"),
     }
 }
-model.initial_conditions = {T: 2 * x - x**2}
+model.initial_conditions = {T: 2 * x - x ** 2}
 
 # Add desired output variables
 model.variables = {"Temperature": T, "Heat flux": N, "Heat source": Q}
@@ -70,19 +70,19 @@ k_val = param["Thermal diffusivity"]  # extract value of diffusivity
 
 # Fourier coefficients
 def q(n):
-    return (8 / (n**2 * np.pi**2)) * np.sin(n * np.pi / 2)
+    return (8 / (n ** 2 * np.pi ** 2)) * np.sin(n * np.pi / 2)
 
 
 def c(n):
-    return (16 / (n**3 * np.pi**3)) * (1 - np.cos(n * np.pi))
+    return (16 / (n ** 3 * np.pi ** 3)) * (1 - np.cos(n * np.pi))
 
 
 def b(n):
-    return c(n) - 4 * q(n) / (k_val * n**2 * np.pi**2)
+    return c(n) - 4 * q(n) / (k_val * n ** 2 * np.pi ** 2)
 
 
 def T_n(t, n):
-    return (4 * q(n) / (k_val * n**2 * np.pi**2)) + b(n) * np.exp(
+    return (4 * q(n) / (k_val * n ** 2 * np.pi ** 2)) + b(n) * np.exp(
         -k_val * (n * np.pi / 2) ** 2 * t
     )
 
@@ -119,7 +119,9 @@ for i, t in enumerate(plot_times):
         color=color,
         label="Numerical" if i == 0 else "",
     )
-    plt.plot(xx, T_exact(xx, t), "-", color=color, label=f"Exact (t={plot_times[i]})")
+    plt.plot(
+        xx, T_exact(xx, t), "-", color=color, label="Exact (t={})".format(plot_times[i])
+    )
 plt.xlabel("x", fontsize=16)
 plt.ylabel("T", fontsize=16)
 plt.legend()

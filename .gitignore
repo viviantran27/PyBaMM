@@ -1,23 +1,27 @@
+# Custom
+rough.ipynb
+gmproj/extra/
+PybGMDeg/
+PyGMDeg/
+Gpyvenv/
 *.txt
 *.pdf
 *.tmp
 *.png
-*.gif
+*.jpg
 /local/
 *.DS_Store
 *.mat
 *.csv
-*.hidden
-*.pkl
 
 # don't ignore important .txt and .csv files
 !requirements*
 !LICENSE.txt
 !CMakeLists.txt
-!src/pybamm/CITATIONS.bib
-!src/pybamm/input/**/*.csv
-!tests/unit/test_parameters/*.csv
+!pybamm/CITATIONS.txt
+!pybamm/input/**/*.csv
 !benchmarks/benchmark_images/*.png
+!fast_discharge/**/*.csv
 
 # running files
 *.pyc
@@ -42,7 +46,9 @@ input/*
 !input/drive_cycles
 
 # keep images required by notebooks
-!docs/examples/notebooks/creating_models/SEI.png
+!examples/notebooks/Creating%20Models/SEI.png
+!tuning_summary.png
+!degradation_model/tuning_code/data/*
 
 # simulation outputs
 out/
@@ -64,7 +70,10 @@ dist/
 coverage.xml
 htmlcov/
 
-# virtual environment
+# black setup file seems to make Travis CI fail
+pyproject.toml
+
+# virtual enviroment
 env/
 venv/
 venv3.5/
@@ -76,7 +85,6 @@ lib64
 share/
 pyvenv.cfg
 .vscode
-.ruff_cache/
 
 # sundials
 sundials
@@ -110,13 +118,13 @@ setup.log
 # test
 test.c
 test.json
-.pytest_cache/
+GMJULY2022*
 
 # tox
 .tox/
 
-# nox
-.nox/
+# julia
+Manifest.toml
 
 # vcpkg
 vcpkg_installed/
@@ -124,16 +132,3 @@ vcpkg_installed/
 # benchmarks
 html/
 results/
-
-# expression tree images for notebooks in docs
-!docs/source/examples/notebooks/expression_tree/*.png
-
-# do not ignore SPM images for notebooks in docs
-!docs/source/examples/notebooks/models/*.png
-
-# do not ignore images in _static folder in docs
-!docs/_static/favicon/favicon.png
-!docs/_static/*.png
-
-# tests
-test_callback.log

@@ -48,7 +48,7 @@ for i, model in enumerate(models):
 
 # plot
 output_variables = [
-    "Voltage [V]",
+    "Terminal voltage [V]",
     "Negative current collector potential [V]",
     "Positive current collector potential [V]",
 ]

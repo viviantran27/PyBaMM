@@ -1,15 +1,8 @@
 import pybamm
-from benchmarks.benchmark_utils import set_random_seed
 import numpy as np
 
 
 class MemCreateExpression:
-    R: pybamm.Parameter
-    model: pybamm.BaseModel
-
-    def setup(self):
-        set_random_seed()
-
     def mem_create_expression(self):
         self.R = pybamm.Parameter("Particle radius [m]")
         D = pybamm.Parameter("Diffusion coefficient [m2.s-1]")
@@ -38,12 +31,8 @@ class MemCreateExpression:
         return self.model
 
 
-class MemParameteriseModel(MemCreateExpression):
-    r: pybamm.SpatialVariable
-    geometry: dict
-
+class MemParameteriseModel:
     def setup(self):
-        set_random_seed()
         MemCreateExpression.mem_create_expression(self)
 
     def mem_parameterise(self):
@@ -69,9 +58,8 @@ class MemParameteriseModel(MemCreateExpression):
         return param
 
 
-class MemDiscretiseModel(MemParameteriseModel):
+class MemDiscretiseModel:
     def setup(self):
-        set_random_seed()
         MemCreateExpression.mem_create_expression(self)
         MemParameteriseModel.mem_parameterise(self)
 
@@ -88,9 +76,8 @@ class MemDiscretiseModel(MemParameteriseModel):
         return disc
 
 
-class MemSolveModel(MemDiscretiseModel):
+class MemSolveModel:
     def setup(self):
-        set_random_seed()
         MemCreateExpression.mem_create_expression(self)
         MemParameteriseModel.mem_parameterise(self)
         MemDiscretiseModel.mem_discretise(self)
