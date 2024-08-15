@@ -16,7 +16,7 @@ disp([datestr(now, 'HH:MM:SS'),'  Model set up']);
 param_file = 'sim_settings.csv';
 
 % The simulink model name
-mdl ='SPMe_ESC_validation_simulink'; %'pack_2s1p';% 'pybamm_SPMe'; %
+mdl ='parallel_SPMe_ESC'; %'pack_2s1p';% 'pybamm_SPMe'; %
 
 % Regenerate the casadi objects
 py.pybamm_setup_validation.main(); %_external_T.main()
@@ -25,8 +25,8 @@ py.pybamm_setup_validation.main(); %_external_T.main()
 param = table2struct(readtable(param_file));
 T_amb = param.T_amb; %25
 V_min = 0;
-R_tab = 0.0086; %{'100A':  0.0086, '100B':0.0049, '75':0.0078+0.0005, '50':0.007}
-R_esc = 0.0067; %{'100A':  0.0067, '100B':0.004, '75':0.0067-0.0005, '50':0.0067}
+R_tab = 0.0086*2; %{'100A':  0.0086, '100B':0.0049, '75':0.0078+0.0005, '50':0.007}
+R_esc = 0.0067*2; %{'100A':  0.0067, '100B':0.004, '75':0.0067-0.0005, '50':0.0067}
 t_end = 60*1;
 
 % Load venting parameters and T_amb
@@ -63,7 +63,7 @@ if ~isempty(sol.ErrorMessage)
 end
 
 %% plot results and compare to pybamm 
-pybamm_sol = readtable('.\pybamm_ESC_sim_results\pybamm_100A_ESC_sim_results.csv');
+% pybamm_sol = readtable('.\pybamm_ESC_sim_results\pybamm_100A_ESC_sim_results.csv');
 
 figure(1)
 t=sol.tout;
@@ -71,36 +71,36 @@ I = squeeze(sol.I.Data);
 V = squeeze(sol.V.Data);
 T = squeeze(sol.T.Data);
 Q = squeeze(sol.Q.Data);
-ce = squeeze(sol.ce.Data);
-cs_n = squeeze(sol.cs_n.Data);
-cs_p = squeeze(sol.cs_p.Data);
+% ce = squeeze(sol.ce.Data);
+% cs_n = squeeze(sol.cs_n.Data);
+% cs_p = squeeze(sol.cs_p.Data);
 x=linspace(0,1,size(ce,1));
 r=linspace(0,1,size(cs_n,1));
 
-tiledlayout(3,2,'TileSpacing','tight', 'TileIndexing','columnmajor');
+tiledlayout(4,1,'TileSpacing','tight', 'TileIndexing','columnmajor');
 nexttile;
 hold on 
-plot(pybamm_sol.t, pybamm_sol.I, '-k', DisplayName='PyBaMM')
-plot(t, I, '--r', DisplayName='Simulink')
+% plot(pybamm_sol.t, pybamm_sol.I, '-k', DisplayName='PyBaMM')
+plot(t, I, DisplayName='Simulink')
 ylabel('Current [A]')
 xlabel('Time [s]')
 xlim([0,t(end)])
-ylim([0, 250])
+% ylim([0, 250])
 legend
 
 nexttile;
 hold on 
-plot(pybamm_sol.t, pybamm_sol.V, '-k')
-plot(t, V, '--r')
+% plot(pybamm_sol.t, pybamm_sol.V, '-k')
+plot(t, V)
 ylabel('Measured voltage [V]')
 xlabel('Time [s]')
 xlim([0,t(end)])
-ylim([0,2.5])
+% ylim([0,2.5])
 
 nexttile;
 hold on 
-plot(pybamm_sol.t, pybamm_sol.T-273.15, '-k')
-plot(t, T-273.15, '--r')
+% plot(pybamm_sol.t, pybamm_sol.T-273.15, '-k')
+plot(t, T-273.15)
 xlim([0,t(end)])
 ylabel('Temperature [degC]')
 xlabel('Time [s]')
@@ -110,22 +110,22 @@ nexttile;
 % ylabel('$c_\mathrm{e}$')
 % legend(string(t(length(ce))) + 's', NumColumns=3, Location="ne")
 % xlabel('x')
-plot(t, Q,  '--r')
+plot(t, Q)
 xlim([0,t(end)])
-ylim([0,5e7])
+% ylim([0,5e7])
 ylabel('Q [W.m-3]')
 
-nexttile;
-plot(r, cs_n(:,length(cs_n)))
-ylabel('$c_\mathrm{s,n}$')
-xlabel('r')
-legend(string(t(length(ce))) + 's', NumColumns=3, Location="ne")
-
-
-nexttile;
-plot(r, cs_p(:,length(cs_p)))
-ylabel('$c_\mathrm{s,p}$')
-xlabel('r')
+% nexttile;
+% plot(r, cs_n(:,length(cs_n)))
+% ylabel('$c_\mathrm{s,n}$')
+% xlabel('r')
+% legend(string(t(length(ce))) + 's', NumColumns=3, Location="ne")
+% 
+% 
+% nexttile;
+% plot(r, cs_p(:,length(cs_p)))
+% ylabel('$c_\mathrm{s,p}$')
+% xlabel('r')
 
 set(findall(gcf,'type','line'),'linewidth',2)
 set(findall(gcf,'type','axes'),'fontsize',12)

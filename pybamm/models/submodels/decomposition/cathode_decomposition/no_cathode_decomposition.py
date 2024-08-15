@@ -43,28 +43,5 @@ class NoCathodeDecomposition(pybamm.BaseSubModel):
             "Outer section cathode decomposition reaction rate": default,
             "Outer section cathode decomposition heating": default,
             "Outer section cathode decomposition heating [W.m-3]": default,
-
-        variables = {
-            "Degree of conversion of cathode decomposition": default,
-            "Cathode decomposition reaction rate [s-1]": default,
-            "Cathode decomposition reaction rate": default,
-            "Cathode decomposition heating": default,
-            "Cathode decomposition heating [W.m-3]": default,
-
-            "Core section cathode decomposition reaction rate [s-1]": default,
-            "Core section cathode decomposition reaction rate": default,
-            "Core section cathode decomposition heating": default,
-            "Core section cathode decomposition heating [W.m-3]": default,
-
-            "Middle section cathode decomposition reaction rate [s-1]": default,
-            "Middle section cathode decomposition reaction rate": default,
-            "Middle section cathode decomposition heating": default,
-            "Middle section cathode decomposition heating [W.m-3]": default,
-
-            "Outer section cathode decomposition reaction rate [s-1]": default,
-            "Outer section cathode decomposition reaction rate": default,
-            "Outer section cathode decomposition heating": default,
-            "Outer section cathode decomposition heating [W.m-3]": default,
-
         }
         return variables
