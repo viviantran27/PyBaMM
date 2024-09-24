@@ -54,6 +54,7 @@ R_esc = R_escs(param.soc_name);
 
 
 % Run the simulation
+t_end = 5*60;
 tic;
 N_sum = 1;
 in(1:N_sum) = Simulink.SimulationInput(mdl);

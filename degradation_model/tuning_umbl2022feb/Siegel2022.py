@@ -149,6 +149,42 @@ def NMC_diffusivity_PeymanMPM(sto, T):
 
     return D_ref * arrhenius
 
+def graphite_ocp_Siegel2022(sto):
+    # sto = sto #+ 0.002
+    UN_VAR1=[-3.54049607669295,0.00708244334002580,0.00774192469266890, 
+    4.26893363759502,-0.0164043013936254,-4.05401806281007, 
+    0.0426131798578846,-3.19444157210193,0.0503611972394406, 
+    0.170261138869476,0.147567301186300,0.0382504766072001, 
+    0.519446050169237,1.10619736534131,0.0145120887836752, 
+    -0.0816693980616928,-0.0119716740325398,-0.00723858739498425, 
+    -0.0877677643234304,0.0238786887373114,0.0452264234816890, 
+    -0.00713413913218840]
+
+    UN_VAR2=[-2.74740857138957,0.00443109156371119,0.0140962302368559, 
+    3.10348817994589,-0.0128948359572101,-4.36083705035769, 
+    0.0643328570911640,-3.88703879262989,0.0631828141079049, 
+    0.213012646348329,0.174731100372283,0.0577291579271751, 
+    0.518982409471130,1.21588542781399,0.0150389780167150, 
+    -0.0584524226380269,-0.00702394962468186,-0.0342305292048576, 
+    -0.0619846453717142,0.0123530018211038,0.0873816814557679, 
+    -0.00843321991754559]
+
+    p_eq = UN_VAR1[0:8]
+    a_eq = UN_VAR1[8:15]
+    b_eq = UN_VAR1[15:]
+    u_eq2=p_eq[-1]+p_eq[-2]*np.exp((sto-a_eq[-1])/b_eq[-1])
+    for i in range(6):
+        u_eq2 += p_eq[i]*np.tanh((sto-a_eq[i])/b_eq[i])
+
+    p_eq = UN_VAR2[0:8]
+    a_eq = UN_VAR2[8:15]
+    b_eq = UN_VAR2[15:]
+    u_eq1=p_eq[-1]+p_eq[-2]*np.exp((sto-a_eq[-1])/b_eq[-1])
+    for i in range(6):
+        u_eq1 += p_eq[i]*np.tanh((sto-a_eq[i])/b_eq[i])
+    u_eq = u_eq1*0.4 + u_eq2*0.6 #(u_eq1 + u_eq2)/2#-0.01 #<-----EDIT
+
+    return u_eq
 
 def NMC_ocp_Siegel2022(sto):
     """
@@ -172,17 +208,21 @@ def NMC_ocp_Siegel2022(sto):
         -3313.239062 * (sto ** 3) +586.285653 * (sto ** 2) 
         -59.774094 * (sto ** 1) +7.408439 
         )
-    # u_eq = (
-    #     4.3452
-    #     - 1.6518 * sto
-    #     + 1.6225 * (sto**2)
-    #     - 2.0843 * (sto**3)
-    #     + 3.5146 * (sto**4)
-    #     - 2.2166 * (sto**5)
-    #     - 0.5623e-4 * pybamm.exp(109.451 * sto - 100.006)
-    # )
+    
+    # # Positive OCP for  _calc_up
+    # P1 = -2253.9364
+    # P2 = 10756.6071
+    # P3 = -21755.8183
+    # P4 = 24277.2504
+    # P5 = -16299.5659
+    # P6 = 6728.9153
+    # P7 = -1670.2785
+    # P8 = 233.2321
+    # P9 = -18.3223#*0.9979
+    # P10 = 5.3936#-0.01#*0.999
+    # u_eq2 = P1*(sto**9) + P2*(sto**8) + P3*(sto**7) + P4*(sto**6) + P5*(sto**5) + P6*(sto**4) + P7*(sto**3) + P8*(sto**2) + P9*sto + P10
 
-    return u_eq
+    return u_eq #(u_eq1+ u_eq2)/2
 
 
 def NMC_electrolyte_exchange_current_density_PeymanMPM(c_e, c_s_surf, c_s_max, T):
@@ -412,7 +452,8 @@ def electrolyte_conductivity_Dix(c_e, T):
     # convert to S/m
     c_e_M = c_e / 1000
 
-    sigma_e = 1 * (
+    # Eq. 3 (and 25)
+    sigma_e = 1*(
         k_Kmax
         * (c_e_M / k_Cmax) ** k_a
         * pybamm.exp(k_P2 * (c_e_M - k_Cmax) ** 2 - k_P1 * (c_e_M - k_Cmax) / k_Cmax)
@@ -653,7 +694,28 @@ def cracking_rate_Ai2020(T_dim):
     arrhenius = np.exp(Eac_cr / pybamm.constants.R * (1 / T_dim - 1 / 298.15))
     return k_cr * arrhenius
 
+def P_sat_Tran2024(T):
+    """
+    Electrolyte saturation pressure as a function of temperature [K]
 
+    References
+    ----------
+    .. [1] 
+
+    Parameters
+    ----------
+    T: :class:`pybamm.Symbol`
+        Dimensional temperature
+
+    Returns
+    -------
+    :class:`pybamm.Symbol`
+        Electrolyte saturation pressure [kPa]
+    """
+    P_dmc = 10**(6.4338-1413.0/(T-44.25))
+    P_ec = 10**(6.4897-1836.57/(T-102.23))
+    P = P_ec*0.3 + P_dmc*0.7 
+    return P
 
 # Call dict via a function to avoid errors when editing in place
 def get_parameter_values():
@@ -770,7 +832,7 @@ def get_parameter_values():
         "Negative electrode conductivity [S.m-1]": 100.0,
         "Maximum concentration in negative electrode [mol.m-3]": 28746.0,
         "Negative electrode diffusivity [m2.s-1]": graphite_diffusivity_PeymanMPM,
-        "Negative electrode OCP [V]": graphite_ocp_PeymanMPM,
+        "Negative electrode OCP [V]": graphite_ocp_Siegel2022, #graphite_ocp_PeymanMPM, #
         "Negative electrode porosity": 0.2,
         "Negative electrode active material volume fraction": 0.7545,
         "Negative particle radius [m]": 13.5E-06,
@@ -870,6 +932,37 @@ def get_parameter_values():
         "Initial concentration in negative electrode [mol.m-3]": 48.8682,
         "Initial concentration in positive electrode [mol.m-3]": 31513.0,
         "Initial temperature [K]": 298.15,
+        # venting 
+        "Active material surface area [m2]": 0.009,
+        "Initial head space volume [m3]": 6.65e-06,
+        "Poron sheet thickness [m]":0.0024, #thickness of two sheets, 
+        "Initial cell compression stress [kPa]": 1.511989742044445e+01,
+        "Young's modulus of the poron sheet [kPa]": 190, 
+        "Atmospheric pressure [kPa]": 101.325,
+        "Thermal expansion coefficient of the cell [m.K-1]": 1.1e-6,
+        "Critical venting pressure [kPa]": 1.587731e02,
+        # electrolyte vaporization  (unused except P_sat)
+        "Electrolyte saturation pressure [kPa]":P_sat_Tran2024,
+        "Molar mass of electrolyte [kg.mol-1]": 0.099295, # EC:EMC 3:7 88.06*.3+104.11*0.7,
+        "Density of electrolyte [kg.m-3]": 1100, #from Cell Press electrolyte costs supplemental material,
+        "Initial amount of electrolyte [kg]": 0.020, #Assume 4g electrolyte for every Ah
+        # positive electrode decomposition
+        "Frequency factor for cathode decomposition [s-1]":2.55E14, 
+        "Activation energy for cathode decomposition [J]":2.64E-19,
+        "Enthalpy of cathode decomposition [J.kg-1]":790000, 
+        "Initial degree of conversion of cathode decomposition": 0.04,
+        # negative electrode decomposition
+        "Frequency factor for anode decomposition [s-1]": 2.5E13, # Cai 2019,
+        "Activation energy for anode decomposition [J]":2.24E-19, #Cai 2019,
+        "Enthalpy of anode decomposition [J.kg-1]":1714000, #Cai 2019,
+        # SEI decomposition
+        "Frequency factor for SEI decomposition [s-1]": 1.67E15, #Coman 2017 (2.25E15 in Cai 2019 is wrong),
+        "Activation energy for SEI decomposition [J]":2.24E-19,# Cai 2019,
+        "Enthalpy of SEI decomposition [J.kg-1]":257000, #Cai 2019,
+        "Initial fraction of Li in SEI": 0.15, #Cai 2019,
+        "Initial SEI thickness": 0.033, #Cai 2019,
+        "Mass of the negative electrode active material [kg]": 0.019107, #Cai 2019,
+        "Molar mass of negative electrode active material [kg.mol-1]": 0.072,# For C6,
         # citations
         "citations": ["OKane2022", "OKane2020", "Chen2020"],
         # "citation": "@book{Siegel2022, title={Jasons model reference manual}}",

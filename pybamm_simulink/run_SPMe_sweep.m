@@ -22,10 +22,10 @@ mdl ='SPMe_CC_simulink';
 
 % Read in settings and calculate some derived parameters
 ocv_init = 4.2;   % initial cell voltage
-t_end = 60*8;
+t_end = 60*60*110;
 param = table2struct(readtable('sim_settings.csv'));
 dt = param.dt; % needs to be the same as when generated pybamm casadi objects 
-V_min = 0;
+V_min = 3.0;
 % R = 8.3145; %J.mol-1.K-1
 % A = 0.009; %m2 (0.121*0.074)
 % DMC = [6.4338; 1413; -44.25]; %Antoine coeffs [A B C] 
@@ -49,7 +49,7 @@ V_min = 0;
 % sigma_0 = 1.5120e+04;
 
 % Run the simulations
-C_rates = 5:5:40;
+C_rates = 1/100; %5:5:40;
 for c=1:length(C_rates)
     tic;
     Q_nom = 4.6;
@@ -85,7 +85,7 @@ for i =1:length(sols)
     plot(t, V, DisplayName= string(C_rates(i))+'C')
     ylabel('Measured voltage [V]')
     xlabel('Time [s]')
-    ylim([-0.1,4])
+    % ylim([-0.1,4])
     
     ax2 = nexttile(2);
     hold on 

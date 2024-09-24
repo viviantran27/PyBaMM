@@ -133,6 +133,7 @@ def main(plot=False):
     settings = pd.read_csv('sim_settings.csv').to_dict(orient='index')[0]
     dt = settings['dt']
     soc_init = settings['soc_init']
+    Q_nom = 4.6 #Ah
 
     # create model
     R_tab = pybamm.Parameter("Tabbing resistance [Ohm]")
@@ -186,6 +187,8 @@ def main(plot=False):
         "Positive electrode exchange-current density [A.m-2]": modified_NMC_electrolyte_exchange_current_density_PeymanMPM,
         "Negative electrode OCP entropic change [V.K-1]":0,
         "Positive electrode OCP entropic change [V.K-1]":0,
+        "Electrode height [m]": 1.0,
+        "Electrode width [m]": 0.205*Q_nom/4.6,
         # "Negative electrode OCP [V]": modified_graphite_ocp,
     }, check_already_exists = False)
     # liion = pybamm.LithiumIonParameters()
@@ -213,7 +216,7 @@ def main(plot=False):
     solver = pybamm.CasadiSolver(mode='safe')
     sim = pybamm.Simulation(model, parameter_values=param, solver=solver)
     inputs = {
-        "Current function [A]":4.6*40,
+        "Current function [A]":Q_nom,
         }
     t_eval = np.linspace(0, 1e-6, 3)
     sim.solve(t_eval=t_eval, inputs=inputs, initial_soc=soc_init)

@@ -2,10 +2,10 @@ clear; close all;
 clc; 
 
 % casadi path setup
-p = py.sys.path;
-p.insert(int32(0), 'c:\users\vivian\anaconda3\lib\site-packages (3.5.5)')% path to python casadi 
-addpath('.\casadi-windows-matlabR2016a-v3.5.5') % path to matlab casadi 
-casadi_solver = py.importlib.import_module('casadi'); % import python casadi
+% p = py.sys.path;
+% p.insert(int32(0), 'c:\users\vivian\anaconda3\lib\site-packages (3.5.5)')% path to python casadi 
+addpath('C:\Users\Vivian\University of Michigan Dropbox\Vivian Tran\from_box\Research\PyBaMM\PyBaMM\pybamm_simulink\casadi-windows-matlabR2016a-v3.5.5') % path to matlab casadi 
+% casadi_solver = py.importlib.import_module('casadi'); % import python casadi
 
 %% Model setup and sim
 disp(string(datetime, 'HH:mm:SS')+'  Model set up');
@@ -14,12 +14,12 @@ mdl ='SPMe_CC';
 
 % Read in settings and calculate some derived parameters
 ocv_init = 4.2;   % initial cell voltage
-t_end = 60*8;
-dt = 0.1; % needs to be the same as when generated pybamm casadi objects 
+t_end = 10;
+dt = 0.05; % needs to be the same as when generated pybamm casadi objects 
 V_min = 0;
 
 % Run the simulations
-C_rates = 5:5:40;
+C_rates = 1/100;
 for c=1:length(C_rates)
     tic;
     Q_nom = 4.6;
