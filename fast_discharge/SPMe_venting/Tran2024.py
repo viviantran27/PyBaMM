@@ -58,61 +58,35 @@ def NMC_ocp_PeymanMPM(sto):
 
 def modified_graphite_diffusivity_PeymanMPM(sto, T):
     D_ref =  Parameter("Negative electrode diffusion coefficient [m2.s-1]")
-    # D_ref = 16*5.0 * 10 ** (-15)
-    # E_D_s = 42770
-    # arrhenius = exp(E_D_s / constants.R * (1 / 298.15 - 1 / T))
     soc = (sto - 0)/(0.8321-0)
-    k = 1.12070451*soc + 0.09209274 # Ds_restart_rmseV_11_simultaneous_rest (updated exp C-rate) only exclude kn>9
-
-    # soc_fit = np.array([0.931499472,0.862995346,0.79449311,0.725995244,0.657493658,0.588993969,0.520494998,0.246491535,0.177990605,0.109487916][-1:0:-1])
-    # k_fit = np.array([0.998960993,0.962562613,1.088848875,0.960830764,0.980577779,0.767837023,0.826562007,0.192714141,0.571586523,0.725658028][-1:0:-1])
-    # x = [soc]
-    # k = pybamm.Interpolant(soc_fit, k_fit, x, name=None, interpolator='linear', extrapolate=True, entries_string=None)
-    # k = pybamm.maximum(k,1)
-    return D_ref*k #*arrhenius # *(-0.9 * sto + 1)
+    k = 1.12070451*soc + 0.09209274 
+    return D_ref*k 
 
 def modified_NMC_diffusivity_PeymanMPM(sto, T):
     D_ref =  Parameter("Positive electrode diffusion coefficient [m2.s-1]")
-    # E_D_s = 18550
-    # arrhenius = exp(E_D_s / constants.R * (1 / 298.15 - 1 / T))
     soc = (0.837-sto)/(0.837-0.034)
-    k =  4.7302281*soc**2  -4.5023245*soc + 1.26466141 # Ds_restart_rmseV_11_simultaneous_rest (updated exp C-rate)
-    # soc_fit = np.array([0.931499472,0.862995346,0.79449311,0.725995244,0.657493658,0.588993969,0.520494998,0.451992894,0.383496394,0.31499461,0.246491535,0.109487916][-1:0:-1])
-    # k_fit = np.array([1.224990159,0.918644845,0.646317414,0.418199795,0.250350793,0.318672366,0.267289649,0.182154457,0.11139899,0.329794626,0.337200374,0.418978523][-1:0:-1])
-    # x = [soc]
-    # k = pybamm.Interpolant(soc_fit, k_fit, x, name=None, interpolator='linear', extrapolate=True, entries_string=None)
-    # k = pybamm.maximum(k,1)
-    return D_ref *k #*arrhenius
+    k =  4.7302281*soc**2  -4.5023245*soc + 1.26466141
+    return D_ref *k
 
 def modified_electrolyte_diffusivity_PeymanMPM(c_e, T):
-    # D_c_e = 5.35 * 10 ** (-10)
     D_c_e =  Parameter("Typical electrolyte diffusivity [m2.s-1]")
     return D_c_e
 
 def modified_electrolyte_conductivity_PeymanMPM(c_e, T):
-    # sigma_e = 1.3
     sigma_e = Parameter("Typical electrolyte conductivity [S.m-1]")
-    E_k_e = 34700
     return sigma_e
 
 
 def modified_NMC_electrolyte_exchange_current_density_PeymanMPM(c_e, c_s_surf, c_s_max, T):
     m_ref =  Parameter("Positive electrode reference exchange-current density [A.m-2(m3.mol)1.5]")
-    # m_ref = 4.824 * 10 ** (-6)  # (A/m2)(mol/m3)**1.5 - includes ref concentrations
-    E_r = 39570
-    arrhenius = exp(E_r / constants.R * (1 / 298.15 - 1 /T))
     return (
-        m_ref * c_e**0.5 * c_s_surf**0.5 * (c_s_max - c_s_surf) ** 0.5 #* arrhenius
+        m_ref * c_e**0.5 * c_s_surf**0.5 * (c_s_max - c_s_surf) ** 0.5
     )
 
 def modified_graphite_electrolyte_exchange_current_density_PeymanMPM(c_e, c_s_surf, c_s_max, T):
     m_ref =  Parameter("Negative electrode reference exchange-current density [A.m-2(m3.mol)1.5]")
-    # m_ref = 4*1.061 * 10 ** (-6)  # unit has been converted units are (A/m2)(mol/m3)**1.5 - includes ref concentrations
-    E_r = 37480
-    arrhenius = exp(E_r / constants.R * (1 / 298.15 - 1 / T))
-
     return (
-        m_ref * c_e**0.5 * c_s_surf**0.5 * (c_s_max - c_s_surf) ** 0.5 #*arrhenius
+        m_ref * c_e**0.5 * c_s_surf**0.5 * (c_s_max - c_s_surf) ** 0.5
     )
 
 def P_sat_Tran2024(T):
@@ -205,8 +179,8 @@ def get_parameter_values():
         "Positive current collector thickness [m]": 2.5e-05,
         "Electrode height [m]": 1.0,
         "Electrode width [m]": 0.205,
-        "Cell cooling surface area [m2]": 0.025549 * (3.49238e-05/6.3635E-5),#calculated Real dim ~[130mm×89mm×5.5mm], scaled to account for volume change between pybamm 2022 and 2024  
-        "Cell volume [m3]": 3.49238e-05, #3.92e-05, #6.3635E-5, #L*L_y*L_z (L includes ccs.  L_x doesn't)
+        "Cell cooling surface area [m2]": 0.025549 * (3.492e-05/6.363E-5*0.98),#calculated Real dim ~[130mm×89mm×5.5mm], scaled to account for volume change between pybamm 2022 and 2024  
+        "Cell volume [m3]": 3.492e-05, 
         "Negative current collector conductivity [S.m-1]": 5.96e7,
         "Positive current collector conductivity [S.m-1]": 3.55e7,
         "Negative current collector density [kg.m-3]": 8954.0,
@@ -226,7 +200,7 @@ def get_parameter_values():
         "Negative electrode OCP [V]": graphite_ocp_PeymanMPM,
         "Negative electrode porosity": 0.3,
         "Negative electrode active material volume fraction": 0.61,
-        "Negative particle radius [m]": 10E-06, #2.5e-06,
+        "Negative particle radius [m]": 10E-06,
         "Negative electrode Bruggeman coefficient (electrode)": 1.5,
         "Negative electrode Bruggeman coefficient (electrolyte)": 1.5,
         "Negative electrode transport efficiency": 0.16,
@@ -236,8 +210,8 @@ def get_parameter_values():
         "Negative electrode density [kg.m-3]": 3100.0,
         "Negative electrode specific heat capacity [J.kg-1.K-1]": 1100.0*Cps['100A'],
         "Negative electrode thermal conductivity [W.m-1.K-1]": 1.7,
-        "Negative electrode OCP entropic change [V.K-1]": 0, # graphite_entropic_change_PeymanMPM,
-        "Negative electrode reference exchange-current density [A.m-2(m3.mol)1.5]":4.244E-6, #1.061e-06,
+        "Negative electrode OCP entropic change [V.K-1]": 0, 
+        "Negative electrode reference exchange-current density [A.m-2(m3.mol)1.5]":4.244E-6, 
         "Negative electrode diffusion coefficient [m2.s-1]": 8.0E-14,
         # positive electrode
         "Positive electrode conductivity [S.m-1]": 100.0,
@@ -257,8 +231,8 @@ def get_parameter_values():
         "Positive electrode density [kg.m-3]": 3100.0,
         "Positive electrode specific heat capacity [J.kg-1.K-1]": 1100.0*Cps['100A'],
         "Positive electrode thermal conductivity [W.m-1.K-1]": 2.1,
-        "Positive electrode OCP entropic change [V.K-1]": 0,#NMC_entropic_change_PeymanMPM,
-        "Positive electrode diffusion coefficient [m2.s-1]":8.0E-15, # added
+        "Positive electrode OCP entropic change [V.K-1]": 0,
+        "Positive electrode diffusion coefficient [m2.s-1]":8.0E-15,
         "Positive electrode reference exchange-current density [A.m-2(m3.mol)1.5]": 4.824E-06,
         # separator
         "Separator porosity": 0.4,
